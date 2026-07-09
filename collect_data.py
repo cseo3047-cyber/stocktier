@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# STOCK.GG 전 종목 데이터 수집 (네이버 증권 모바일 API — 해외 서버에서도 동작)
+# STOCK.GG 전 종목 데이터 수집 v3 (네이버 증권 모바일 API)
+# 종목 + 지수(KOSPI/KOSDAQ) + 업종별 등락 + 테마 + 외인·기관 순매수
 # 결과물: data.js
 import json
 import re
@@ -31,10 +32,10 @@ def get_json(url, tries=3):
 
 
 def num(s):
-    """'22.47배' '46.55%' '12,372원' '-18,500' 'N/A' → float 또는 None"""
+    """'22.47배' '46.55%' '12,372원' '-18,500' '+971,031' 'N/A' → float 또는 None"""
     if s is None:
         return None
-    s = str(s).replace(",", "").replace("배", "").replace("%", "").replace("원", "").strip()
+    s = str(s).replace(",", "").replace("배", "").replace("%", "").replace("원", "").replace("+", "").strip()
     if s in ("", "N/A", "-", "null"):
         return None
     try:
@@ -44,7 +45,6 @@ def num(s):
 
 
 def listing(market):
-    """시가총액 순 전 종목 목록 (KOSPI 또는 KOSDAQ)"""
     out = []
     page = 1
     while page <= 40:
@@ -73,7 +73,7 @@ def listing(market):
 
 
 def detail(code):
-    """PER/PBR/배당/외인 + 직전 4거래일 등락률/전일 거래량"""
+    """PER/PBR/배당/외인지분 + 직전 4일 등락 + 전일 거래량 + 외인·기관 순매수"""
     j = get_json(f"https://m.stock.naver.com/api/stock/{code}/integration")
     if not j:
         return None
@@ -84,8 +84,9 @@ def detail(code):
     eps, bps = num(info.get("eps")), num(info.get("bps"))
     roe = round(eps / bps * 100, 1) if (eps is not None and bps and bps > 0) else 0.0
     forn = num(info.get("foreignRate"))
+    trends = j.get("dealTrendInfos") or []
     prevs, vol_prev = [], None
-    for d in (j.get("dealTrendInfos") or [])[:4]:
+    for d in trends[:4]:
         close, cmpv = num(d.get("closePrice")), num(d.get("compareToPreviousClosePrice"))
         if close is not None and cmpv is not None and (close - cmpv) != 0:
             prevs.append(round(cmpv / (close - cmpv) * 100, 2))
@@ -93,11 +94,16 @@ def detail(code):
             prevs.append(0.0)
         if vol_prev is None:
             vol_prev = int(num(d.get("accumulatedTradingVolume")) or 0)
-    return per, pbr, div, roe, forn, prevs, vol_prev
+    fbuy = obuy = None
+    if trends:
+        f0 = num(trends[0].get("foreignerPureBuyQuant"))
+        o0 = num(trends[0].get("organPureBuyQuant"))
+        fbuy = int(f0) if f0 is not None else None
+        obuy = int(o0) if o0 is not None else None
+    return per, pbr, div, roe, forn, prevs, vol_prev, fbuy, obuy
 
 
 def history(code, count=70):
-    """일별 종가/거래량 (3개월). 실패하면 빈 리스트."""
     try:
         r = S.get(f"https://fchart.stock.naver.com/sise.nhn?symbol={code}&timeframe=day&count={count}&requestType=0",
                   timeout=15)
@@ -113,10 +119,39 @@ def history(code, count=70):
         return [], []
 
 
+def market_extra():
+    """지수 + 업종 + 테마"""
+    mk = {}
+    for idx in ("KOSPI", "KOSDAQ"):
+        j = get_json(f"https://m.stock.naver.com/api/index/{idx}/basic")
+        if j:
+            mk[idx.lower()] = {
+                "price": num(j.get("closePrice")),
+                "chg": num(j.get("compareToPreviousClosePrice")),
+                "ratio": num(j.get("fluctuationsRatio")),
+            }
+
+    def groups(kind, keep):
+        j = get_json(f"https://m.stock.naver.com/api/stocks/{kind}?page=1&pageSize=100")
+        out = []
+        for g in (j or {}).get("groups", []):
+            out.append([str(g.get("name") or ""), num(g.get("changeRate")) or 0.0,
+                        int(g.get("riseCount") or 0), int(g.get("fallCount") or 0),
+                        int(g.get("totalCount") or 0)])
+        return out[:keep]
+
+    mk["upjong"] = groups("upjong", 100)   # 등락률 내림차순 전체(79개)
+    mk["theme"] = groups("theme", 30)      # 상위 30개 테마
+    print("지수:", list(mk.keys()), "/ 업종", len(mk.get("upjong", [])), "/ 테마", len(mk.get("theme", [])), flush=True)
+    return mk
+
+
 def main():
     stocks = listing("KOSPI") + listing("KOSDAQ")
     if len(stocks) < 100:
         sys.exit("종목 목록 수집 실패: " + str(len(stocks)))
+
+    market = market_extra()
 
     out = {}
     fchart_ok = 0
@@ -124,7 +159,7 @@ def main():
         d = detail(st["code"])
         if d is None:
             continue
-        per, pbr, div, roe, forn, prevs, vol_prev = d
+        per, pbr, div, roe, forn, prevs, vol_prev, fbuy, obuy = d
 
         closes, vols = history(st["code"])
         if closes:
@@ -133,38 +168,4 @@ def main():
 
             def ret(n):
                 if len(closes) >= n and closes[-n] > 0:
-                    return round((closes[-1] - closes[-n]) / closes[-n] * 100, 1)
-                return None
-            r1w, r1m, r3m = ret(6), ret(21), ret(len(closes))
-        else:
-            vol3m = int((st["volToday"] + (vol_prev or st["volToday"])) / 2)
-            r1w = r1m = r3m = None
-
-        days = ([round(st["chg"], 2)] + prevs + [0.0] * 4)[:5]
-        if vol_prev is None:
-            vol_prev = vol3m
-
-        out[st["name"]] = [
-            st["code"], st["mkt"], st["price"], days[0], per, pbr, div, roe,
-            st["cap"], vol3m, vol_prev, st["volToday"], days, forn,
-            r1w, r1m, r3m,
-        ]
-        if (i + 1) % 200 == 0:
-            print(f"{i+1}/{len(stocks)} 처리, fchart 성공 {fchart_ok}", flush=True)
-        time.sleep(0.05)
-
-    if len(out) < 100:
-        sys.exit("상세 수집 실패: " + str(len(out)))
-
-    meta = {"date": datetime.date.today().strftime("%Y%m%d"),
-            "count": len(out),
-            "generated": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}
-    with open("data.js", "w", encoding="utf-8") as fp:
-        fp.write("window.STOCK_META=" + json.dumps(meta, ensure_ascii=False) + ";\n")
-        fp.write("window.STOCK_DB=" + json.dumps(out, ensure_ascii=False,
-                                                 separators=(",", ":")) + ";\n")
-    print("완료:", len(out), "종목 → data.js (fchart 성공:", fchart_ok, ")")
-
-
-if __name__ == "__main__":
-    main()
+                    return 
