@@ -1,154 +1,169 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# STOCK.GG 전 종목 데이터 수집 스크립트 (GitHub Actions에서 실행됨)
-# 결과물: data.js (사이트가 읽는 데이터 파일)
+# STOCK.GG 전 종목 데이터 수집 (네이버 증권 모바일 API — 해외 서버에서도 동작)
+# 결과물: data.js
 import json
+import re
 import sys
 import time
 import datetime
 
-import pandas as pd
-from pykrx import stock
+import requests
 
-try:
-    import FinanceDataReader as fdr
-except ImportError:
-    fdr = None
-
-TODAY = datetime.date.today()
-NEED_DAYS = 64  # 약 3개월치 거래일
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+    "Accept": "application/json",
+}
+S = requests.Session()
+S.headers.update(HEADERS)
 
 
-def fetch_ohlcv(ds):
-    """해당 날짜의 전 종목 시세. 휴장일이면 None."""
-    try:
-        df = stock.get_market_ohlcv(ds, market="ALL")
-        if df is not None and len(df) > 500 and df["거래량"].sum() > 0:
-            return df
-    except Exception as e:
-        print("skip", ds, str(e)[:60])
+def get_json(url, tries=3):
+    for i in range(tries):
+        try:
+            r = S.get(url, timeout=15)
+            if r.status_code == 200:
+                return r.json()
+        except Exception:
+            pass
+        time.sleep(1.0 + i)
     return None
 
 
-def main():
-    # 1) 최근 거래일부터 거꾸로 3개월치 일별 시세 수집
-    dates = []
-    snaps = {}
-    d = TODAY
-    while len(dates) < NEED_DAYS and (TODAY - d).days < 130:
-        ds = d.strftime("%Y%m%d")
-        df = fetch_ohlcv(ds)
-        if df is not None:
-            dates.append(ds)
-            snaps[ds] = df
-            print("ok", ds, len(df), flush=True)
-        d -= datetime.timedelta(days=1)
-        time.sleep(0.3)
-
-    if len(dates) < 10:
-        sys.exit("시세 수집 실패: 거래일 데이터를 충분히 받지 못함")
-
-    dates_sorted = sorted(dates)
-    base = dates_sorted[-1]  # 기준일 = 가장 최근 거래일
-    print("기준일:", base)
-
-    # 2) 종가/거래량 시계열 구성
-    closes, vols = {}, {}
-    for ds in dates_sorted:
-        df = snaps[ds]
-        cs = df["종가"]
-        vs = df["거래량"]
-        for t in df.index:
-            closes.setdefault(t, []).append(int(cs[t]))
-            vols.setdefault(t, []).append(int(vs[t]))
-
-    # 3) 기준일 재무지표 (PER/PBR/EPS/BPS/배당)
-    fund = stock.get_market_fundamental(base, market="ALL")
-
-    # 4) 외국인 지분율 (실패해도 계속 진행)
-    forn = None
+def num(s):
+    """'22.47배' '46.55%' '12,372원' '-18,500' 'N/A' → float 또는 None"""
+    if s is None:
+        return None
+    s = str(s).replace(",", "").replace("배", "").replace("%", "").replace("원", "").strip()
+    if s in ("", "N/A", "-", "null"):
+        return None
     try:
-        forn = stock.get_exhaustion_rates_of_foreign_investment(base, market="ALL")["지분율"]
-    except Exception as e:
-        print("외국인 지분율 생략:", str(e)[:60])
+        return float(s)
+    except ValueError:
+        return None
 
-    # 5) 종목명/시장/시가총액
-    listing = None
-    if fdr is not None:
-        try:
-            listing = fdr.StockListing("KRX")
-            listing = listing[listing["Market"].isin(["KOSPI", "KOSDAQ"])]
-        except Exception as e:
-            print("FDR 실패, pykrx로 대체:", str(e)[:60])
-            listing = None
 
-    if listing is not None:
-        rows = [(str(r["Code"]).zfill(6), str(r["Name"]).strip(), str(r["Market"]),
-                 int(r["Marcap"]) if pd.notna(r["Marcap"]) else 0)
-                for _, r in listing.iterrows()]
-    else:
-        cap_df = stock.get_market_cap(base, market="ALL")["시가총액"]
-        rows = []
-        for mkt in ("KOSPI", "KOSDAQ"):
-            for t in stock.get_market_ticker_list(base, market=mkt):
-                rows.append((t, stock.get_market_ticker_name(t), mkt,
-                             int(cap_df.get(t, 0))))
+def listing(market):
+    """시가총액 순 전 종목 목록 (KOSPI 또는 KOSDAQ)"""
+    out = []
+    page = 1
+    while page <= 40:
+        j = get_json(f"https://m.stock.naver.com/api/stocks/marketValue/{market}?page={page}&pageSize=100")
+        if not j or not j.get("stocks"):
+            break
+        for s in j["stocks"]:
+            if s.get("stockEndType") != "stock":
+                continue
+            out.append({
+                "code": s["itemCode"],
+                "name": str(s["stockName"]).strip(),
+                "mkt": market,
+                "price": int(num(s.get("closePriceRaw") or s.get("closePrice")) or 0),
+                "chg": num(s.get("fluctuationsRatio")) or 0.0,
+                "volToday": int(num(s.get("accumulatedTradingVolumeRaw") or s.get("accumulatedTradingVolume")) or 0),
+                "cap": int((num(s.get("marketValueRaw")) or 0) / 1e8),
+            })
+        total = j.get("totalCount", 0)
+        if page * 100 >= total:
+            break
+        page += 1
+        time.sleep(0.1)
+    print(market, "목록:", len(out), flush=True)
+    return out
 
-    # 6) 종목별 데이터 조립
-    def fval(t, col):
-        try:
-            v = float(fund.at[t, col])
-            return v if pd.notna(v) else 0.0
-        except Exception:
-            return 0.0
+
+def detail(code):
+    """PER/PBR/배당/외인 + 직전 4거래일 등락률/전일 거래량"""
+    j = get_json(f"https://m.stock.naver.com/api/stock/{code}/integration")
+    if not j:
+        return None
+    info = {i.get("code"): i.get("value") for i in (j.get("totalInfos") or [])}
+    per = num(info.get("per")) or 0.0
+    pbr = num(info.get("pbr")) or 0.0
+    div = num(info.get("dividendYieldRatio")) or 0.0
+    eps, bps = num(info.get("eps")), num(info.get("bps"))
+    roe = round(eps / bps * 100, 1) if (eps is not None and bps and bps > 0) else 0.0
+    forn = num(info.get("foreignRate"))
+    prevs, vol_prev = [], None
+    for d in (j.get("dealTrendInfos") or [])[:4]:
+        close, cmpv = num(d.get("closePrice")), num(d.get("compareToPreviousClosePrice"))
+        if close is not None and cmpv is not None and (close - cmpv) != 0:
+            prevs.append(round(cmpv / (close - cmpv) * 100, 2))
+        else:
+            prevs.append(0.0)
+        if vol_prev is None:
+            vol_prev = int(num(d.get("accumulatedTradingVolume")) or 0)
+    return per, pbr, div, roe, forn, prevs, vol_prev
+
+
+def history(code, count=70):
+    """일별 종가/거래량 (3개월). 실패하면 빈 리스트."""
+    try:
+        r = S.get(f"https://fchart.stock.naver.com/sise.nhn?symbol={code}&timeframe=day&count={count}&requestType=0",
+                  timeout=15)
+        rows = re.findall(r'data="([^"]+)"', r.text)
+        closes, vols = [], []
+        for row in rows:
+            p = row.split("|")
+            if len(p) >= 6 and num(p[4]) and num(p[4]) > 0:
+                closes.append(float(p[4]))
+                vols.append(float(p[5]) if num(p[5]) is not None else 0.0)
+        return closes, vols
+    except Exception:
+        return [], []
+
+
+def main():
+    stocks = listing("KOSPI") + listing("KOSDAQ")
+    if len(stocks) < 100:
+        sys.exit("종목 목록 수집 실패: " + str(len(stocks)))
 
     out = {}
-    for code, name, mkt, marcap in rows:
-        c = closes.get(code)
-        v = vols.get(code)
-        if not c or len(c) < 6 or c[-1] <= 0:
+    fchart_ok = 0
+    for i, st in enumerate(stocks):
+        d = detail(st["code"])
+        if d is None:
             continue
+        per, pbr, div, roe, forn, prevs, vol_prev = d
 
-        days = []  # [오늘, 1일전, ..., 4일전] 등락률
-        for i in range(1, 6):
-            prev, cur = c[-i - 1], c[-i]
-            days.append(round((cur - prev) / prev * 100, 2) if prev else 0.0)
+        closes, vols = history(st["code"])
+        if closes:
+            fchart_ok += 1
+            vol3m = int(sum(vols) / len(vols))
 
-        per = round(fval(code, "PER"), 1)
-        pbr = round(fval(code, "PBR"), 2)
-        div = round(fval(code, "DIV"), 1)
-        eps, bps = fval(code, "EPS"), fval(code, "BPS")
-        roe = round(eps / bps * 100, 1) if bps > 0 else 0.0
+            def ret(n):
+                if len(closes) >= n and closes[-n] > 0:
+                    return round((closes[-1] - closes[-n]) / closes[-n] * 100, 1)
+                return None
+            r1w, r1m, r3m = ret(6), ret(21), ret(len(closes))
+        else:
+            vol3m = int((st["volToday"] + (vol_prev or st["volToday"])) / 2)
+            r1w = r1m = r3m = None
 
-        f = None
-        if forn is not None:
-            try:
-                fv = float(forn.get(code))
-                f = round(fv, 1) if pd.notna(fv) else None
-            except Exception:
-                f = None
+        days = ([round(st["chg"], 2)] + prevs + [0.0] * 4)[:5]
+        if vol_prev is None:
+            vol_prev = vol3m
 
-        def ret(n):
-            if len(c) >= n and c[-n] > 0:
-                return round((c[-1] - c[-n]) / c[-n] * 100, 1)
-            return None
-
-        out[name] = [
-            code, mkt, c[-1], days[0], per, pbr, div, roe,
-            int(marcap / 1e8),                     # 시가총액(억원)
-            int(sum(v) / len(v)),                  # 3개월 평균 거래량
-            v[-2], v[-1],                          # 전일/당일 거래량
-            days, f,
-            ret(6), ret(21), ret(len(c)),          # 1주/1개월/3개월 수익률
+        out[st["name"]] = [
+            st["code"], st["mkt"], st["price"], days[0], per, pbr, div, roe,
+            st["cap"], vol3m, vol_prev, st["volToday"], days, forn,
+            r1w, r1m, r3m,
         ]
+        if (i + 1) % 200 == 0:
+            print(f"{i+1}/{len(stocks)} 처리, fchart 성공 {fchart_ok}", flush=True)
+        time.sleep(0.05)
 
-    meta = {"date": base, "count": len(out),
+    if len(out) < 100:
+        sys.exit("상세 수집 실패: " + str(len(out)))
+
+    meta = {"date": datetime.date.today().strftime("%Y%m%d"),
+            "count": len(out),
             "generated": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}
     with open("data.js", "w", encoding="utf-8") as fp:
         fp.write("window.STOCK_META=" + json.dumps(meta, ensure_ascii=False) + ";\n")
         fp.write("window.STOCK_DB=" + json.dumps(out, ensure_ascii=False,
                                                  separators=(",", ":")) + ";\n")
-    print("완료:", len(out), "종목 → data.js")
+    print("완료:", len(out), "종목 → data.js (fchart 성공:", fchart_ok, ")")
 
 
 if __name__ == "__main__":
