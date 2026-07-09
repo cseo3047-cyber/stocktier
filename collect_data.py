@@ -118,7 +118,7 @@ def history(code, count=750):
         return [], []
 
 
-def idx_hist(symbol, count=70):
+def idx_hist(symbol, count=1250):
     """지수 일별 시세 (fchart): [고가, 저가, 종가] 리스트"""
     try:
         r = S.get(f"https://fchart.stock.naver.com/sise.nhn?symbol={symbol}&timeframe=day&count={count}&requestType=0",
