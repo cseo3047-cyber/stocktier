@@ -126,13 +126,15 @@ window.ST = (function () {
 
   // 상단 네비게이션 렌더 + 검색
   function nav(active) {
-    const items = [["index.html","홈"],["market.html","오늘의 시장"],["tier.html","티어 랭킹"],["risk.html","리스크 워치"],["watchlist.html","관심종목"],["compare.html","종목 비교"]];
+    const items = [["market.html","오늘의 시장"],["tier.html","티어 랭킹"],["risk.html","리스크 워치"],["watchlist.html","관심종목"],["compare.html","종목 비교"]];
     const menu = items.map(([h,t]) => `<a href="${h}" class="${active===h?"on":""}">${t}</a>`).join("");
     document.getElementById("nav").innerHTML = `
       <a class="brand" href="index.html"><span class="mark"><i></i><i></i><i></i></span>Stocktier</a>
       <div class="menu">${menu}</div>
       <div class="spacer"></div>
-      <div class="nsearch"><input id="navq" type="text" placeholder="종목명·코드·티커 검색" autocomplete="off"><div class="suggest" id="navsug"></div></div>`;
+      <div class="nsearch"><input id="navq" type="text" placeholder="종목명 또는 코드 검색" autocomplete="off"><span class="sicon">⌕</span><div class="suggest" id="navsug"></div></div>
+      <span class="bell" title="알림 (준비 중)" onclick="alert('알림 기능은 준비 중입니다.')">🔔</span>
+      <button class="loginbtn" onclick="alert('로그인 기능은 준비 중입니다.')">로그인</button>`;
     const input = document.getElementById("navq"), sug = document.getElementById("navsug");
     input.addEventListener("input", () => {
       const q = input.value.trim();
