@@ -130,7 +130,8 @@ def idx_hist(symbol, count=70):
             if len(p) >= 5 and num(p[4]):
                 out.append([round(float(num(p[2]) or 0), 2),
                             round(float(num(p[3]) or 0), 2),
-                            round(float(p[4]), 2)])
+                            round(float(p[4]), 2),
+                            str(p[0])[4:]])          # MMDD
         return out
     except Exception:
         return []
@@ -155,6 +156,7 @@ def market_extra():
             if h:
                 o["high"], o["low"] = h[-1][0], h[-1][1]
                 o["hist"] = [x[2] for x in h]
+                o["hdates"] = [x[3] for x in h]
             mk[key] = o
 
     def groups(kind, keep):
