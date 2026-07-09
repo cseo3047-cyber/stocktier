@@ -101,7 +101,8 @@ def detail(code):
     return per, pbr, div, roe, forn, prevs, vol_prev, fbuy, obuy
 
 
-def history(code, count=70):
+def history(code, count=750):
+    """일별 시세 약 3년치 (앞 65개는 지표 계산용, 전체는 장기 차트용)"""
     try:
         r = S.get(f"https://fchart.stock.naver.com/sise.nhn?symbol={code}&timeframe=day&count={count}&requestType=0",
                   timeout=15)
@@ -189,25 +190,35 @@ def market_extra():
         return out[:keep]
 
     def upjong_scrape():
-        """PC 네이버 증권 업종 페이지에서 직접 추출 (최후의 수단)"""
-        try:
-            r = S.get("https://finance.naver.com/sise/sise_group.naver?type=upjong", timeout=15)
-            r.encoding = "euc-kr"
-            rows = re.findall(r'type=upjong&no=\d+">([^<]+)</a>(.*?)</tr>', r.text, re.S)
-            out = []
-            for nm, block in rows:
-                m = re.search(r'([+\-]?\d+(?:\.\d+)?)%', block)
-                nums = re.findall(r'>\s*(\d+)\s*</td>', block)
-                if not m or len(nums) < 4:
-                    continue
-                total, up, flat, down = int(nums[0]), int(nums[1]), int(nums[2]), int(nums[3])
-                out.append([nm.strip(), float(m.group(1)), up, down, total])
-            out.sort(key=lambda x: -x[1])
-            print("[진단] upjong PC 스크래핑:", len(out), "개", flush=True)
-            return out
-        except Exception as e:
-            print("[진단] upjong 스크래핑 실패:", str(e)[:150], flush=True)
-            return []
+        """PC 네이버 증권 업종 페이지에서 직접 추출 (최후의 수단) — 데스크톱 UA 사용"""
+        pc_headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml",
+            "Referer": "https://finance.naver.com/",
+        }
+        for url in ("https://finance.naver.com/sise/sise_group.naver?type=upjong",
+                    "https://finance.naver.com/sise/sise_group.nhn?type=upjong"):
+            try:
+                r = requests.get(url, headers=pc_headers, timeout=15)
+                r.encoding = "euc-kr"
+                rows = re.findall(r'type=upjong&(?:amp;)?no=\d+">([^<]+)</a>(.*?)</tr>', r.text, re.S)
+                out = []
+                for nm, block in rows:
+                    m = re.search(r'([+\-]?\d+(?:\.\d+)?)%', block)
+                    nums = re.findall(r'>\s*([\d,]+)\s*</td>', block)
+                    if not m or len(nums) < 4:
+                        continue
+                    total, up = int(nums[0].replace(",", "")), int(nums[1].replace(",", ""))
+                    down = int(nums[3].replace(",", ""))
+                    out.append([nm.strip(), float(m.group(1)), up, down, total])
+                if out:
+                    out.sort(key=lambda x: -x[1])
+                    print("[진단] upjong PC 스크래핑 성공:", len(out), "개", flush=True)
+                    return out
+                print(f"[진단] upjong 스크래핑 0개 status={r.status_code} url={r.url} body={r.text[:250]!r}", flush=True)
+            except Exception as e:
+                print("[진단] upjong 스크래핑 실패:", str(e)[:150], flush=True)
+        return []
 
     mk["upjong"] = groups("upjong", 100) or upjong_scrape()
     mk["theme"] = groups("theme", 30)
@@ -232,15 +243,25 @@ def main():
         per, pbr, div, roe, forn, prevs, vol_prev, fbuy, obuy = d
 
         closes, vols = history(st["code"])
+        spk = None
         if closes:
             fchart_ok += 1
-            vol3m = int(sum(vols) / len(vols))
+            rc = closes[-65:]           # 최근 3개월 (지표 계산용)
+            rv = vols[-65:]
+            vol3m = int(sum(rv) / len(rv))
 
             def ret(n):
-                if len(closes) >= n and closes[-n] > 0:
-                    return round((closes[-1] - closes[-n]) / closes[-n] * 100, 1)
+                if len(rc) >= n and rc[-n] > 0:
+                    return round((rc[-1] - rc[-n]) / rc[-n] * 100, 1)
                 return None
-            r1w, r1m, r3m = ret(6), ret(21), ret(len(closes))
+            r1w, r1m, r3m = ret(6), ret(21), ret(len(rc))
+            # 장기 차트: 3년치를 36개 점으로 압축 (0~99 정규화)
+            if len(closes) >= 8:
+                step = max(1, len(closes) // 36)
+                pts = closes[::step][-36:]
+                mn, mx = min(pts), max(pts)
+                rg = (mx - mn) or 1
+                spk = [int((p - mn) / rg * 99) for p in pts]
         else:
             vol3m = int((st["volToday"] + (vol_prev or st["volToday"])) / 2)
             r1w = r1m = r3m = None
@@ -252,7 +273,7 @@ def main():
         out[st["name"]] = [
             st["code"], st["mkt"], st["price"], days[0], per, pbr, div, roe,
             st["cap"], vol3m, vol_prev, st["volToday"], days, forn,
-            r1w, r1m, r3m, fbuy, obuy,
+            r1w, r1m, r3m, fbuy, obuy, spk,
         ]
         if (i + 1) % 200 == 0:
             print(f"{i+1}/{len(stocks)} 처리, fchart 성공 {fchart_ok}", flush=True)
