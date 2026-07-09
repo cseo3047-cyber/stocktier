@@ -1,5 +1,5 @@
 // Stocktier 공용 로직 (data.js, data_us.js 이후에 로드할 것)
-// 필드: 0코드 1시장 2주가 3등락 4PER 5PBR 6배당 7ROE 8시총 9평균거래량 10전일 11당일 12최근5일 13외인 14주간 15월간 16분기 [17영문명]
+// 필드: 0코드 1시장 2주가 3등락 4PER 5PBR 6배당 7ROE 8시총 9평균거래량 10전일 11당일 12최근5일 13외인 14주간 15월간 16분기 [17] [18]
 window.ST = (function () {
   const SAMPLE_KR = {
     "삼성전자": ["005930","KOSPI",278000,0.18,22.5,3.87,0.6,17.2,16252654,32000000,33525758,28796159,[0.18,-6.25,-6.92,2.75,8.22],46.6,2.1,5.4,12.7],
@@ -126,7 +126,7 @@ window.ST = (function () {
 
   // 상단 네비게이션 렌더 + 검색
   function nav(active) {
-    const items = [["index.html","홈"],["tier.html","티어 랭킹"],["risk.html","리스크 워치"],["watchlist.html","관심종목"],["compare.html","종목 비교"]];
+    const items = [["index.html","홈"],["market.html","오늘의 시장"],["tier.html","티어 랭킹"],["risk.html","리스크 워치"],["watchlist.html","관심종목"],["compare.html","종목 비교"]];
     const menu = items.map(([h,t]) => `<a href="${h}" class="${active===h?"on":""}">${t}</a>`).join("");
     document.getElementById("nav").innerHTML = `
       <a class="brand" href="index.html"><span class="mark"><i></i><i></i><i></i></span>Stocktier</a>
@@ -171,7 +171,7 @@ window.ST = (function () {
     }
   }
 
-  // 5일 등락 스파크라인 (days는 [오늘,...,4일전])
+  // 5일 등락 스파크라인 (days는 [오늘,...,4일전] 또는 임의 길이)
   function spark(days, w, h) {
     w = w||70; h = h||24;
     const seq = days.slice().reverse();
@@ -180,7 +180,7 @@ window.ST = (function () {
     const mn = Math.min(...pts), mx = Math.max(...pts), rg = (mx-mn)||1;
     const xy = pts.map((p,i) => `${(i/(pts.length-1)*w).toFixed(1)},${(h-3-(p-mn)/rg*(h-6)).toFixed(1)}`).join(" ");
     const up = pts[pts.length-1] >= pts[0];
-    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${xy}" fill="none" stroke="${up?"#4cd7a5":"#f0645a"}" stroke-width="1.6"/></svg>`;
+    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="flex-shrink:0;"><polyline points="${xy}" fill="none" stroke="${up?"#4cd7a5":"#f0645a"}" stroke-width="1.6"/></svg>`;
   }
 
   const qp = k => new URLSearchParams(location.search).get(k);
