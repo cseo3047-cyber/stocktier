@@ -157,33 +157,59 @@ def market_extra():
             mk[key] = o
 
     def groups(kind, keep):
-        out = []
-        page = 1
-        while page <= 10 and len(out) < keep:
-            url = f"https://m.stock.naver.com/api/stocks/{kind}?page={page}&pageSize=20"
-            j = None
-            try:
-                r = S.get(url, timeout=15)
-                if r.status_code == 200:
-                    j = r.json()
-                if not j or not j.get("groups"):
-                    print(f"[진단] {kind} p{page} status={r.status_code} body={r.text[:200]}", flush=True)
+        def fetch(base):
+            out = []
+            page = 1
+            while page <= 10 and len(out) < keep:
+                url = f"{base}/{kind}?page={page}&pageSize=20"
+                j = None
+                try:
+                    r = S.get(url, timeout=15)
+                    if r.status_code == 200:
+                        j = r.json()
+                    if not j or not j.get("groups"):
+                        print(f"[진단] {kind} p{page} {base.split('//')[1].split('/')[0]} status={r.status_code}", flush=True)
+                        break
+                except Exception as e:
+                    print(f"[진단] {kind} p{page} 요청 실패: {str(e)[:120]}", flush=True)
                     break
-            except Exception as e:
-                print(f"[진단] {kind} p{page} 요청 실패: {str(e)[:150]}", flush=True)
-                break
-            for g in j["groups"]:
-                out.append([str(g.get("name") or ""), num(g.get("changeRate")) or 0.0,
-                            int(g.get("riseCount") or 0), int(g.get("fallCount") or 0),
-                            int(g.get("totalCount") or 0)])
-            total = j.get("totalCount", 0)
-            if page * 20 >= total:
-                break
-            page += 1
-            time.sleep(0.2)
+                for g in j["groups"]:
+                    out.append([str(g.get("name") or ""), num(g.get("changeRate")) or 0.0,
+                                int(g.get("riseCount") or 0), int(g.get("fallCount") or 0),
+                                int(g.get("totalCount") or 0)])
+                total = j.get("totalCount", 0)
+                if page * 20 >= total:
+                    break
+                page += 1
+                time.sleep(0.2)
+            return out
+        out = fetch("https://m.stock.naver.com/api/stocks")
+        if not out:
+            out = fetch("https://api.stock.naver.com/stocks")
         return out[:keep]
 
-    mk["upjong"] = groups("upjong", 100)
+    def upjong_scrape():
+        """PC 네이버 증권 업종 페이지에서 직접 추출 (최후의 수단)"""
+        try:
+            r = S.get("https://finance.naver.com/sise/sise_group.naver?type=upjong", timeout=15)
+            r.encoding = "euc-kr"
+            rows = re.findall(r'type=upjong&no=\d+">([^<]+)</a>(.*?)</tr>', r.text, re.S)
+            out = []
+            for nm, block in rows:
+                m = re.search(r'([+\-]?\d+(?:\.\d+)?)%', block)
+                nums = re.findall(r'>\s*(\d+)\s*</td>', block)
+                if not m or len(nums) < 4:
+                    continue
+                total, up, flat, down = int(nums[0]), int(nums[1]), int(nums[2]), int(nums[3])
+                out.append([nm.strip(), float(m.group(1)), up, down, total])
+            out.sort(key=lambda x: -x[1])
+            print("[진단] upjong PC 스크래핑:", len(out), "개", flush=True)
+            return out
+        except Exception as e:
+            print("[진단] upjong 스크래핑 실패:", str(e)[:150], flush=True)
+            return []
+
+    mk["upjong"] = groups("upjong", 100) or upjong_scrape()
     mk["theme"] = groups("theme", 30)
     print("지수:", [k for k in mk if k not in ("upjong", "theme")],
           "/ 업종", len(mk.get("upjong", [])), "/ 테마", len(mk.get("theme", [])), flush=True)
