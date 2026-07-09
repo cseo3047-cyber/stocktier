@@ -160,8 +160,17 @@ def market_extra():
         out = []
         page = 1
         while page <= 10 and len(out) < keep:
-            j = get_json(f"https://m.stock.naver.com/api/stocks/{kind}?page={page}&pageSize=20")
-            if not j or not j.get("groups"):
+            url = f"https://m.stock.naver.com/api/stocks/{kind}?page={page}&pageSize=20"
+            j = None
+            try:
+                r = S.get(url, timeout=15)
+                if r.status_code == 200:
+                    j = r.json()
+                if not j or not j.get("groups"):
+                    print(f"[진단] {kind} p{page} status={r.status_code} body={r.text[:200]}", flush=True)
+                    break
+            except Exception as e:
+                print(f"[진단] {kind} p{page} 요청 실패: {str(e)[:150]}", flush=True)
                 break
             for g in j["groups"]:
                 out.append([str(g.get("name") or ""), num(g.get("changeRate")) or 0.0,
@@ -171,7 +180,7 @@ def market_extra():
             if page * 20 >= total:
                 break
             page += 1
-            time.sleep(0.1)
+            time.sleep(0.2)
         return out[:keep]
 
     mk["upjong"] = groups("upjong", 100)
