@@ -59,15 +59,15 @@
   .kchips span { background:#0000000d; border:1px solid #00000010; border-radius:8px; padding:4px 8px; font-size:11px; font-weight:700; color:#3f4c38; }
   .kchips b { color:#1c2a1a; }
   /* 생존점수 (게이지 + 지표 바) */
-  .survwrap { display:flex; gap:12px; align-items:center; }
-  .gauge { width:118px; height:64px; position:relative; overflow:hidden; flex-shrink:0; margin:4px auto 0; }
-  .gauge .arc { width:118px; height:118px; border-radius:50%; }
-  .gauge .hole { position:absolute; left:17px; top:17px; width:84px; height:84px; background:#e9f3dc; border-radius:50%; text-align:center; }
-  .gauge .hole b { font-size:22px; display:block; margin-top:10px; }
+  .survwrap { display:flex; flex-direction:column; gap:7px; align-items:center; }
+  .gauge { width:130px; height:70px; position:relative; overflow:hidden; flex-shrink:0; margin:2px auto 0; }
+  .gauge .arc { width:130px; height:130px; border-radius:50%; }
+  .gauge .hole { position:absolute; left:19px; top:19px; width:92px; height:92px; background:#e9f3dc; border-radius:50%; text-align:center; }
+  .gauge .hole b { font-size:23px; display:block; margin-top:12px; }
   .gauge .hole span { font-size:10px; color:#7f8f6e; }
-  .survbars { flex:1; min-width:0; }
-  .survbars .r { display:flex; align-items:center; gap:7px; font-size:11px; padding:2px 0; color:#5f6e54; }
-  .survbars .r .lb { width:52px; flex-shrink:0; }
+  .survbars { width:100%; }
+  .survbars .r { display:flex; align-items:center; gap:7px; font-size:11px; padding:2.5px 0; color:#5f6e54; }
+  .survbars .r .lb { width:62px; flex-shrink:0; white-space:nowrap; }
   .survbars .m { flex:1; height:5px; background:#00000012; border-radius:3px; overflow:hidden; }
   .survbars .m i { display:block; height:100%; background:#0c8a5f; border-radius:3px; }
   .survbars .r b { width:24px; text-align:right; color:#1c2a1a; }
