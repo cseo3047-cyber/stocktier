@@ -18,7 +18,7 @@
   .hero .feats { display:flex; margin-top:24px; flex-wrap:wrap; font-size:12.5px; color:#9db8a9; }
   .hero .feats span { display:flex; gap:6px; align-items:center; padding:9px 14px; border:1px solid #23444f; border-radius:10px; margin-right:10px; margin-bottom:6px; background:#0c1e25aa; }
   /* 시장 요약 (아주 연한 녹색 패널) */
-  .mkt { position:relative; z-index:1; background:linear-gradient(135deg,#e2efdd,#d2e6cd); border:1px solid #bad4b3; border-radius:14px; padding:16px 18px; }
+  .mkt { position:relative; z-index:1; background:linear-gradient(135deg,#e2efddd6,#d2e6cdc4); border:1px solid #bad4b3aa; border-radius:14px; padding:16px 18px; }
   .mkt .hd { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px; }
   .mkt .hd b { font-size:14.5px; color:#1c2a1a; }
   .mkt .hd span { font-size:11px; color:#5f7360; }
@@ -64,8 +64,10 @@
   .gauge { width:170px; height:90px; position:relative; overflow:hidden; flex-shrink:0; margin:2px auto 0; }
   .gauge .arc { width:170px; height:170px; border-radius:50%; }
   .gauge .hole { position:absolute; left:25px; top:25px; width:120px; height:120px; background:#e9f3dc; border-radius:50%; text-align:center; }
-  .gauge .hole b { font-size:27px; display:block; margin-top:18px; }
+  .gauge .hole b { font-size:27px; display:block; margin-top:26px; }
   .gauge .hole span { font-size:10px; color:#7f8f6e; }
+  #king { display:flex; flex-direction:column; height:calc(100% - 26px); }
+  #king .kchips { margin-top:auto; padding-top:10px; }
   .survbars { width:100%; }
   .survbars .r { display:flex; align-items:center; gap:7px; font-size:11px; padding:2.5px 0; color:#5f6e54; }
   .survbars .r .lb { width:62px; flex-shrink:0; white-space:nowrap; }
@@ -279,8 +281,9 @@ document.getElementById("top5").innerHTML = byScore.slice(0,5).map((x,i)=>{
     <div class="survwrap">
       <div class="gauge">
         <div class="arc" style="background:conic-gradient(from 270deg, ${gcol} 0% ${avg/2}%, #00000014 ${avg/2}% 50%, transparent 50%);"></div>
-        <div class="hole"><b>${avg}<span style="font-size:11px;color:#7f8f6e;">/100</span></b><span><span class="ltier lt-${g.g}" style="font-size:9px;padding:1px 5px;min-width:18px;">${g.g}</span> 티어 · ${avg>=65?"양호":avg>=45?"보통":"주의"}</span></div>
+        <div class="hole"><b>${avg}<span style="font-size:11px;color:#7f8f6e;">/100</span></b></div>
       </div>
+      <div style="font-size:12px;font-weight:800;color:#3f4c38;"><span class="ltier lt-${g.g}">${g.g}</span> 티어 · ${avg>=65?"양호":avg>=45?"보통":"주의"}</div>
       <div class="survbars">${bars.map(([lb,v])=>`<div class="r"><span class="lb">${lb}</span><div class="m"><i style="width:${Math.max(4,v)}%"></i></div><b>${v}</b></div>`).join("")}</div>
     </div>
     <div class="survfoot"><span>보유 종목 ${items.length}개 기준</span><span>업데이트 ${upd}</span></div>`;
@@ -314,7 +317,7 @@ if (king) {
   const e = king.e, g = ST.gradeOf(king.sc), us = king.src==="us";
   const pts = series(e);
   const isLong = e.length > 19 && e[19] && e[19].length > 3;
-  const W=280, H=56, mn=Math.min(...pts), mx=Math.max(...pts), rg=(mx-mn)||1;
+  const W=280, H=84, mn=Math.min(...pts), mx=Math.max(...pts), rg=(mx-mn)||1;
   const xy = pts.map((p,i)=>`${(i/(pts.length-1)*W).toFixed(1)},${(H-4-(p-mn)/rg*(H-12)).toFixed(1)}`);
   const kcol = pts[pts.length-1] >= pts[0] ? "#0c8a5f" : "#d64040";
   const chart = `<svg class="kchart" width="100%" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
