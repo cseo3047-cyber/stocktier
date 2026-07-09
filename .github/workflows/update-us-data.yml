@@ -28,7 +28,7 @@ jobs:
         run: |
           git config user.name "stock-data-bot"
           git config user.email "actions@users.noreply.github.com"
-          git pull --rebase || true
           git add data_us.js
           git commit -m "미국 데이터 갱신 $(date +%Y-%m-%d)" || echo "변경 없음"
+          git pull --rebase
           git push
