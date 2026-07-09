@@ -157,12 +157,21 @@ def market_extra():
             mk[key] = o
 
     def groups(kind, keep):
-        j = get_json(f"https://m.stock.naver.com/api/stocks/{kind}?page=1&pageSize=100")
         out = []
-        for g in (j or {}).get("groups", []):
-            out.append([str(g.get("name") or ""), num(g.get("changeRate")) or 0.0,
-                        int(g.get("riseCount") or 0), int(g.get("fallCount") or 0),
-                        int(g.get("totalCount") or 0)])
+        page = 1
+        while page <= 10 and len(out) < keep:
+            j = get_json(f"https://m.stock.naver.com/api/stocks/{kind}?page={page}&pageSize=20")
+            if not j or not j.get("groups"):
+                break
+            for g in j["groups"]:
+                out.append([str(g.get("name") or ""), num(g.get("changeRate")) or 0.0,
+                            int(g.get("riseCount") or 0), int(g.get("fallCount") or 0),
+                            int(g.get("totalCount") or 0)])
+            total = j.get("totalCount", 0)
+            if page * 20 >= total:
+                break
+            page += 1
+            time.sleep(0.1)
         return out[:keep]
 
     mk["upjong"] = groups("upjong", 100)
