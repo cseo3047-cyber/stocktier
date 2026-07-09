@@ -106,9 +106,9 @@
     <div class="lcard"><h3>💯 내 종목 생존점수 <span class="more" onclick="location.href='watchlist.html'">더보기 ›</span></h3><div id="surv"></div></div>
   </div>
   <div class="lgrid">
-    <div class="lcard"><h3>⚡ 돈 몰리는 종목 <span class="more" onclick="location.href='risk.html'">더보기 ›</span></h3><div id="volx"></div></div>
+    <div class="lcard"><h3 id="volxh">⚡ 돈 몰리는 테마 <span class="more" onclick="location.href='risk.html'">더보기 ›</span></h3><div id="volx"></div></div>
     <div class="lcard"><h3>👑 오늘의 대장주</h3><div id="king"></div></div>
-    <div class="lcard"><h3>🐘 대형주 동향 <span class="more" onclick="location.href='tier.html'">더보기 ›</span></h3><div id="bigs"></div></div>
+    <div class="lcard"><h3 id="bigsh">🤝 외인·기관 쌍끌이 <span class="more" style="cursor:default;">전일 수급 기준</span></h3><div id="bigs"></div></div>
     <div class="lcard"><h3>🚨 과열 경고 종목 <span class="more" onclick="location.href='risk.html'">더보기 ›</span></h3><div id="warn"></div></div>
   </div>
 
@@ -146,29 +146,50 @@ const pool = kr.length>3 ? kr : A;
 const poolUS = pool===kr;   // 국내 위주인지
 
 // ── 시장 요약
+const MK = window.STOCK_MARKET || null;
+const tileColor = c => {
+  if (c >= 3) return ["#1d9e75","#eafff6"]; if (c >= 1) return ["#2a6e52","#d9f5e8"];
+  if (c > 0) return ["#28503f","#bfe0cf"]; if (c === 0) return ["#33413a","#9db8a9"];
+  if (c > -1) return ["#4a3733","#e8c9c2"]; if (c > -3) return ["#8a4038","#ffe3dd"];
+  return ["#c14a42","#fff0ee"];
+};
 (function(){
-  const upN = pool.filter(x=>x.e[3]>0).length, dnN = pool.filter(x=>x.e[3]<0).length, fl = pool.length-upN-dnN;
+  const upN = pool.filter(x=>x.e[3]>0).length, dnN = pool.filter(x=>x.e[3]<0).length;
   let amt = 0;
   for (const x of pool) amt += x.e[2]*x.e[11];
-  const amtStr = poolUS ? (amt/1e12).toFixed(1)+"조" : "$"+(amt/1e9).toFixed(0)+"B";
+  const amtStr = poolUS ? (amt/1e12).toFixed(1)+"조원" : "$"+(amt/1e9).toFixed(0)+"B";
   document.getElementById("mktdate").textContent = ST.asofText();
-  document.getElementById("mktnums").innerHTML = `
-    <div><div class="lb">상승</div><div class="vl up">${ST.num(upN)}</div></div>
-    <div><div class="lb">하락</div><div class="vl down">${ST.num(dnN)}</div></div>
-    <div><div class="lb">거래대금(추정)</div><div class="vl">${amtStr}</div></div>`;
-  // 시총 상위 10 히트맵
-  const tops = pool.slice().sort((a,b)=>b.e[8]-a.e[8]).slice(0,10);
-  const tileColor = c => {
-    if (c >= 3) return ["#1d9e75","#eafff6"]; if (c >= 1) return ["#2a6e52","#d9f5e8"];
-    if (c > 0) return ["#28503f","#bfe0cf"]; if (c === 0) return ["#33413a","#9db8a9"];
-    if (c > -1) return ["#4a3733","#e8c9c2"]; if (c > -3) return ["#8a4038","#ffe3dd"];
-    return ["#c14a42","#fff0ee"];
-  };
-  document.getElementById("heat").innerHTML = tops.map(x=>{
-    const [bg,fg] = tileColor(x.e[3]);
-    return `<div class="tile" style="background:${bg};color:${fg};cursor:pointer;" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
-      <div class="nm">${ST.displayName(x.src,x.key)}</div><div class="pc">${ST.pct2(x.e[3])}</div></div>`;
-  }).join("");
+  if (MK && MK.kospi) {
+    const cell = (lb,o) => `<div><div class="lb">${lb}</div>
+      <div class="vl">${o.price.toLocaleString("ko-KR",{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+      <div style="font-size:11px;font-weight:700;" class="${o.ratio>0?"up":o.ratio<0?"down":"flat"}">${o.ratio>0?"▲":o.ratio<0?"▼":""}${Math.abs(o.chg||0).toLocaleString("ko-KR")} (${ST.pct2(o.ratio)})</div></div>`;
+    document.getElementById("mktnums").innerHTML =
+      cell("KOSPI", MK.kospi) + (MK.kosdaq ? cell("KOSDAQ", MK.kosdaq) : "") +
+      `<div><div class="lb">상승 / 하락</div>
+        <div class="vl"><span class="up">${ST.num(upN)}</span><span style="font-size:12px;color:#7d968a;"> / </span><span class="down">${ST.num(dnN)}</span></div>
+        <div style="font-size:11px;color:#7d968a;">거래대금 ${amtStr}</div></div>`;
+  } else {
+    document.getElementById("mktnums").innerHTML = `
+      <div><div class="lb">상승</div><div class="vl up">${ST.num(upN)}</div></div>
+      <div><div class="lb">하락</div><div class="vl down">${ST.num(dnN)}</div></div>
+      <div><div class="lb">거래대금(추정)</div><div class="vl">${amtStr}</div></div>`;
+  }
+  // 히트맵: 업종별 등락 (없으면 시총 상위 10)
+  if (MK && MK.upjong && MK.upjong.length >= 10) {
+    const tiles = MK.upjong.slice(0,5).concat(MK.upjong.slice(-5));
+    document.getElementById("heat").innerHTML = tiles.map(([nm,rate])=>{
+      const [bg,fg] = tileColor(rate);
+      return `<div class="tile" style="background:${bg};color:${fg};" title="${nm}">
+        <div class="nm">${nm}</div><div class="pc">${ST.pct2(rate)}</div></div>`;
+    }).join("");
+  } else {
+    const tops = pool.slice().sort((a,b)=>b.e[8]-a.e[8]).slice(0,10);
+    document.getElementById("heat").innerHTML = tops.map(x=>{
+      const [bg,fg] = tileColor(x.e[3]);
+      return `<div class="tile" style="background:${bg};color:${fg};cursor:pointer;" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
+        <div class="nm">${ST.displayName(x.src,x.key)}</div><div class="pc">${ST.pct2(x.e[3])}</div></div>`;
+    }).join("");
+  }
 })();
 
 // ── 리스트 행 (크림 카드용)
@@ -219,10 +240,28 @@ document.getElementById("top5").innerHTML = byScore.slice(0,5).map((x,i)=>{
     <div class="survbars">${sub.map(([lb,v])=>`<div class="r"><span style="width:44px;">${lb}</span><div class="m"><i style="width:${Math.max(4,Math.min(100,v))}%"></i></div><b>${Math.max(0,Math.min(100,v))}</b></div>`).join("")}</div>`;
 })();
 
-// 돈 몰리는 종목 (거래대금 급증)
-const byVol = pool.filter(x=>x.e[9]>0 && x.e[11]>100000).slice().sort((a,b)=>(b.e[11]/b.e[9])-(a.e[11]/a.e[9]));
-document.getElementById("volx").innerHTML = byVol.slice(0,5).map((x,i)=>
-  lrow(x,i,`<span class="lpc lup">${(x.e[11]/x.e[9]).toFixed(1)}배</span>`)).join("");
+// 돈 몰리는 테마 (없으면 거래 폭발 종목으로 대체)
+(function(){
+  const el = document.getElementById("volx");
+  if (MK && MK.theme && MK.theme.length) {
+    el.innerHTML = MK.theme.slice(0,5).map((t,i)=>{
+      const [nm, rate, rise,, total] = t;
+      const heat = total>0 ? rise/total : 0;
+      const fire = heat>=0.8?"🔥🔥🔥":heat>=0.6?"🔥🔥":"🔥";
+      return `<div class="lrow" style="cursor:default;">
+        <span class="lrank">${i+1}</span>
+        <span class="lnm">${nm}</span>
+        <span class="lpr">${rise}/${total}종목</span>
+        <span class="lpc ${lcls(rate)}">${ST.pct2(rate)}</span>
+        <span style="font-size:11px;flex-shrink:0;">${fire}</span></div>`;
+    }).join("");
+  } else {
+    document.getElementById("volxh").firstChild.textContent = "⚡ 돈 몰리는 종목 ";
+    const byVol = pool.filter(x=>x.e[9]>0 && x.e[11]>100000).slice().sort((a,b)=>(b.e[11]/b.e[9])-(a.e[11]/a.e[9]));
+    el.innerHTML = byVol.slice(0,5).map((x,i)=>
+      lrow(x,i,`<span class="lpc lup">${(x.e[11]/x.e[9]).toFixed(1)}배</span>`)).join("");
+  }
+})();
 
 // 오늘의 대장주
 const king = pool.filter(x=>x.e[3]>0 && x.e[8]>1000).sort((a,b)=>(b.e[3]*Math.log10(b.e[8]))-(a.e[3]*Math.log10(a.e[8])))[0] || pool[0];
@@ -232,44 +271,4 @@ if (king) {
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <a class="king-name" href="${ST.stockUrl(king.src,king.key)}" style="color:#1a271f;">${ST.displayName(king.src,king.key)}</a>
       <span class="ltier lt-${g.g}">${g.g} 티어</span></div>
-    <div style="font-size:11px;color:#8b8977;">${e[0]} · ${e[1]}</div>
-    <div class="king-price">${ST.priceStr(e[2],us)} <span class="${lcls(e[3])}" style="font-size:15px;">${ST.pct2(e[3])}</span></div>
-    <div style="font-size:11.5px;color:#8b8977;margin-top:4px;">거래량 ${ST.num(e[11])}주 · 시총 ${ST.capStr(e[8],us)}</div>
-    <div class="kchips"><span>종합 ${king.sc}점</span><span>1주 ${ST.pct(e[14])}</span><span>1개월 ${ST.pct(e[15])}</span><span>3개월 ${ST.pct(e[16])}</span></div>`;
-}
-
-// 대형주 동향 (시총 상위 5)
-document.getElementById("bigs").innerHTML = pool.slice().sort((a,b)=>b.e[8]-a.e[8]).slice(0,5).map((x,i)=>
-  lrow(x,i,`<span class="lpc ${lcls(x.e[3])}">${ST.pct2(x.e[3])}</span>`)).join("");
-
-// 과열 경고
-const byRisk = pool.slice().sort((a,b)=>b.rk-a.rk);
-document.getElementById("warn").innerHTML = byRisk.slice(0,5).map((x,i)=>`
-  <div class="lrow" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
-    <span class="lrank">${i+1}</span>
-    <span class="lnm">${ST.displayName(x.src,x.key)}</span>
-    <span class="lpc ldn" style="width:36px;">${x.rk}</span>
-    <span class="lmuted" style="font-size:11px;width:76px;text-align:right;">${x.e[11]/Math.max(1,x.e[9])>=1.5?"거래량 급증":Math.abs(x.e[3])>=5?"단기 급변동":"변동성 확대"}</span></div>`).join("");
-
-// 히어로 검색
-(function(){
-  const input = document.getElementById("heroq"), sug = document.getElementById("herosug");
-  input.addEventListener("input", () => {
-    const q = input.value.trim();
-    if (!q) { sug.style.display="none"; return; }
-    const hits = ST.suggestions(q);
-    if (!hits.length) { sug.style.display="none"; return; }
-    sug.innerHTML = hits.map(([src,k]) => {
-      const e = ST.get(src,k);
-      return `<div onclick="location.href='${ST.stockUrl(src,k)}'">${ST.displayName(src,k)}<span class="code">${e[0]} · ${e[1]}</span></div>`;
-    }).join("");
-    sug.style.display="block";
-  });
-  input.addEventListener("keydown", e => {
-    if (e.key==="Enter") { const hit = ST.findStock(input.value.trim()); if (hit) location.href = ST.stockUrl(hit[0],hit[1]); }
-  });
-  document.addEventListener("click", e => { if (!e.target.closest(".sbox")) sug.style.display="none"; });
-})();
-</script>
-</body>
-</html>
+    <div style="font-size:11px;color:#8b897
