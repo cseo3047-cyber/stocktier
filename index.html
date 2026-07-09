@@ -6,21 +6,67 @@
 <title>Stocktier — 오늘 뜨는 종목과 위험한 종목을 한눈에</title>
 <link rel="stylesheet" href="style.css">
 <style>
-  .hero { display:flex; gap:24px; align-items:center; background:linear-gradient(120deg,#0e1f19,#12261e); border:1px solid var(--border); border-radius:16px; padding:34px 30px; margin-bottom:20px; flex-wrap:wrap; }
-  .hero .left { flex:1; min-width:260px; }
-  .hero .tag { font-size:12px; color:var(--muted); font-weight:700; letter-spacing:.5px; margin-bottom:10px; }
-  .hero h1 { font-size:34px; line-height:1.3; font-weight:800; margin-bottom:12px; }
+  .wrap { max-width:1280px; }
+  /* 히어로 */
+  .hero { position:relative; display:grid; grid-template-columns:1.1fr .9fr; gap:26px; background:linear-gradient(115deg,#0e211b,#123024); border:1px solid var(--border); border-radius:18px; padding:38px 34px; margin-bottom:22px; overflow:hidden; }
+  .hero .candles { position:absolute; right:36%; top:0; bottom:0; width:40%; opacity:.14; pointer-events:none; }
+  .hero .left { position:relative; z-index:1; }
+  .hero .tag { display:flex; align-items:center; gap:7px; font-size:12.5px; color:#9db8a9; font-weight:700; margin-bottom:14px; }
+  .hero h1 { font-size:40px; line-height:1.32; font-weight:800; margin-bottom:14px; letter-spacing:-.5px; }
   .hero h1 em { font-style:normal; color:var(--gold); }
-  .hero p { font-size:14px; color:var(--muted); margin-bottom:20px; }
-  .hero .feats { display:flex; gap:14px; margin-top:18px; flex-wrap:wrap; font-size:12px; color:var(--muted); }
-  .hero .feats span { display:flex; gap:5px; align-items:center; }
-  .hero .right { width:340px; max-width:100%; }
-  .hero .sbox { position:relative; }
-  .hero .sbox input { width:100%; padding:14px 16px; font-size:15px; background:var(--panel); border:2px solid var(--border); border-radius:12px; color:var(--text); outline:none; }
+  .hero p { font-size:14.5px; color:#9db8a9; margin-bottom:24px; }
+  .hero .btn { font-size:15px; padding:13px 22px; }
+  .hero .feats { display:flex; gap:0; margin-top:26px; flex-wrap:wrap; font-size:12.5px; color:#9db8a9; border:1px solid #23453626; }
+  .hero .feats span { display:flex; gap:6px; align-items:center; padding:9px 14px; border:1px solid #234536; border-radius:10px; margin-right:10px; margin-bottom:6px; background:#0d1e18aa; }
+  .hero .sbox { position:relative; margin-bottom:14px; z-index:2; }
+  .hero .sbox input { width:100%; padding:13px 16px; font-size:14px; background:#0d1e18; border:1.5px solid #234536; border-radius:11px; color:var(--text); outline:none; }
   .hero .sbox input:focus { border-color:var(--gold-dim); }
-  .mini-sum { margin-top:14px; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px 16px; font-size:13px; }
-  .mini-sum .r { display:flex; justify-content:space-between; padding:4px 0; }
-  .mini-sum .r b { font-weight:700; }
+  /* 시장 요약 (다크 패널) */
+  .mkt { position:relative; z-index:1; background:#0d1e18cc; border:1px solid #234536; border-radius:14px; padding:16px 18px; }
+  .mkt .hd { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px; }
+  .mkt .hd b { font-size:14px; }
+  .mkt .hd span { font-size:11px; color:#7d968a; }
+  .mkt .nums { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; border:1px solid #234536; border-radius:10px; padding:12px 10px; margin-bottom:12px; text-align:center; }
+  .mkt .nums .lb { font-size:11px; color:#7d968a; margin-bottom:4px; }
+  .mkt .nums .vl { font-size:17px; font-weight:800; }
+  .heat { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; }
+  .heat .tile { border-radius:7px; padding:8px 5px; text-align:center; min-width:0; }
+  .heat .tile .nm { font-size:11px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .heat .tile .pc { font-size:11.5px; font-weight:800; margin-top:2px; }
+  .heatlegend { display:flex; justify-content:space-between; font-size:10px; color:#7d968a; margin-top:8px; }
+  .heatlegend .bar { flex:1; height:5px; margin:5px 8px 0; border-radius:3px; background:linear-gradient(90deg,#c14a42,#5a4a44 45%,#3c5a4a 55%,#1d9e75); }
+  /* 크림색 카드 */
+  .lgrid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:14px; }
+  @media (max-width:1080px){ .lgrid { grid-template-columns:repeat(2,minmax(0,1fr)); } .hero { grid-template-columns:1fr; } }
+  @media (max-width:620px){ .lgrid { grid-template-columns:1fr; } }
+  .lcard { background:#f2efe2; color:#1a271f; border-radius:15px; padding:16px 17px; border:1px solid #e4e0cd; }
+  .lcard h3 { font-size:14.5px; font-weight:800; margin-bottom:11px; display:flex; align-items:center; gap:6px; color:#1a271f; }
+  .lcard h3 .more { margin-left:auto; font-size:11.5px; color:#8b8977; font-weight:600; cursor:pointer; }
+  .lcard .lrow { display:flex; align-items:center; gap:8px; padding:7.5px 0; border-bottom:1px solid #00000012; font-size:13px; cursor:pointer; }
+  .lcard .lrow:last-child { border-bottom:none; }
+  .lcard .lrow:hover { background:#00000008; }
+  .lcard .lrank { width:19px; height:19px; border-radius:6px; background:#00000010; color:#5c6a5f; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .lcard .lnm { flex:1; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+  .lcard .lpr { font-variant-numeric:tabular-nums; color:#5c6a5f; font-size:12px; text-align:right; }
+  .lcard .lpc { font-variant-numeric:tabular-nums; font-weight:800; width:64px; text-align:right; }
+  .lup { color:#0c8a5f !important; } .ldn { color:#d64040 !important; } .lfl { color:#8b8977 !important; }
+  .lmuted { color:#8b8977; }
+  .ltier { display:inline-flex; min-width:26px; justify-content:center; padding:2px 7px; border-radius:6px; font-size:11px; font-weight:800; }
+  .lt-S{background:#eadb9d;color:#6b5210;} .lt-A{background:#c9e4ec;color:#155e70;} .lt-B{background:#c9ecd9;color:#0e6b47;} .lt-C{background:#dddcd2;color:#585c52;} .lt-D{background:#f0d3d8;color:#a03048;}
+  /* 대장주 카드 */
+  .king-name { font-size:19px; font-weight:800; }
+  .king-price { font-size:25px; font-weight:800; font-variant-numeric:tabular-nums; margin-top:4px; }
+  .kchips { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+  .kchips span { background:#00000010; border-radius:8px; padding:4px 9px; font-size:11.5px; font-weight:700; color:#3d4a40; }
+  /* 생존점수 */
+  .surv { text-align:center; padding:6px 0; }
+  .surv .big { font-size:34px; font-weight:800; }
+  .surv .big small { font-size:14px; color:#8b8977; }
+  .survbars { margin-top:10px; }
+  .survbars .r { display:flex; align-items:center; gap:8px; font-size:11.5px; padding:2.5px 0; color:#5c6a5f; }
+  .survbars .m { flex:1; height:5px; background:#00000012; border-radius:3px; overflow:hidden; }
+  .survbars .m i { display:block; height:100%; background:#0c8a5f; border-radius:3px; }
+  .disc { background:var(--panel); border:1px solid var(--border); border-radius:12px; text-align:center; font-size:12px; color:var(--dim); padding:13px; margin-top:20px; }
 </style>
 </head>
 <body>
@@ -29,36 +75,45 @@
   <div class="notice hidden" id="notice"></div>
 
   <div class="hero">
+    <svg class="candles" viewBox="0 0 300 240" preserveAspectRatio="none" id="candlesvg"></svg>
     <div class="left">
-      <div class="tag">국내·미국 주식 티어 랭킹 플랫폼</div>
+      <div class="tag">📊 국내·미국 주식 티어 랭킹 플랫폼</div>
       <h1>오늘 뜨는 종목과<br>위험한 종목을 <em>한눈에</em></h1>
-      <p>매일 자동 업데이트되는 티어 랭킹으로 시장을 게임처럼 읽어보세요.</p>
+      <p>매일 자동 업데이트되는 티어 랭킹으로<br>시장을 게임처럼 읽어보세요.</p>
       <a class="btn" href="tier.html">오늘의 티어 랭킹 보기 →</a>
       <div class="feats">
-        <span>일일 자동 데이터</span><span>|</span><span>티어 알고리즘</span><span>|</span><span>리스크 모니터링</span><span>|</span><span>재미용 지표</span>
+        <span>🕐 일일 자동 데이터</span><span>🛡 티어 알고리즘</span><span>⚠ 리스크 모니터링</span><span>🎮 재미용 지표</span>
       </div>
     </div>
-    <div class="right">
+    <div>
       <div class="sbox">
-        <input id="heroq" type="text" placeholder="종목명 검색 (예: 삼성전자, 애플)" autocomplete="off">
+        <input id="heroq" type="text" placeholder="종목명·코드·티커 검색 (예: 삼성전자, 애플)" autocomplete="off">
         <div class="suggest" id="herosug"></div>
       </div>
-      <div class="mini-sum" id="minisum"></div>
+      <div class="mkt">
+        <div class="hd"><b>오늘의 시장 요약</b><span id="mktdate"></span></div>
+        <div class="nums" id="mktnums"></div>
+        <div class="heat" id="heat"></div>
+        <div class="heatlegend"><span>하락</span><span class="bar"></span><span>상승</span></div>
+      </div>
     </div>
   </div>
 
-  <div class="grid g3" style="margin-bottom:14px;">
-    <div class="card"><h3>🔥 오늘 터진 종목 <span class="more" onclick="location.href='tier.html'">더보기 ›</span></h3><div class="rowlist" id="hot"></div></div>
-    <div class="card"><h3>📉 오늘 박살난 종목</h3><div class="rowlist" id="cold"></div></div>
-    <div class="card"><h3>⚡ 거래 폭발 종목 <span class="more" onclick="location.href='risk.html'">더보기 ›</span></h3><div class="rowlist" id="volx"></div></div>
+  <div class="lgrid">
+    <div class="lcard"><h3>🔥 오늘 터진 종목 <span class="more" onclick="location.href='tier.html'">더보기 ›</span></h3><div id="hot"></div></div>
+    <div class="lcard"><h3>📉 오늘 박살난 종목 <span class="more" onclick="location.href='risk.html'">더보기 ›</span></h3><div id="cold"></div></div>
+    <div class="lcard"><h3>🏆 티어 TOP <span class="more" onclick="location.href='tier.html'">더보기 ›</span></h3><div id="top5"></div></div>
+    <div class="lcard"><h3>💯 내 종목 생존점수 <span class="more" onclick="location.href='watchlist.html'">더보기 ›</span></h3><div id="surv"></div></div>
   </div>
-  <div class="grid g3">
-    <div class="card"><h3>👑 오늘의 대장주</h3><div id="king"></div></div>
-    <div class="card"><h3>🏆 티어 TOP 5 <span class="more" onclick="location.href='tier.html'">더보기 ›</span></h3><div class="rowlist" id="top5"></div></div>
-    <div class="card"><h3>🚨 과열 경고 종목 <span class="more" onclick="location.href='risk.html'">더보기 ›</span></h3><div class="rowlist" id="warn"></div></div>
+  <div class="lgrid">
+    <div class="lcard"><h3>⚡ 돈 몰리는 종목 <span class="more" onclick="location.href='risk.html'">더보기 ›</span></h3><div id="volx"></div></div>
+    <div class="lcard"><h3>👑 오늘의 대장주</h3><div id="king"></div></div>
+    <div class="lcard"><h3>🐘 대형주 동향 <span class="more" onclick="location.href='tier.html'">더보기 ›</span></h3><div id="bigs"></div></div>
+    <div class="lcard"><h3>🚨 과열 경고 종목 <span class="more" onclick="location.href='risk.html'">더보기 ›</span></h3><div id="warn"></div></div>
   </div>
 
-  <div class="footer">Stocktier는 재미용 사이트입니다. 등급과 지표는 오락 목적의 가공 수치이며 투자 권유·조언이 아닙니다.<br>데이터 출처: 네이버 증권 · Yahoo Finance 공개 데이터</div>
+  <div class="disc">ⓘ 본 서비스는 재미용 지표를 제공하며, 등급·점수는 오락 목적의 가공 수치로 투자 판단의 근거가 될 수 없습니다.</div>
+  <div class="footer">데이터 출처: 네이버 증권 공개 데이터 · Inspired by your.gg</div>
 </div>
 
 <script src="data.js"></script>
@@ -68,74 +123,133 @@
 ST.nav("index.html");
 ST.sampleNotice("notice");
 
+// 캔들차트 배경 (장식용, 랜덤)
+(function(){
+  let x = 8, y = 150, out = "";
+  while (x < 292) {
+    const up = Math.random() > 0.42;
+    const h = 8 + Math.random()*26, w = 7;
+    const y2 = up ? y - h : y + h;
+    const top = Math.min(y,y2), col = up ? "#4cd7a5" : "#f0645a";
+    out += `<line x1="${x+w/2}" y1="${top-6}" x2="${x+w/2}" y2="${top+h+6}" stroke="${col}" stroke-width="1.4"/>`;
+    out += `<rect x="${x}" y="${top}" width="${w}" height="${Math.max(3,h)}" rx="1.5" fill="${col}"/>`;
+    y = Math.max(30, Math.min(210, y2));
+    x += 12;
+  }
+  document.getElementById("candlesvg").innerHTML = out;
+})();
+
 const A = ST.all();
 for (const x of A) { x.sc = ST.score(x.e, x.src==="us"); x.rk = ST.risk(x.e); }
 const kr = A.filter(x=>x.src==="kr");
-const pool = kr.length>3 ? kr : A;   // 국내 데이터가 있으면 국내 위주로
+const pool = kr.length>3 ? kr : A;
+const poolUS = pool===kr;   // 국내 위주인지
 
-function rowHTML(x, i, right) {
-  const e = x.e;
-  return `<div class="row" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
-    <span class="rank">${i+1}</span>
-    <span class="nm">${ST.displayName(x.src,x.key)} <span class="sub">${e[1]}</span></span>
-    ${ST.spark(e[12])}
-    <span class="num" style="width:86px;text-align:right;">${ST.priceStr(e[2], x.src==="us")}</span>
-    <span class="num ${right.cls}" style="width:70px;text-align:right;font-weight:700;">${right.txt}</span></div>`;
+// ── 시장 요약
+(function(){
+  const upN = pool.filter(x=>x.e[3]>0).length, dnN = pool.filter(x=>x.e[3]<0).length, fl = pool.length-upN-dnN;
+  let amt = 0;
+  for (const x of pool) amt += x.e[2]*x.e[11];
+  const amtStr = poolUS ? (amt/1e12).toFixed(1)+"조" : "$"+(amt/1e9).toFixed(0)+"B";
+  document.getElementById("mktdate").textContent = ST.asofText();
+  document.getElementById("mktnums").innerHTML = `
+    <div><div class="lb">상승</div><div class="vl up">${ST.num(upN)}</div></div>
+    <div><div class="lb">하락</div><div class="vl down">${ST.num(dnN)}</div></div>
+    <div><div class="lb">거래대금(추정)</div><div class="vl">${amtStr}</div></div>`;
+  // 시총 상위 10 히트맵
+  const tops = pool.slice().sort((a,b)=>b.e[8]-a.e[8]).slice(0,10);
+  const tileColor = c => {
+    if (c >= 3) return ["#1d9e75","#eafff6"]; if (c >= 1) return ["#2a6e52","#d9f5e8"];
+    if (c > 0) return ["#28503f","#bfe0cf"]; if (c === 0) return ["#33413a","#9db8a9"];
+    if (c > -1) return ["#4a3733","#e8c9c2"]; if (c > -3) return ["#8a4038","#ffe3dd"];
+    return ["#c14a42","#fff0ee"];
+  };
+  document.getElementById("heat").innerHTML = tops.map(x=>{
+    const [bg,fg] = tileColor(x.e[3]);
+    return `<div class="tile" style="background:${bg};color:${fg};cursor:pointer;" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
+      <div class="nm">${ST.displayName(x.src,x.key)}</div><div class="pc">${ST.pct2(x.e[3])}</div></div>`;
+  }).join("");
+})();
+
+// ── 리스트 행 (크림 카드용)
+const lcls = n => n>0?"lup":(n<0?"ldn":"lfl");
+function lrow(x, i, valHtml) {
+  return `<div class="lrow" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
+    <span class="lrank">${i+1}</span>
+    <span class="lnm">${ST.displayName(x.src,x.key)}</span>
+    <span class="lpr">${ST.priceStr(x.e[2], x.src==="us")}</span>
+    ${valHtml}</div>`;
 }
 
-// 오늘 터진 / 박살난
 const byChg = pool.slice().sort((a,b)=>b.e[3]-a.e[3]);
-document.getElementById("hot").innerHTML = byChg.slice(0,5).map((x,i)=>rowHTML(x,i,{cls:ST.cls(x.e[3]),txt:ST.pct2(x.e[3])})).join("");
-document.getElementById("cold").innerHTML = byChg.slice(-5).reverse().map((x,i)=>rowHTML(x,i,{cls:ST.cls(x.e[3]),txt:ST.pct2(x.e[3])})).join("");
+document.getElementById("hot").innerHTML = byChg.slice(0,5).map((x,i)=>
+  lrow(x,i,`<span class="lpc ${lcls(x.e[3])}">${ST.pct2(x.e[3])}</span>`)).join("");
+document.getElementById("cold").innerHTML = byChg.slice(-5).reverse().map((x,i)=>
+  lrow(x,i,`<span class="lpc ${lcls(x.e[3])}">${ST.pct2(x.e[3])}</span>`)).join("");
 
-// 거래 폭발 (당일/3개월 평균 배수)
-const byVol = pool.filter(x=>x.e[9]>0 && x.e[11]>100000).slice().sort((a,b)=>(b.e[11]/b.e[9])-(a.e[11]/a.e[9]));
-document.getElementById("volx").innerHTML = byVol.slice(0,5).map((x,i)=>rowHTML(x,i,{cls:"up",txt:(x.e[11]/x.e[9]).toFixed(1)+"배"})).join("");
-
-// 오늘의 대장주: 상승 종목 중 (등락률 × log시총) 최고
-const king = pool.filter(x=>x.e[3]>0 && x.e[8]>1000).sort((a,b)=>(b.e[3]*Math.log10(b.e[8]))-(a.e[3]*Math.log10(a.e[8])))[0] || pool[0];
-if (king) {
-  const e = king.e, g = ST.gradeOf(king.sc);
-  document.getElementById("king").innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <a class="stock" style="font-size:18px;font-weight:800;" href="${ST.stockUrl(king.src,king.key)}">${ST.displayName(king.src,king.key)} <span class="sub" style="font-size:12px;color:var(--dim);">${e[0]}</span></a>
-      <span class="tierb tier-${g.g}">${g.g} 티어</span></div>
-    <div style="font-size:26px;font-weight:800;" class="num">${ST.priceStr(e[2],king.src==="us")} <span class="${ST.cls(e[3])}" style="font-size:15px;">${ST.pct2(e[3])}</span></div>
-    <div style="font-size:12px;color:var(--muted);margin:8px 0 12px;" class="num">거래량 ${ST.num(e[11])}주 · 시총 ${ST.capStr(e[8],king.src==="us")}</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <span class="chip">종합점수 ${king.sc}</span><span class="chip">1주 ${ST.pct(e[14])}</span><span class="chip">1개월 ${ST.pct(e[15])}</span><span class="chip">3개월 ${ST.pct(e[16])}</span></div>`;
-}
-
-// 티어 TOP 5
 const byScore = pool.slice().sort((a,b)=>b.sc-a.sc);
 document.getElementById("top5").innerHTML = byScore.slice(0,5).map((x,i)=>{
   const g = ST.gradeOf(x.sc);
-  return `<div class="row" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
-    <span class="rank">${i+1}</span>
-    <span class="nm">${ST.displayName(x.src,x.key)}</span>
-    <span class="tierb tier-${g.g}">${g.g}</span>
-    <span class="num" style="width:56px;text-align:right;font-weight:700;">${x.sc}점</span>
-    <span class="num ${ST.cls(x.e[3])}" style="width:66px;text-align:right;">${ST.pct2(x.e[3])}</span></div>`;
+  return `<div class="lrow" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
+    <span class="lrank">${i+1}</span>
+    <span class="lnm">${ST.displayName(x.src,x.key)}</span>
+    <span class="ltier lt-${g.g}">${g.g}</span>
+    <span class="lpc" style="width:52px;color:#1a271f;">${x.sc}점</span>
+    <span class="lpc ${lcls(x.e[3])}" style="width:58px;font-size:12px;">${ST.pct2(x.e[3])}</span></div>`;
 }).join("");
+
+// 생존점수 (관심종목 기반)
+(function(){
+  const list = ST.watchGet().filter(w=>ST.get(w[0],w[1]));
+  const box = document.getElementById("surv");
+  if (!list.length) {
+    box.innerHTML = `<div style="font-size:12.5px;color:#5c6a5f;line-height:1.7;padding:6px 0;">
+      아직 관심종목이 없어요.<br>종목 페이지에서 ☆를 눌러 담으면<br>포트폴리오 생존점수가 여기 표시됩니다.</div>
+      <a href="tier.html" style="font-size:12px;font-weight:800;color:#0c8a5f;">종목 담으러 가기 →</a>`;
+    return;
+  }
+  const items = list.map(([s,k])=>({sc:ST.score(ST.get(s,k), s==="us"), rk:ST.risk(ST.get(s,k)), e:ST.get(s,k)}));
+  const avg = Math.round(items.reduce((a,x)=>a+x.sc,0)/items.length);
+  const g = ST.gradeOf(avg);
+  const sub = [["체급", Math.min(100,Math.round(items.reduce((a,x)=>a+(x.e[4]>0&&x.e[4]<20?80:40),0)/items.length))],
+               ["모멘텀", Math.min(100,Math.round(items.reduce((a,x)=>a+50+(x.e[14]||0)*3,0)/items.length))],
+               ["안정성", Math.min(100,Math.round(items.reduce((a,x)=>a+100-x.rk,0)/items.length))]];
+  box.innerHTML = `<div class="surv"><div class="big">${avg}<small>/100</small></div>
+    <div style="font-size:12px;font-weight:800;margin-top:2px;"><span class="ltier lt-${g.g}">${g.g}</span> 티어 · ${avg>=65?"양호":avg>=45?"보통":"주의"} · ${items.length}종목</div></div>
+    <div class="survbars">${sub.map(([lb,v])=>`<div class="r"><span style="width:44px;">${lb}</span><div class="m"><i style="width:${Math.max(4,Math.min(100,v))}%"></i></div><b>${Math.max(0,Math.min(100,v))}</b></div>`).join("")}</div>`;
+})();
+
+// 돈 몰리는 종목 (거래대금 급증)
+const byVol = pool.filter(x=>x.e[9]>0 && x.e[11]>100000).slice().sort((a,b)=>(b.e[11]/b.e[9])-(a.e[11]/a.e[9]));
+document.getElementById("volx").innerHTML = byVol.slice(0,5).map((x,i)=>
+  lrow(x,i,`<span class="lpc lup">${(x.e[11]/x.e[9]).toFixed(1)}배</span>`)).join("");
+
+// 오늘의 대장주
+const king = pool.filter(x=>x.e[3]>0 && x.e[8]>1000).sort((a,b)=>(b.e[3]*Math.log10(b.e[8]))-(a.e[3]*Math.log10(a.e[8])))[0] || pool[0];
+if (king) {
+  const e = king.e, g = ST.gradeOf(king.sc), us = king.src==="us";
+  document.getElementById("king").innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <a class="king-name" href="${ST.stockUrl(king.src,king.key)}" style="color:#1a271f;">${ST.displayName(king.src,king.key)}</a>
+      <span class="ltier lt-${g.g}">${g.g} 티어</span></div>
+    <div style="font-size:11px;color:#8b8977;">${e[0]} · ${e[1]}</div>
+    <div class="king-price">${ST.priceStr(e[2],us)} <span class="${lcls(e[3])}" style="font-size:15px;">${ST.pct2(e[3])}</span></div>
+    <div style="font-size:11.5px;color:#8b8977;margin-top:4px;">거래량 ${ST.num(e[11])}주 · 시총 ${ST.capStr(e[8],us)}</div>
+    <div class="kchips"><span>종합 ${king.sc}점</span><span>1주 ${ST.pct(e[14])}</span><span>1개월 ${ST.pct(e[15])}</span><span>3개월 ${ST.pct(e[16])}</span></div>`;
+}
+
+// 대형주 동향 (시총 상위 5)
+document.getElementById("bigs").innerHTML = pool.slice().sort((a,b)=>b.e[8]-a.e[8]).slice(0,5).map((x,i)=>
+  lrow(x,i,`<span class="lpc ${lcls(x.e[3])}">${ST.pct2(x.e[3])}</span>`)).join("");
 
 // 과열 경고
 const byRisk = pool.slice().sort((a,b)=>b.rk-a.rk);
 document.getElementById("warn").innerHTML = byRisk.slice(0,5).map((x,i)=>`
-  <div class="row" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
-    <span class="rank">${i+1}</span>
-    <span class="nm">${ST.displayName(x.src,x.key)}</span>
-    <span class="num" style="width:44px;text-align:right;color:var(--down);font-weight:800;">${x.rk}</span>
-    <span class="sub" style="width:96px;text-align:right;">${x.e[11]/Math.max(1,x.e[9])>=1.5?"거래량 급증":Math.abs(x.e[3])>=5?"단기 급변동":"변동성 확대"}</span></div>`).join("");
-
-// 미니 시장 요약
-(function(){
-  const upN = pool.filter(x=>x.e[3]>0).length, dnN = pool.filter(x=>x.e[3]<0).length, fl = pool.length-upN-dnN;
-  const sN = pool.filter(x=>x.sc>=80).length;
-  document.getElementById("minisum").innerHTML = `
-    <div class="r"><span style="color:var(--muted);">기준 데이터</span><b>${ST.asofText()}</b></div>
-    <div class="r"><span style="color:var(--muted);">상승 / 하락 / 보합</span><b class="num"><span class="up">${ST.num(upN)}</span> / <span class="down">${ST.num(dnN)}</span> / ${ST.num(fl)}</b></div>
-    <div class="r"><span style="color:var(--muted);">S티어 종목</span><b class="num" style="color:var(--gold);">${sN}개</b></div>`;
-})();
+  <div class="lrow" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
+    <span class="lrank">${i+1}</span>
+    <span class="lnm">${ST.displayName(x.src,x.key)}</span>
+    <span class="lpc ldn" style="width:36px;">${x.rk}</span>
+    <span class="lmuted" style="font-size:11px;width:76px;text-align:right;">${x.e[11]/Math.max(1,x.e[9])>=1.5?"거래량 급증":Math.abs(x.e[3])>=5?"단기 급변동":"변동성 확대"}</span></div>`).join("");
 
 // 히어로 검색
 (function(){
