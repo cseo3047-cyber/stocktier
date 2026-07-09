@@ -131,7 +131,8 @@ def idx_hist(symbol, count=70):
                 out.append([round(float(num(p[2]) or 0), 2),
                             round(float(num(p[3]) or 0), 2),
                             round(float(p[4]), 2),
-                            str(p[0])[4:]])          # MMDD
+                            str(p[0])[4:],           # MMDD
+                            int(num(p[5]) or 0) if len(p) >= 6 else 0])   # 거래량
         return out
     except Exception:
         return []
@@ -157,6 +158,7 @@ def market_extra():
                 o["high"], o["low"] = h[-1][0], h[-1][1]
                 o["hist"] = [x[2] for x in h]
                 o["hdates"] = [x[3] for x in h]
+                o["vhist"] = [x[4] for x in h]
             mk[key] = o
 
     def groups(kind, keep):
