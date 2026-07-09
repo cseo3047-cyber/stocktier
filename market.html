@@ -26,7 +26,8 @@
   /* 지수 차트 */
   .chartbox { position:relative; }
   .chartbox svg { width:100%; height:280px; display:block; }
-  .lastbadge { position:absolute; right:8px; background:var(--gold); color:#1a1608; font-size:11px; font-weight:800; border-radius:6px; padding:2px 8px; }
+  .lastbadge { position:absolute; right:8px; background:var(--gold); color:#1a1608; font-size:11px; font-weight:800; border-radius:6px; padding:2px 8px; pointer-events:none; }
+  .charttip { position:absolute; background:#0c1e25; border:1px solid var(--gold-dim); color:var(--text); font-size:11.5px; font-weight:700; padding:4px 9px; border-radius:6px; pointer-events:none; white-space:nowrap; transform:translate(-50%,-135%); z-index:5; font-variant-numeric:tabular-nums; }
   .chartfoot { display:flex; gap:18px; border-top:1px solid var(--border); padding-top:11px; margin-top:8px; font-size:12.5px; flex-wrap:wrap; }
   .chartfoot b { font-weight:800; }
   /* 업종 지도 */
@@ -43,7 +44,7 @@
   .gaugerow .m { flex:1; height:6px; background:var(--panel2); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
   .gaugerow .m i { display:block; height:100%; background:var(--up); border-radius:4px; }
   /* 불릿 */
-  .bullets { font-size:13px; color:var(--muted); line-height:2.0; }
+  .bullets { font-size:14.5px; color:var(--muted); line-height:2.6; }
   .bullets li { list-style:none; padding-left:20px; position:relative; }
   .bullets li:before { content:"✓"; position:absolute; left:0; color:var(--up); font-weight:800; }
 </style>
@@ -64,7 +65,7 @@
         <span style="margin-left:14px;display:flex;gap:6px;" class="chips" id="idxchips"></span>
         <span style="margin-left:auto;display:flex;gap:6px;" class="chips" id="perchips"></span>
       </h3>
-      <div class="chartbox"><svg id="chart" viewBox="0 0 800 280" preserveAspectRatio="none"></svg><span class="lastbadge hidden" id="lastb"></span></div>
+      <div class="chartbox"><svg id="chart" viewBox="0 0 800 280" preserveAspectRatio="none"></svg><span class="lastbadge hidden" id="lastb"></span><div class="charttip hidden" id="charttip"></div></div>
       <div class="chartfoot" id="chartfoot"></div>
     </div>
     <div class="card">
@@ -81,8 +82,8 @@
   </div>
 
   <div class="row4">
-    <div class="card"><h3>📈 상승 업종 TOP 5</h3><div class="rowlist" id="upTop"></div></div>
-    <div class="card"><h3>📉 하락 업종 TOP 5</h3><div class="rowlist" id="dnTop"></div></div>
+    <div class="card"><h3>📈 상승 업종 TOP 8</h3><div class="rowlist" id="upTop"></div></div>
+    <div class="card"><h3>📉 하락 업종 TOP 8</h3><div class="rowlist" id="dnTop"></div></div>
     <div class="card"><h3>🔥 돈 몰리는 테마 <span class="more" style="cursor:default;">등락률 순</span></h3><div class="rowlist" id="themes"></div></div>
     <div class="card"><h3>🚨 과열 경고 <span class="more" onclick="location.href='risk.html'">더보기 ›</span></h3><div class="rowlist" id="warn"></div></div>
   </div>
@@ -116,10 +117,22 @@ if (!MK) {
 (function(){
   const defs = [["kospi","KOSPI"],["kosdaq","KOSDAQ"],["kpi200","코스피200"]];
   let html = "";
+  function miniArea(hist, id){
+    const pts = hist.slice(-40);
+    const W=96, H=44, mn=Math.min(...pts), mx=Math.max(...pts), rg=(mx-mn)||1;
+    const xy = pts.map((p,i)=>`${(i/(pts.length-1)*W).toFixed(1)},${(H-3-(p-mn)/rg*(H-8)).toFixed(1)}`).join(" ");
+    const col = pts[pts.length-1] >= pts[0] ? "#4cd7a5" : "#f0645a";
+    return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="flex-shrink:0;">
+      <defs><linearGradient id="mg${id}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${col}" stop-opacity="0.45"/><stop offset="100%" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+      <polygon points="0,${H} ${xy} ${W},${H}" fill="url(#mg${id})"/>
+      <polyline points="${xy}" fill="none" stroke="${col}" stroke-width="1.6"/></svg>`;
+  }
+  let mi = 0;
   for (const [k, nm] of defs) {
     const o = MK && MK[k];
     if (!o) { html += `<div class="idxcard"><div class="l"><div class="nm">${nm}</div><div class="pr" style="color:var(--dim);font-size:15px;">데이터 수집 대기</div></div></div>`; continue; }
-    const spark = o.hist ? ST.spark(histToDays(o.hist), 96, 44) : "";
+    const spark = o.hist ? miniArea(o.hist, ++mi) : "";
     html += `<div class="idxcard">
       <div class="l">
         <div class="nm">${nm}</div>
@@ -176,12 +189,46 @@ function drawChart(){
     grid += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#1c3440" stroke-width="1"/>
              <text x="${W-padR+6}" y="${y+4}" fill="#5a737d" font-size="11">${Math.round(v).toLocaleString("ko-KR")}</text>`;
   }
-  svg.innerHTML = grid +
+  svg.innerHTML =
+    `<defs><linearGradient id="gmain" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${col}" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>` +
+    grid +
+    `<polygon points="${padL},${H-padB} ${pts} ${X(h.length-1)},${H-padB}" fill="url(#gmain)"/>` +
     `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2"/>` +
-    `<polygon points="${padL},${H-padB} ${pts} ${X(h.length-1)},${H-padB}" fill="${col}" opacity="0.07"/>`;
+    `<g id="cross" style="display:none;">
+      <line id="cxv" y1="${padT}" y2="${H-padB}" stroke="#8da4ac" stroke-width="1" stroke-dasharray="4,4"/>
+      <line id="cxh" x1="${padL}" x2="${W-padR}" stroke="#8da4ac" stroke-width="1" stroke-dasharray="4,4"/>
+      <circle id="cxp" r="4" fill="${col}" stroke="#0c1e25" stroke-width="1.5"/>
+    </g>`;
   badge.textContent = fmt2(h[h.length-1]);
   badge.style.top = Math.max(2, Y(h[h.length-1])-10) + "px";
   badge.classList.remove("hidden");
+
+  // 마우스 오버: 십자 점선 + 날짜·시세 툴팁
+  const tip = document.getElementById("charttip");
+  const cross = document.getElementById("cross");
+  const dates = (o.hdates || []).slice(-curPer);
+  svg.onmousemove = ev => {
+    const r = svg.getBoundingClientRect();
+    const vx = (ev.clientX - r.left) / r.width * W;
+    let i = Math.round((vx - padL) / (W - padL - padR) * (h.length - 1));
+    i = Math.max(0, Math.min(h.length - 1, i));
+    const x = X(i), y = Y(h[i]);
+    document.getElementById("cxv").setAttribute("x1", x);
+    document.getElementById("cxv").setAttribute("x2", x);
+    document.getElementById("cxh").setAttribute("y1", y);
+    document.getElementById("cxh").setAttribute("y2", y);
+    document.getElementById("cxp").setAttribute("cx", x);
+    document.getElementById("cxp").setAttribute("cy", y);
+    cross.style.display = "";
+    const d = dates[i];
+    tip.textContent = (d ? `${d.slice(0,2)}/${d.slice(2)} · ` : "") + fmt2(h[i]);
+    tip.style.left = (x / W * 100) + "%";
+    tip.style.top = (y / H * 100) + "%";
+    tip.classList.remove("hidden");
+  };
+  svg.onmouseleave = () => { cross.style.display = "none"; tip.classList.add("hidden"); };
   document.getElementById("chartfoot").innerHTML = `
     <span>등락종목&nbsp; 상승 <b class="up num">${ST.num(upN)}</b></span>
     <span>하락 <b class="down num">${ST.num(dnN)}</b></span>
@@ -271,8 +318,8 @@ drawChart();
         <span class="num ${ST.cls(u[1])}" style="width:66px;text-align:right;font-weight:800;">${ST.pct2(u[1])}</span></div>`).join("")
       : `<div style="font-size:12px;color:var(--dim);padding:10px 0;">수집 대기 중</div>`;
   };
-  mk5(MK && MK.upjong ? MK.upjong.slice(0,5) : [], "upTop");
-  mk5(MK && MK.upjong ? MK.upjong.slice(-5).reverse() : [], "dnTop");
+  mk5(MK && MK.upjong ? MK.upjong.slice(0,8) : [], "upTop");
+  mk5(MK && MK.upjong ? MK.upjong.slice(-8).reverse() : [], "dnTop");
   mk5(MK && MK.theme ? MK.theme.slice(0,8) : [], "themes");
 })();
 
