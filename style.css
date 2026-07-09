@@ -1,7 +1,7 @@
 /* Stocktier 공용 스타일 — 다크 그린 + 골드 */
 :root {
-  --bg:#0b1614; --panel:#101f1b; --panel2:#0d1a16; --border:#1d332c;
-  --text:#e6efe9; --muted:#8fa69b; --dim:#5c7268;
+  --bg:#0a1a20; --panel:#0f232b; --panel2:#0c1e25; --border:#1c3440;
+  --text:#e6eef0; --muted:#8da4ac; --dim:#5a737d;
   --gold:#f0c948; --gold-dim:#c9a832;
   --up:#4cd7a5; --down:#f0645a; --flat:#8fa69b;
   --tier-s:#f0c948; --tier-a:#4cc3d7; --tier-b:#4cd7a5; --tier-c:#aeb6c9; --tier-d:#f0708a;
