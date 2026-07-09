@@ -175,7 +175,9 @@ function drawChart(){
     return;
   }
   const h = o.hist.slice(-curPer);
-  const W=800, H=280, padL=10, padR=64, padT=16, padB=14;
+  const vols = (o.vhist || []).slice(-curPer);
+  const hasVol = vols.length === h.length && vols.some(v=>v>0);
+  const W=800, H=280, padL=10, padR=64, padT=16, padB = hasVol ? 66 : 14;
   const mn = Math.min(...h), mx = Math.max(...h), rg = (mx-mn)||1;
   const X = i => padL + i/(h.length-1)*(W-padL-padR);
   const Y = v => padT + (1-(v-mn)/rg)*(H-padT-padB);
@@ -189,11 +191,23 @@ function drawChart(){
     grid += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#1c3440" stroke-width="1"/>
              <text x="${W-padR+6}" y="${y+4}" fill="#5a737d" font-size="11">${Math.round(v).toLocaleString("ko-KR")}</text>`;
   }
+  // 거래량 바 (하단)
+  let volBars = "";
+  if (hasVol) {
+    const maxV = Math.max(...vols) || 1;
+    const bw = Math.max(1.5, (W-padL-padR)/h.length*0.55);
+    for (let i = 0; i < vols.length; i++) {
+      const bh = Math.max(1, vols[i]/maxV*46);
+      const bcol = (i>0 && h[i] < h[i-1]) ? "#f0645a" : "#4cd7a5";
+      volBars += `<rect x="${(X(i)-bw/2).toFixed(1)}" y="${(H-14-bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="${bcol}" opacity="0.55"/>`;
+    }
+    volBars += `<text x="${W-padR+6}" y="${H-16}" fill="#5a737d" font-size="10">거래량</text>`;
+  }
   svg.innerHTML =
     `<defs><linearGradient id="gmain" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="${col}" stop-opacity="0.35"/>
       <stop offset="100%" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>` +
-    grid +
+    grid + volBars +
     `<polygon points="${padL},${H-padB} ${pts} ${X(h.length-1)},${H-padB}" fill="url(#gmain)"/>` +
     `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2"/>` +
     `<g id="cross" style="display:none;">
