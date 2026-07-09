@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stocktier — 종목 상세</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .profile { display:flex; gap:18px; align-items:center; flex-wrap:wrap; }
+  .emblem { width:96px; height:96px; border-radius:18px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:800; flex-shrink:0; }
+  .emblem .grade { font-size:36px; line-height:1; }
+  .emblem .glabel { font-size:11px; font-weight:700; opacity:.85; margin-top:4px; }
+  .statgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+  .stat { background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:13px; }
+  .stat .lb { font-size:12px; color:var(--muted); margin-bottom:5px; }
+  .stat .vl { font-size:17px; font-weight:800; }
+  .stat .sub { font-size:11px; margin-top:4px; font-weight:700; }
+  .rank-good { color:var(--up); } .rank-mid { color:var(--gold); } .rank-bad { color:var(--down); }
+  .volrow { display:flex; align-items:center; gap:10px; margin-bottom:9px; }
+  .volrow .vlb { width:104px; font-size:13px; color:var(--muted); flex-shrink:0; }
+  .volbar { flex:1; height:20px; background:var(--panel2); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+  .volbar i { display:block; height:100%; background:#3f8f74; }
+  .volbar.hot i { background:var(--down); }
+  .volrow .vv { width:126px; text-align:right; font-size:12px; font-weight:700; flex-shrink:0; }
+  .match { display:flex; align-items:center; gap:12px; padding:11px 13px; border-radius:10px; margin-bottom:7px; background:var(--panel2); border-left:4px solid transparent; flex-wrap:wrap; font-size:13px; }
+  .match.win { border-left-color:var(--up); }
+  .match.loss { border-left-color:var(--down); }
+  .match .res { font-weight:800; width:44px; }
+  .match .day { color:var(--muted); font-size:12px; width:52px; }
+  .match .mv { font-weight:800; width:72px; }
+  .badge { font-size:10px; font-weight:800; border-radius:10px; padding:3px 9px; margin-left:auto; }
+  .badge.mvp { background:#3d3313; color:var(--gold); }
+  .badge.ace { background:#132f3d; color:var(--tier-a); }
+  .aibox .q { font-size:15px; font-weight:800; margin-bottom:8px; }
+  .aibox .a { font-size:13px; color:var(--muted); line-height:1.7; }
+  .prob { text-align:center; padding:10px 0 4px; }
+  .prob .big { font-size:38px; font-weight:800; }
+  .prob .plb { color:var(--muted); font-size:12px; margin-top:4px; }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<div class="wrap" style="max-width:900px;">
+  <div id="body"></div>
+  <div class="footer">Stocktier는 재미용 사이트입니다. 등급과 지표는 오락 목적의 가공 수치이며 투자 권유·조언이 아닙니다.</div>
+</div>
+
+<script src="data.js"></script>
+<script src="data_us.js"></script>
+<script src="common.js"></script>
+<script>
+ST.nav("");
+const src = ST.qp("src") || "kr", key = ST.qp("k") || "";
+const s = ST.get(src, key);
+
+if (!s) {
+  document.getElementById("body").innerHTML = `<div class="card" style="text-align:center;padding:50px;">
+    <div style="font-size:18px;font-weight:700;margin-bottom:8px;">종목을 찾을 수 없습니다</div>
+    <div style="font-size:13px;color:var(--muted);">상단 검색창에서 다시 검색해보세요.</div></div>`;
+} else {
+  const us = src==="us";
+  const [code, mkt, price, chg, per, pbr, div, roe, cap, vol3m, volPrev, volToday, days, forn, r1w, r1m, r3m] = s;
+  const sc = ST.score(s, us), gr = ST.gradeOf(sc), rk = ST.risk(s);
+  const name = ST.displayName(src, key);
+  document.title = "Stocktier — " + name;
+
+  const tier3 = (v,good,mid,invert) => {
+    if (v==null) return "mid";
+    const x = invert?-v:v;
+    return x>=(invert?-good:good)?"good":x>=(invert?-mid:mid)?"mid":"bad";
+  };
+  const rt = c => c==="good"?`<div class="sub rank-good">상위권</div>`:c==="mid"?`<div class="sub rank-mid">중위권</div>`:`<div class="sub rank-bad">하위권</div>`;
+  const tierColor = {S:"var(--tier-s)",A:"var(--tier-a)",B:"var(--tier-b)",C:"var(--tier-c)",D:"var(--tier-d)"}[gr.g];
+  const tierBg = {S:"#3d3313",A:"#132f3d",B:"#13322a",C:"#272c2c",D:"#3a1a22"}[gr.g];
+
+  const surge = vol3m>0 ? volToday/vol3m : 0;
+  const maxV = Math.max(vol3m, volPrev, volToday, 1);
+  const bar = (lb,v,hot) => `<div class="volrow"><div class="vlb">${lb}</div>
+    <div class="volbar${hot?" hot":""}"><i style="width:${Math.max(2,Math.round(v/maxV*100))}%"></i></div>
+    <div class="vv num">${ST.num(v)}주</div></div>`;
+
+  const dayNames = ["기준일","1일 전","2일 전","3일 전","4일 전"];
+  const wins = days.filter(x=>x>0).length;
+  const reasons = [];
+  if (per<=0) reasons.push("적자 상태라 체급(PER) 측정 불가");
+  else if (per>(us?80:60)) reasons.push("체급(PER) 대비 기대치가 과도함");
+  if (roe<8) reasons.push("딜량(ROE)이 팀 평균 이하");
+  if (!us && forn!=null && forn<10) reasons.push("팀운(외국인 수급)이 따라주지 않음");
+  if (surge>=2) reasons.push("당일 화력 폭발 — 과열 주의");
+  if (wins>=4) reasons.push(`최근 전적 ${wins}승 ${5-wins}패로 상승 관성 유지 중`);
+  if (r3m!=null && r3m<=-20) reasons.push("최근 3개월 시즌 성적 부진");
+  if (!reasons.length) reasons.push("스탯 밸런스가 준수함 — 꾸준히 티어 방어 중");
+  const prob = Math.min(97, Math.max(0.1, (sc-gr.min)*2 + wins*5));
+
+  const fornCell = us
+    ? `<div class="stat"><div class="lb">거래소</div><div class="vl">${mkt}</div><div class="sub" style="color:var(--muted)">미국 시장</div></div>`
+    : `<div class="stat"><div class="lb">외국인 지분율 (팀운)</div><div class="vl num">${forn!=null?forn.toFixed(1)+"%":"-"}</div>${rt(tier3(forn,30,10,false))}</div>`;
+
+  document.getElementById("body").innerHTML = `
+  <div class="card" style="margin-bottom:14px;">
+    <div class="profile">
+      <div class="emblem" style="background:${tierBg};color:${tierColor};"><div class="grade">${gr.g}급</div><div class="glabel">TIER</div></div>
+      <div style="flex:1;min-width:220px;">
+        <div style="font-size:13px;font-weight:800;color:${tierColor};margin-bottom:4px;">${gr.label} · 종합점수 ${sc} LP</div>
+        <div style="font-size:24px;font-weight:800;">${name} <span style="font-size:13px;color:var(--dim);font-weight:500;">${code} · ${mkt}${us&&s[17]?" · "+s[17]:""}</span></div>
+        <div style="margin-top:6px;"><span class="num" style="font-size:20px;font-weight:800;">${ST.priceStr(price,us)}</span>
+          <span class="${ST.cls(chg)}" style="font-size:14px;font-weight:700;margin-left:8px;">${ST.pct2(chg)}</span></div>
+        <div class="chips" style="margin-top:10px;">
+          <span class="chip">1주 <b class="${ST.cls(r1w||0)}">${ST.pct(r1w)}</b></span>
+          <span class="chip">1개월 <b class="${ST.cls(r1m||0)}">${ST.pct(r1m)}</b></span>
+          <span class="chip">3개월 <b class="${ST.cls(r3m||0)}">${ST.pct(r3m)}</b></span>
+          <span class="chip">위험도 <b style="color:${rk>=70?"var(--down)":rk>=40?"var(--gold)":"var(--up)"}">${rk}</b></span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="btn ghost" id="watchbtn" onclick="toggleWatch()">☆ 관심종목</button>
+        <a class="btn ghost" href="compare.html?a=${src}:${encodeURIComponent(key)}">⚔ 비교하기</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px;"><h3>핵심 스탯 <span class="more">${ST.asofText()}</span></h3>
+    <div class="statgrid">
+      <div class="stat"><div class="lb">PER (체급)</div><div class="vl num">${per>0?per.toFixed(1)+"배":"적자/없음"}</div>${rt(tier3(per>0?per:999,us?15:10,us?28:20,true))}</div>
+      <div class="stat"><div class="lb">PBR</div><div class="vl num">${pbr>0?pbr.toFixed(2)+"배":"-"}</div>${rt(tier3(pbr>0?pbr:999,us?3:1.0,us?8:3.0,true))}</div>
+      <div class="stat"><div class="lb">ROE (딜량)</div><div class="vl num">${roe.toFixed(1)}%</div>${rt(tier3(roe,15,8,false))}</div>
+      <div class="stat"><div class="lb">시가총액</div><div class="vl num">${ST.capStr(cap,us)}</div><div class="sub" style="color:var(--muted)">체급 보정치</div></div>
+      <div class="stat"><div class="lb">배당수익률 (유지력)</div><div class="vl num">${div.toFixed(1)}%</div>${rt(tier3(div,us?2:3,us?0.5:1,false))}</div>
+      ${fornCell}
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px;"><h3>거래량 전적 <span class="more">3개월 평균 대비 화력</span></h3>
+    ${bar("3개월 평균",vol3m,false)}${bar("전일 거래량",volPrev,false)}${bar("당일 거래량",volToday,surge>=1.5)}
+    <div style="font-size:12px;font-weight:700;margin-top:4px;color:${surge>=1.5?"var(--down)":"var(--muted)"};">
+      당일 화력: 평균 대비 ${surge.toFixed(2)}배 ${surge>=2?"— 펜타킬급 폭발":surge>=1.5?"— 트리플킬급 과열":surge<0.8?"— 관망 중":"— 평범"}</div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px;"><h3>최근 5거래일 전적 <span class="more">상승=WIN · 하락=LOSS</span></h3>
+    ${days.map((v,i)=>{
+      const win = v>0;
+      let badge = "";
+      if (Math.abs(v)>=5) badge = `<span class="badge mvp">MVP · 변동성 폭발</span>`;
+      else if (Math.abs(v)>=2.5) badge = `<span class="badge ace">ACE</span>`;
+      return `<div class="match ${win?"win":"loss"}">
+        <span class="res ${ST.cls(v)}">${win?"WIN":"LOSS"}</span>
+        <span class="day">${dayNames[i]}</span>
+        <span class="mv num ${ST.cls(v)}">${ST.pct2(v)}</span>
+        <span class="sub" style="color:var(--dim);font-size:11px;">일간 등락률</span>${badge}</div>`;
+    }).join("")}
+  </div>
+
+  <div class="card aibox" style="background:linear-gradient(130deg,#12241d,#16281f);">
+    <div class="q">${name}, ${gr.g}급에서 벗어나지 못하는 이유는?</div>
+    <div class="a">${reasons.join(" · ")}.</div>
+    <div class="prob"><div class="big" style="color:${tierColor};">${prob.toFixed(1)}%</div><div class="plb">다음 티어 승급 가능성 (재미용 지표)</div></div>
+  </div>`;
+
+  window.toggleWatch = function(){
+    ST.watchToggle(src, key);
+    updateWatchBtn();
+  };
+  function updateWatchBtn(){
+    const b = document.getElementById("watchbtn");
+    if (ST.watchHas(src,key)) { b.textContent = "★ 관심종목 해제"; b.style.color = "var(--gold)"; b.style.borderColor = "var(--gold-dim)"; }
+    else { b.textContent = "☆ 관심종목"; b.style.color = ""; b.style.borderColor = ""; }
+  }
+  updateWatchBtn();
+}
+</script>
+</body>
+</html>

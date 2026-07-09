@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stocktier — 리스크 워치</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .riskb { display:inline-block; min-width:36px; text-align:center; padding:3px 8px; border-radius:7px; font-size:12px; font-weight:800; }
+  .r-high { background:#3a161a; color:var(--down); }
+  .r-mid { background:#3d3313; color:var(--gold); }
+  .r-low { background:#13322a; color:var(--up); }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<div class="wrap">
+  <span class="asof" id="asof"></span>
+  <div class="page-title">리스크 워치</div>
+  <div class="page-sub">변동성·거래량 급증·하락 추세를 종합한 위험도 순위입니다. 재미용 지표예요.</div>
+  <div class="notice hidden" id="notice"></div>
+
+  <div class="stat-cards" id="cards"></div>
+
+  <div class="grid" style="grid-template-columns:1fr 300px;" id="layout">
+    <div class="card">
+      <h3>위험 종목 리스트
+        <span style="margin-left:auto;display:flex;gap:6px;" class="chips" id="typechips"></span>
+      </h3>
+      <table class="tbl">
+        <thead><tr><th>순위</th><th>종목명</th><th>위험 유형</th><th class="r">위험도</th><th class="r">당일 등락</th><th class="r">거래 배수</th><th class="r">5일 변동성</th><th class="r">1주 수익률</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div style="text-align:center;margin-top:14px;"><button class="btn ghost" id="morebtn" onclick="showMore()">더보기</button></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card"><h3>🔥 급등 과열 TOP 5</h3><div class="rowlist" id="hotlist"></div></div>
+      <div class="card"><h3>🧊 연속 하락 TOP 5</h3><div class="rowlist" id="downlist"></div></div>
+      <div class="card"><h3>위험도 기준</h3>
+        <div style="font-size:12px;color:var(--muted);line-height:1.9;">
+          <span class="riskb r-high">70+</span> 고위험 — 급등 과열, 급락, 거래 폭발<br>
+          <span class="riskb r-mid">40~69</span> 주의 — 변동성 확대 구간<br>
+          <span class="riskb r-low">~39</span> 안정 — 평온한 흐름<br><br>
+          산식: 5일 평균 변동폭 + 거래량 급증 + 하락일 수 + 주간 낙폭
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Stocktier는 재미용 사이트입니다. 등급과 지표는 오락 목적의 가공 수치이며 투자 권유·조언이 아닙니다.</div>
+</div>
+
+<script src="data.js"></script>
+<script src="data_us.js"></script>
+<script src="common.js"></script>
+<script>
+ST.nav("risk.html");
+ST.sampleNotice("notice");
+document.getElementById("asof").textContent = "업데이트: " + ST.asofText();
+if (window.innerWidth < 900) document.getElementById("layout").style.gridTemplateColumns = "1fr";
+
+const A = ST.all();
+for (const x of A) {
+  x.rk = ST.risk(x.e);
+  x.surge = x.e[9]>0 ? x.e[11]/x.e[9] : 0;
+  x.vol5 = x.e[12].reduce((a,b)=>a+Math.abs(b),0)/5;
+  x.downs = x.e[12].filter(d=>d<0).length;
+  // 위험 유형
+  if (x.surge>=2 && x.e[3]>0) x.type = "급등 과열";
+  else if (x.e[3]<=-7 || (x.e[14]!=null && x.e[14]<=-10)) x.type = "급락 진행";
+  else if (x.surge>=2) x.type = "거래 폭발";
+  else if (x.downs>=4) x.type = "연속 하락";
+  else if (x.vol5>=4) x.type = "변동성 확대";
+  else x.type = "일반";
+}
+const TYPES = [["ALL","전체"],["급등 과열","급등 과열"],["급락 진행","급락"],["거래 폭발","거래 폭발"],["연속 하락","연속 하락"],["변동성 확대","변동성"]];
+let type = "ALL", shown = 50;
+document.getElementById("typechips").innerHTML = TYPES.map(([v,t]) =>
+  `<span class="chip ${v==="ALL"?"on":""}" data-v="${v}" onclick="setType('${v}')">${t}</span>`).join("");
+window.setType = function(v){
+  type = v; shown = 50;
+  document.querySelectorAll("#typechips .chip").forEach(c=>c.classList.toggle("on", c.dataset.v===v));
+  render();
+};
+window.showMore = function(){ shown += 50; render(); };
+
+function riskBadge(r) {
+  const c = r>=70?"r-high":r>=40?"r-mid":"r-low";
+  return `<span class="riskb ${c}">${r}</span>`;
+}
+
+function render() {
+  let P = A.filter(x=>x.rk>=30);
+  if (type!=="ALL") P = P.filter(x=>x.type===type);
+  P.sort((a,b)=>b.rk-a.rk);
+
+  const high = A.filter(x=>x.rk>=70).length, mid = A.filter(x=>x.rk>=40&&x.rk<70).length;
+  const hotN = A.filter(x=>x.type==="급등 과열").length;
+  document.getElementById("cards").innerHTML = `
+    <div class="stat-card"><div class="lb">🚨 고위험 종목 (70+)</div><div class="vl num" style="color:var(--down);">${ST.num(high)}<small>개</small></div></div>
+    <div class="stat-card"><div class="lb">⚠ 주의 종목 (40~69)</div><div class="vl num" style="color:var(--gold);">${ST.num(mid)}<small>개</small></div></div>
+    <div class="stat-card"><div class="lb">🔥 급등 과열</div><div class="vl num">${ST.num(hotN)}<small>개</small></div></div>
+    <div class="stat-card"><div class="lb">📊 감시 대상</div><div class="vl num">${ST.num(P.length)}<small>개</small></div></div>`;
+
+  document.getElementById("tbody").innerHTML = P.slice(0,shown).map((x,i)=>`
+    <tr>
+      <td class="num" style="color:var(--muted);">${i+1}</td>
+      <td><a class="stock" href="${ST.stockUrl(x.src,x.key)}">${ST.displayName(x.src,x.key)}</a> <span style="font-size:11px;color:var(--dim);">${x.e[1]}</span></td>
+      <td style="font-size:12px;color:var(--muted);">${x.type}</td>
+      <td class="r">${riskBadge(x.rk)}</td>
+      <td class="r num ${ST.cls(x.e[3])}" style="font-weight:700;">${ST.pct2(x.e[3])}</td>
+      <td class="r num">${x.surge.toFixed(1)}배</td>
+      <td class="r num">${x.vol5.toFixed(1)}%</td>
+      <td class="r num ${ST.cls(x.e[14]||0)}">${ST.pct(x.e[14])}</td></tr>`).join("");
+  document.getElementById("morebtn").style.display = shown >= P.length ? "none" : "";
+}
+
+const hot = A.filter(x=>x.type==="급등 과열").sort((a,b)=>b.e[3]-a.e[3]).slice(0,5);
+document.getElementById("hotlist").innerHTML = hot.length ? hot.map((x,i)=>`
+  <div class="row" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
+    <span class="rank">${i+1}</span><span class="nm">${ST.displayName(x.src,x.key)}</span>
+    <span class="num up" style="width:70px;text-align:right;font-weight:700;">${ST.pct2(x.e[3])}</span></div>`).join("")
+  : `<div style="font-size:12px;color:var(--dim);">해당 종목 없음</div>`;
+
+const dn = A.filter(x=>x.downs>=4).sort((a,b)=>(a.e[14]||0)-(b.e[14]||0)).slice(0,5);
+document.getElementById("downlist").innerHTML = dn.length ? dn.map((x,i)=>`
+  <div class="row" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
+    <span class="rank">${i+1}</span><span class="nm">${ST.displayName(x.src,x.key)}</span>
+    <span class="num down" style="width:70px;text-align:right;font-weight:700;">${ST.pct(x.e[14])}</span></div>`).join("")
+  : `<div style="font-size:12px;color:var(--dim);">해당 종목 없음</div>`;
+
+render();
+</script>
+</body>
+</html>

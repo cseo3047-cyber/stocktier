@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stocktier — 관심종목</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .gauge { width:150px; height:78px; margin:6px auto 4px; position:relative; overflow:hidden; }
+  .gauge .arc { width:150px; height:150px; border-radius:50%; }
+  .gauge .hole { position:absolute; left:24px; top:24px; width:102px; height:102px; background:var(--panel); border-radius:50%; text-align:center; }
+  .gauge .hole b { font-size:26px; display:block; margin-top:14px; }
+  .gauge .hole span { font-size:11px; color:var(--muted); }
+  .del { color:var(--dim); cursor:pointer; font-size:15px; }
+  .del:hover { color:var(--down); }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<div class="wrap">
+  <span class="asof" id="asof"></span>
+  <div class="page-title">관심종목</div>
+  <div class="page-sub">저장한 종목의 티어와 핵심 지표를 한눈에. 이 브라우저에만 저장됩니다 (로그인 불필요).</div>
+
+  <div id="body"></div>
+
+  <div class="footer">Stocktier는 재미용 사이트입니다. 등급과 지표는 오락 목적의 가공 수치이며 투자 권유·조언이 아닙니다.</div>
+</div>
+
+<script src="data.js"></script>
+<script src="data_us.js"></script>
+<script src="common.js"></script>
+<script>
+ST.nav("watchlist.html");
+document.getElementById("asof").textContent = "업데이트: " + ST.asofText();
+
+function render() {
+  const list = ST.watchGet().filter(w => ST.get(w[0],w[1]));
+  const box = document.getElementById("body");
+  if (!list.length) {
+    box.innerHTML = `<div class="card" style="text-align:center;padding:50px;">
+      <div style="font-size:17px;font-weight:700;margin-bottom:8px;">아직 관심종목이 없어요</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">종목 상세 페이지에서 ☆ 관심종목 버튼을 누르면 여기에 모입니다.</div>
+      <a class="btn" href="tier.html">티어 랭킹에서 종목 찾기 →</a></div>`;
+    return;
+  }
+  const items = list.map(([src,key]) => {
+    const e = ST.get(src,key);
+    return { src, key, e, sc: ST.score(e, src==="us"), rk: ST.risk(e) };
+  }).sort((a,b)=>b.sc-a.sc);
+
+  const avg = Math.round(items.reduce((a,x)=>a+x.sc,0)/items.length);
+  const g = ST.gradeOf(avg);
+  const highRisk = items.filter(x=>x.rk>=70).length;
+  const upToday = items.filter(x=>x.e[3]>0).length;
+
+  const rows = items.map((x,i)=>{
+    const gg = ST.gradeOf(x.sc), us = x.src==="us";
+    return `<tr>
+      <td class="num" style="color:var(--muted);">${i+1}</td>
+      <td><a class="stock" href="${ST.stockUrl(x.src,x.key)}">${ST.displayName(x.src,x.key)}</a> <span style="font-size:11px;color:var(--dim);">${x.e[1]}</span></td>
+      <td><span class="tierb tier-${gg.g}">${gg.g}</span></td>
+      <td class="r num" style="font-weight:800;">${x.sc}</td>
+      <td class="r num">${ST.priceStr(x.e[2],us)}</td>
+      <td class="r num ${ST.cls(x.e[3])}" style="font-weight:700;">${ST.pct2(x.e[3])}</td>
+      <td class="r num ${ST.cls(x.e[15]||0)}">${ST.pct(x.e[15])}</td>
+      <td class="r num" style="color:${x.rk>=70?"var(--down)":x.rk>=40?"var(--gold)":"var(--up)"};font-weight:700;">${x.rk}</td>
+      <td class="r"><span class="del" onclick="removeW('${x.src}','${encodeURIComponent(x.key)}')">✕</span></td></tr>`;
+  }).join("");
+
+  const pct = Math.max(0, Math.min(100, avg));
+  box.innerHTML = `
+    <div class="stat-cards">
+      <div class="stat-card"><div class="lb">📋 관심종목</div><div class="vl num">${items.length}<small>개</small></div></div>
+      <div class="stat-card"><div class="lb">📈 오늘 상승</div><div class="vl num" style="color:var(--up);">${upToday}<small>개</small></div></div>
+      <div class="stat-card"><div class="lb">🚨 고위험</div><div class="vl num" style="color:var(--down);">${highRisk}<small>개</small></div></div>
+      <div class="stat-card">
+        <div class="lb">💯 포트폴리오 생존점수</div>
+        <div class="gauge">
+          <div class="arc" style="background:conic-gradient(from 270deg, ${avg>=65?"var(--up)":avg>=45?"var(--gold)":"var(--down)"} 0% ${pct/2}%, var(--panel2) ${pct/2}% 50%, transparent 50%);"></div>
+          <div class="hole"><b>${avg}<span style="font-size:12px;color:var(--muted);">/100</span></b><span>${g.g} 티어 · ${avg>=65?"양호":avg>=45?"보통":"주의"}</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>내 관심종목 리스트 <span class="more">종합점수 순</span></h3>
+      <table class="tbl">
+        <thead><tr><th>순위</th><th>종목명</th><th>티어</th><th class="r">점수</th><th class="r">현재가</th><th class="r">당일</th><th class="r">1개월</th><th class="r">위험도</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+window.removeW = function(src, keyEnc){
+  ST.watchToggle(src, decodeURIComponent(keyEnc));
+  render();
+};
+render();
+</script>
+</body>
+</html>

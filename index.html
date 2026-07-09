@@ -3,369 +3,159 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>STOCK.GG — 주식 전적 검색</title>
+<title>Stocktier — 오늘 뜨는 종목과 위험한 종목을 한눈에</title>
+<link rel="stylesheet" href="style.css">
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif; background:#0f1420; color:#e8eaf0; min-height:100vh; }
-  .wrap { max-width:860px; margin:0 auto; padding:32px 16px 80px; }
-  .logo { text-align:center; font-size:34px; font-weight:800; letter-spacing:1px; margin-bottom:4px; }
-  .logo span { color:#5b8def; }
-  .tagline { text-align:center; color:#8b93a7; font-size:13px; margin-bottom:24px; }
-  .notice { max-width:520px; margin:0 auto 16px; background:#2c2416; border:1px solid #5c4a1e; color:#f5b942; font-size:12px; border-radius:10px; padding:10px 14px; text-align:center; }
-  .searchbox { position:relative; max-width:520px; margin:0 auto 32px; }
-  .searchbox input { width:100%; padding:14px 48px 14px 18px; font-size:16px; border:2px solid #2a3348; border-radius:12px; background:#1a2132; color:#e8eaf0; outline:none; }
-  .searchbox input:focus { border-color:#5b8def; }
-  .searchbox .btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); background:#5b8def; border:none; color:#fff; border-radius:8px; padding:8px 14px; font-size:14px; cursor:pointer; font-weight:600; }
-  .suggest { position:absolute; top:calc(100% + 6px); left:0; right:0; background:#1a2132; border:1px solid #2a3348; border-radius:12px; overflow:hidden; z-index:10; display:none; }
-  .suggest div { padding:11px 18px; cursor:pointer; font-size:14px; display:flex; justify-content:space-between; }
-  .suggest div:hover { background:#232c44; }
-  .suggest .code { color:#8b93a7; font-size:12px; }
-  .card { background:#1a2132; border:1px solid #2a3348; border-radius:14px; padding:20px; margin-bottom:14px; }
-  .hidden { display:none; }
-
-  .profile { display:flex; gap:18px; align-items:center; flex-wrap:wrap; }
-  .emblem { width:92px; height:92px; border-radius:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:800; flex-shrink:0; }
-  .emblem .grade { font-size:34px; line-height:1; }
-  .emblem .glabel { font-size:11px; font-weight:600; opacity:.85; margin-top:3px; }
-  .p-info { flex:1; min-width:220px; }
-  .tierline { font-size:13px; font-weight:700; margin-bottom:4px; letter-spacing:.5px; }
-  .p-name { font-size:24px; font-weight:800; }
-  .p-name small { color:#8b93a7; font-size:14px; font-weight:500; margin-left:6px; }
-  .p-price { font-size:20px; font-weight:700; margin-top:6px; }
-  .p-diff { font-size:14px; font-weight:600; margin-left:8px; }
-  .up { color:#f04452; } .down { color:#3182f6; } .flat { color:#8b93a7; }
-  .season-chips { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
-  .chip { background:#232c44; border-radius:20px; padding:4px 11px; font-size:11px; color:#aeb6c9; font-weight:600; }
-
-  .statgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
-  .stat { background:#141a2a; border-radius:10px; padding:14px; }
-  .stat .lb { font-size:12px; color:#8b93a7; margin-bottom:6px; }
-  .stat .vl { font-size:18px; font-weight:700; }
-  .stat .sub { font-size:11px; margin-top:4px; font-weight:600; }
-  .rank-good { color:#4cd7a5; } .rank-mid { color:#f5b942; } .rank-bad { color:#f04452; }
-
-  .sec-title { font-size:15px; font-weight:700; margin-bottom:12px; display:flex; justify-content:space-between; align-items:baseline; }
-  .sec-title small { color:#8b93a7; font-weight:500; font-size:12px; }
-  .volrow { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-  .volrow .vlb { width:110px; font-size:13px; color:#aeb6c9; flex-shrink:0; }
-  .volbar { flex:1; height:22px; background:#141a2a; border-radius:6px; overflow:hidden; }
-  .volbar i { display:block; height:100%; border-radius:6px; background:#5b8def; }
-  .volbar.hot i { background:#f04452; }
-  .volrow .vv { width:130px; text-align:right; font-size:13px; font-weight:600; flex-shrink:0; }
-
-  .match { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:10px; margin-bottom:8px; background:#141a2a; border-left:4px solid transparent; flex-wrap:wrap; }
-  .match.win { border-left-color:#f04452; background:#241a26; }
-  .match.loss { border-left-color:#3182f6; background:#16202f; }
-  .match .res { font-weight:800; font-size:14px; width:44px; }
-  .match .day { color:#8b93a7; font-size:12px; width:52px; }
-  .match .mv { font-weight:700; font-size:15px; width:70px; }
-  .match .detail { color:#8b93a7; font-size:12px; flex:1; min-width:120px; }
-  .badge { font-size:10px; font-weight:700; border-radius:10px; padding:3px 9px; }
-  .badge.mvp { background:#3d2f13; color:#f5b942; }
-  .badge.ace { background:#132f3d; color:#4cc3d7; }
-
-  .ai-box { background:linear-gradient(135deg,#1d2438,#232c44); border:1px solid #35406030; }
-  .ai-box .q { font-size:15px; font-weight:700; margin-bottom:8px; }
-  .ai-box .a { font-size:13px; color:#aeb6c9; line-height:1.7; }
-  .prob { text-align:center; padding:8px 0 4px; }
-  .prob .big { font-size:40px; font-weight:800; }
-  .prob .plb { color:#8b93a7; font-size:13px; margin-top:4px; }
-  .footer { text-align:center; color:#3d465e; font-size:11px; margin-top:40px; line-height:1.8; }
+  .hero { display:flex; gap:24px; align-items:center; background:linear-gradient(120deg,#0e1f19,#12261e); border:1px solid var(--border); border-radius:16px; padding:34px 30px; margin-bottom:20px; flex-wrap:wrap; }
+  .hero .left { flex:1; min-width:260px; }
+  .hero .tag { font-size:12px; color:var(--muted); font-weight:700; letter-spacing:.5px; margin-bottom:10px; }
+  .hero h1 { font-size:34px; line-height:1.3; font-weight:800; margin-bottom:12px; }
+  .hero h1 em { font-style:normal; color:var(--gold); }
+  .hero p { font-size:14px; color:var(--muted); margin-bottom:20px; }
+  .hero .feats { display:flex; gap:14px; margin-top:18px; flex-wrap:wrap; font-size:12px; color:var(--muted); }
+  .hero .feats span { display:flex; gap:5px; align-items:center; }
+  .hero .right { width:340px; max-width:100%; }
+  .hero .sbox { position:relative; }
+  .hero .sbox input { width:100%; padding:14px 16px; font-size:15px; background:var(--panel); border:2px solid var(--border); border-radius:12px; color:var(--text); outline:none; }
+  .hero .sbox input:focus { border-color:var(--gold-dim); }
+  .mini-sum { margin-top:14px; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px 16px; font-size:13px; }
+  .mini-sum .r { display:flex; justify-content:space-between; padding:4px 0; }
+  .mini-sum .r b { font-weight:700; }
 </style>
 </head>
 <body>
+<nav class="nav" id="nav"></nav>
 <div class="wrap">
-  <div class="logo">STOCK<span>.GG</span></div>
-  <div class="tagline" id="tagline">주식 전적 검색 — 종목의 티어를 확인하세요</div>
   <div class="notice hidden" id="notice"></div>
 
-  <div class="searchbox">
-    <input id="q" type="text" placeholder="종목명·코드·티커 입력 (예: 삼성전자, 애플, AAPL)" autocomplete="off">
-    <button class="btn" onclick="search()">GG</button>
-    <div class="suggest" id="suggest"></div>
-  </div>
-
-  <div id="result" class="hidden">
-    <div class="card">
-      <div class="profile">
-        <div class="emblem" id="emblem"><div class="grade" id="gradeTxt">S</div><div class="glabel">TIER</div></div>
-        <div class="p-info">
-          <div class="tierline" id="tierline"></div>
-          <div class="p-name"><span id="name"></span><small id="code"></small></div>
-          <div><span class="p-price" id="price"></span><span class="p-diff" id="diff"></span></div>
-          <div class="season-chips" id="chips"></div>
-        </div>
+  <div class="hero">
+    <div class="left">
+      <div class="tag">국내·미국 주식 티어 랭킹 플랫폼</div>
+      <h1>오늘 뜨는 종목과<br>위험한 종목을 <em>한눈에</em></h1>
+      <p>매일 자동 업데이트되는 티어 랭킹으로 시장을 게임처럼 읽어보세요.</p>
+      <a class="btn" href="tier.html">오늘의 티어 랭킹 보기 →</a>
+      <div class="feats">
+        <span>일일 자동 데이터</span><span>|</span><span>티어 알고리즘</span><span>|</span><span>리스크 모니터링</span><span>|</span><span>재미용 지표</span>
       </div>
     </div>
-
-    <div class="card">
-      <div class="sec-title">핵심 스탯 <small>기준일 종가 기준</small></div>
-      <div class="statgrid" id="stats"></div>
-    </div>
-
-    <div class="card">
-      <div class="sec-title">거래량 전적 <small>3개월 평균 대비 화력</small></div>
-      <div id="vols"></div>
-    </div>
-
-    <div class="card">
-      <div class="sec-title">최근 5거래일 전적 <small>상승=WIN · 하락=LOSS</small></div>
-      <div id="matches"></div>
-    </div>
-
-    <div class="card ai-box">
-      <div class="q" id="aiq"></div>
-      <div class="a" id="aia"></div>
-      <div class="prob"><div class="big" id="prob"></div><div class="plb">다음 티어 승급 가능성 (재미용 지표)</div></div>
+    <div class="right">
+      <div class="sbox">
+        <input id="heroq" type="text" placeholder="종목명 검색 (예: 삼성전자, 애플)" autocomplete="off">
+        <div class="suggest" id="herosug"></div>
+      </div>
+      <div class="mini-sum" id="minisum"></div>
     </div>
   </div>
 
-  <div class="footer">STOCK.GG는 재미용 사이트입니다. 등급과 지표는 오락 목적의 가공 수치이며 투자 권유·조언이 아닙니다.<br>데이터 출처: KRX·Yahoo Finance 공개 데이터 · Inspired by your.gg</div>
+  <div class="grid g3" style="margin-bottom:14px;">
+    <div class="card"><h3>🔥 오늘 터진 종목 <span class="more" onclick="location.href='tier.html'">더보기 ›</span></h3><div class="rowlist" id="hot"></div></div>
+    <div class="card"><h3>📉 오늘 박살난 종목</h3><div class="rowlist" id="cold"></div></div>
+    <div class="card"><h3>⚡ 거래 폭발 종목 <span class="more" onclick="location.href='risk.html'">더보기 ›</span></h3><div class="rowlist" id="volx"></div></div>
+  </div>
+  <div class="grid g3">
+    <div class="card"><h3>👑 오늘의 대장주</h3><div id="king"></div></div>
+    <div class="card"><h3>🏆 티어 TOP 5 <span class="more" onclick="location.href='tier.html'">더보기 ›</span></h3><div class="rowlist" id="top5"></div></div>
+    <div class="card"><h3>🚨 과열 경고 종목 <span class="more" onclick="location.href='risk.html'">더보기 ›</span></h3><div class="rowlist" id="warn"></div></div>
+  </div>
+
+  <div class="footer">Stocktier는 재미용 사이트입니다. 등급과 지표는 오락 목적의 가공 수치이며 투자 권유·조언이 아닙니다.<br>데이터 출처: 네이버 증권 · Yahoo Finance 공개 데이터</div>
 </div>
 
 <script src="data.js"></script>
 <script src="data_us.js"></script>
+<script src="common.js"></script>
 <script>
-// 필드: 0코드 1시장 2주가 3등락 4PER 5PBR 6배당 7ROE 8시총 9평균거래량 10전일 11당일 12최근5일 13외인 14주간 15월간 16분기 [17영문명]
-const SAMPLE_KR = {
-  "삼성전자":["005930","KOSPI",87400,1.6,14.2,1.5,2.1,11.2,5210000,12800000,11200000,19400000,[1.6,-0.4,2.1,0.8,-1.2],52.3,2.1,5.4,12.7]
-};
-const SAMPLE_US = {
-  "AAPL":["AAPL","NASDAQ",254.30,0.8,32.5,48.2,0.4,120.3,38200,52000000,48000000,61000000,[0.8,1.2,-0.5,0.3,1.9],null,2.2,4.8,11.3,"Apple Inc."]
-};
-const KR = (window.STOCK_DB && Object.keys(window.STOCK_DB).length) ? window.STOCK_DB : SAMPLE_KR;
-const US = (window.STOCK_DB_US && Object.keys(window.STOCK_DB_US).length) ? window.STOCK_DB_US : SAMPLE_US;
-const ALIAS = window.KO_ALIAS || {"애플":"AAPL"};
-const isReal = { kr: !!window.STOCK_DB, us: !!window.STOCK_DB_US };
+ST.nav("index.html");
+ST.sampleNotice("notice");
 
-(function init(){
-  const parts = [];
-  if (isReal.kr && window.STOCK_META) {
-    const d = window.STOCK_META.date;
-    parts.push(`국내 ${window.STOCK_META.count.toLocaleString()}종목 (${d.slice(4,6)}/${d.slice(6,8)})`);
-  }
-  if (isReal.us && window.STOCK_META_US) {
-    const d = window.STOCK_META_US.date;
-    parts.push(`미국 ${window.STOCK_META_US.count.toLocaleString()}종목 (${d.slice(4,6)}/${d.slice(6,8)})`);
-  }
-  if (parts.length) {
-    document.getElementById("tagline").textContent = "주식 전적 검색 — " + parts.join(" · ") + " 종가 기준";
-  }
-  const missing = [];
-  if (!isReal.kr) missing.push("국내(data.js)");
-  if (!isReal.us) missing.push("미국(data_us.js)");
-  if (missing.length) {
-    const n = document.getElementById("notice");
-    n.textContent = missing.join(", ") + " 데이터 파일이 아직 없어 일부는 샘플로 동작 중입니다. GitHub Actions를 실행하면 실제 데이터로 바뀝니다.";
-    n.classList.remove("hidden");
-  }
+const A = ST.all();
+for (const x of A) { x.sc = ST.score(x.e, x.src==="us"); x.rk = ST.risk(x.e); }
+const kr = A.filter(x=>x.src==="kr");
+const pool = kr.length>3 ? kr : A;   // 국내 데이터가 있으면 국내 위주로
+
+function rowHTML(x, i, right) {
+  const e = x.e;
+  return `<div class="row" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
+    <span class="rank">${i+1}</span>
+    <span class="nm">${ST.displayName(x.src,x.key)} <span class="sub">${e[1]}</span></span>
+    ${ST.spark(e[12])}
+    <span class="num" style="width:86px;text-align:right;">${ST.priceStr(e[2], x.src==="us")}</span>
+    <span class="num ${right.cls}" style="width:70px;text-align:right;font-weight:700;">${right.txt}</span></div>`;
+}
+
+// 오늘 터진 / 박살난
+const byChg = pool.slice().sort((a,b)=>b.e[3]-a.e[3]);
+document.getElementById("hot").innerHTML = byChg.slice(0,5).map((x,i)=>rowHTML(x,i,{cls:ST.cls(x.e[3]),txt:ST.pct2(x.e[3])})).join("");
+document.getElementById("cold").innerHTML = byChg.slice(-5).reverse().map((x,i)=>rowHTML(x,i,{cls:ST.cls(x.e[3]),txt:ST.pct2(x.e[3])})).join("");
+
+// 거래 폭발 (당일/3개월 평균 배수)
+const byVol = pool.filter(x=>x.e[9]>0 && x.e[11]>100000).slice().sort((a,b)=>(b.e[11]/b.e[9])-(a.e[11]/a.e[9]));
+document.getElementById("volx").innerHTML = byVol.slice(0,5).map((x,i)=>rowHTML(x,i,{cls:"up",txt:(x.e[11]/x.e[9]).toFixed(1)+"배"})).join("");
+
+// 오늘의 대장주: 상승 종목 중 (등락률 × log시총) 최고
+const king = pool.filter(x=>x.e[3]>0 && x.e[8]>1000).sort((a,b)=>(b.e[3]*Math.log10(b.e[8]))-(a.e[3]*Math.log10(a.e[8])))[0] || pool[0];
+if (king) {
+  const e = king.e, g = ST.gradeOf(king.sc);
+  document.getElementById("king").innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <a class="stock" style="font-size:18px;font-weight:800;" href="${ST.stockUrl(king.src,king.key)}">${ST.displayName(king.src,king.key)} <span class="sub" style="font-size:12px;color:var(--dim);">${e[0]}</span></a>
+      <span class="tierb tier-${g.g}">${g.g} 티어</span></div>
+    <div style="font-size:26px;font-weight:800;" class="num">${ST.priceStr(e[2],king.src==="us")} <span class="${ST.cls(e[3])}" style="font-size:15px;">${ST.pct2(e[3])}</span></div>
+    <div style="font-size:12px;color:var(--muted);margin:8px 0 12px;" class="num">거래량 ${ST.num(e[11])}주 · 시총 ${ST.capStr(e[8],king.src==="us")}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <span class="chip">종합점수 ${king.sc}</span><span class="chip">1주 ${ST.pct(e[14])}</span><span class="chip">1개월 ${ST.pct(e[15])}</span><span class="chip">3개월 ${ST.pct(e[16])}</span></div>`;
+}
+
+// 티어 TOP 5
+const byScore = pool.slice().sort((a,b)=>b.sc-a.sc);
+document.getElementById("top5").innerHTML = byScore.slice(0,5).map((x,i)=>{
+  const g = ST.gradeOf(x.sc);
+  return `<div class="row" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
+    <span class="rank">${i+1}</span>
+    <span class="nm">${ST.displayName(x.src,x.key)}</span>
+    <span class="tierb tier-${g.g}">${g.g}</span>
+    <span class="num" style="width:56px;text-align:right;font-weight:700;">${x.sc}점</span>
+    <span class="num ${ST.cls(x.e[3])}" style="width:66px;text-align:right;">${ST.pct2(x.e[3])}</span></div>`;
+}).join("");
+
+// 과열 경고
+const byRisk = pool.slice().sort((a,b)=>b.rk-a.rk);
+document.getElementById("warn").innerHTML = byRisk.slice(0,5).map((x,i)=>`
+  <div class="row" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
+    <span class="rank">${i+1}</span>
+    <span class="nm">${ST.displayName(x.src,x.key)}</span>
+    <span class="num" style="width:44px;text-align:right;color:var(--down);font-weight:800;">${x.rk}</span>
+    <span class="sub" style="width:96px;text-align:right;">${x.e[11]/Math.max(1,x.e[9])>=1.5?"거래량 급증":Math.abs(x.e[3])>=5?"단기 급변동":"변동성 확대"}</span></div>`).join("");
+
+// 미니 시장 요약
+(function(){
+  const upN = pool.filter(x=>x.e[3]>0).length, dnN = pool.filter(x=>x.e[3]<0).length, fl = pool.length-upN-dnN;
+  const sN = pool.filter(x=>x.sc>=80).length;
+  document.getElementById("minisum").innerHTML = `
+    <div class="r"><span style="color:var(--muted);">기준 데이터</span><b>${ST.asofText()}</b></div>
+    <div class="r"><span style="color:var(--muted);">상승 / 하락 / 보합</span><b class="num"><span class="up">${ST.num(upN)}</span> / <span class="down">${ST.num(dnN)}</span> / ${ST.num(fl)}</b></div>
+    <div class="r"><span style="color:var(--muted);">S티어 종목</span><b class="num" style="color:var(--gold);">${sN}개</b></div>`;
 })();
 
-const GRADES = [
-  { g:"S", min:80, bg:"#3d2f13", fg:"#f5b942", label:"챌린저급 대장주" },
-  { g:"A", min:65, bg:"#13303d", fg:"#4cc3d7", label:"다이아급 우량주" },
-  { g:"B", min:50, bg:"#16321f", fg:"#4cd7a5", label:"플래티넘급 중견주" },
-  { g:"C", min:35, bg:"#2c2c3a", fg:"#aeb6c9", label:"골드급 존버주" },
-  { g:"D", min:0,  bg:"#3a1a1e", fg:"#f0708a", label:"브론즈급 기도주" }
-];
-
-function score(s, us){
-  const per=s[4], div=s[6], roe=s[7], cap=s[8], vol3m=s[9], volToday=s[11], days=s[12], forn=s[13];
-  const perGood = us?15:10, perMid = us?28:20, perBad = us?80:60;
-  const divGood = us?2:3, divMid = us?0.5:1;
-  const capBig = us?5000:100000, capSmall = us?20:1000;
-  let sc = 50;
-  if (per > 0 && per < perGood) sc += 15; else if (per > 0 && per < perMid) sc += 8; else if (per <= 0 || per > perBad) sc -= 10;
-  if (roe >= 15) sc += 15; else if (roe >= 8) sc += 8; else if (roe < 0) sc -= 12;
-  if (div >= divGood) sc += 8; else if (div >= divMid) sc += 4;
-  if (!us && forn != null) { if (forn >= 30) sc += 8; else if (forn < 5) sc -= 5; }
-  if (vol3m > 0 && volToday / vol3m >= 1.5) sc += 6;
-  const wins = days.filter(d=>d>0).length;
-  sc += (wins - 2.5) * 3;
-  if (cap >= capBig) sc += 5; else if (cap < capSmall) sc -= 5;
-  return Math.max(0, Math.min(100, Math.round(sc)));
-}
-const gradeOf = sc => GRADES.find(x => sc >= x.min);
-const pct = n => n==null ? "-" : (n>0?"+":"") + n.toFixed(1) + "%";
-const num = n => n.toLocaleString("ko-KR");
-const cls = n => n>0?"up":(n<0?"down":"flat");
-const capStr = (c, us) => us
-  ? (c >= 10000 ? (c/10000).toFixed(2) + "조 달러" : num(c) + "억 달러")
-  : (c >= 10000 ? (c/10000).toFixed(1).replace(/\.0$/,"") + "조원" : num(c) + "억원");
-const priceStr = (p, us) => us ? "$" + p.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}) : num(p) + "원";
-
-function rankTag(cond){
-  if (cond === "good") return `<div class="sub rank-good">상위권</div>`;
-  if (cond === "mid") return `<div class="sub rank-mid">중위권</div>`;
-  return `<div class="sub rank-bad">하위권</div>`;
-}
-const tier3 = (v, good, mid, invert) => {
-  if (v == null) return "mid";
-  const x = invert ? -v : v;
-  return x >= (invert?-good:good) ? "good" : x >= (invert?-mid:mid) ? "mid" : "bad";
-};
-
-// 검색: 국내 이름/코드 → 미국 한글별칭/티커/영문명 순
-function findStock(q){
-  const qU = q.toUpperCase();
-  if (KR[q]) return ["kr", q];
-  if (ALIAS[q] && US[ALIAS[q]]) return ["us", ALIAS[q]];
-  if (US[qU]) return ["us", qU];
-  const krKeys = Object.keys(KR);
-  let k = krKeys.find(x => KR[x][0] === q);
-  if (k) return ["kr", k];
-  k = krKeys.find(x => x.startsWith(q)) || krKeys.find(x => x.includes(q));
-  if (k) return ["kr", k];
-  const alias = Object.keys(ALIAS).find(x => x.startsWith(q));
-  if (alias && US[ALIAS[alias]]) return ["us", ALIAS[alias]];
-  const usKeys = Object.keys(US);
-  k = usKeys.find(x => x.startsWith(qU)) ||
-      usKeys.find(x => (US[x][17]||"").toUpperCase().includes(qU));
-  if (k) return ["us", k];
-  return null;
-}
-
-function search(){
-  const q = document.getElementById("q").value.trim();
-  if (!q) return;
-  hideSuggest();
-  const hit = findStock(q);
-  if (!hit) { alert("종목을 찾을 수 없습니다: " + q); return; }
-  const [src, key] = hit;
-  render(src, key);
-}
-
-function displayName(src, key){
-  if (src === "kr") return key;
-  const ko = Object.keys(ALIAS).find(a => ALIAS[a] === key);
-  return ko ? `${ko}` : (US[key][17] || key);
-}
-
-function render(src, key){
-  const us = src === "us";
-  const s = us ? US[key] : KR[key];
-  const [code, mkt, price, chg, per, pbr, div, roe, cap, vol3m, volPrev, volToday, days, forn, r1w, r1m, r3m] = s;
-  const sc = score(s, us), gr = gradeOf(sc);
-  document.getElementById("result").classList.remove("hidden");
-
-  const em = document.getElementById("emblem");
-  em.style.background = gr.bg; em.style.color = gr.fg;
-  document.getElementById("gradeTxt").textContent = gr.g + "급";
-  const tl = document.getElementById("tierline");
-  tl.textContent = gr.label + " · 종합점수 " + sc + " LP";
-  tl.style.color = gr.fg;
-  document.getElementById("name").textContent = displayName(src, key);
-  document.getElementById("code").textContent = us ? `${code} · ${mkt}${s[17] ? " · " + s[17] : ""}` : `${code} · ${mkt}`;
-  document.getElementById("price").textContent = priceStr(price, us);
-  const d = document.getElementById("diff");
-  d.textContent = pct(chg); d.className = "p-diff " + cls(chg);
-  document.getElementById("chips").innerHTML =
-    [["1주", r1w],["1개월", r1m],["3개월", r3m]].map(([lb,v]) =>
-      `<span class="chip">${lb} <span class="${cls(v||0)}">${pct(v)}</span></span>`).join("");
-
-  const perGood = us?15:10, perMid = us?28:20;
-  const divGood = us?2:3, divMid = us?0.5:1;
-  const fornCell = us
-    ? `<div class="stat"><div class="lb">거래소</div><div class="vl">${mkt}</div><div class="sub" style="color:#8b93a7">미국 시장</div></div>`
-    : `<div class="stat"><div class="lb">외국인 지분율 (팀운)</div><div class="vl">${forn!=null?forn.toFixed(1)+"%":"-"}</div>${rankTag(tier3(forn,30,10,false))}</div>`;
-  document.getElementById("stats").innerHTML = `
-    <div class="stat"><div class="lb">PER (체급)</div><div class="vl">${per>0?per.toFixed(1)+"배":"적자/없음"}</div>${rankTag(tier3(per>0?per:999,perGood,perMid,true))}</div>
-    <div class="stat"><div class="lb">PBR</div><div class="vl">${pbr>0?pbr.toFixed(2)+"배":"-"}</div>${rankTag(tier3(pbr>0?pbr:999,us?3:1.0,us?8:3.0,true))}</div>
-    <div class="stat"><div class="lb">ROE (딜량)</div><div class="vl">${roe.toFixed(1)}%</div>${rankTag(tier3(roe,15,8,false))}</div>
-    <div class="stat"><div class="lb">시가총액</div><div class="vl">${capStr(cap, us)}</div><div class="sub" style="color:#8b93a7">체급 보정치</div></div>
-    <div class="stat"><div class="lb">배당수익률 (유지력)</div><div class="vl">${div.toFixed(1)}%</div>${rankTag(tier3(div,divGood,divMid,false))}</div>
-    ${fornCell}`;
-
-  const surge = vol3m > 0 ? volToday / vol3m : 0;
-  const maxV = Math.max(vol3m, volPrev, volToday, 1);
-  const bar = (lb, v, hot) => `
-    <div class="volrow"><div class="vlb">${lb}</div>
-    <div class="volbar${hot?" hot":""}"><i style="width:${Math.max(2,Math.round(v/maxV*100))}%"></i></div>
-    <div class="vv">${num(v)}주</div></div>`;
-  document.getElementById("vols").innerHTML =
-    bar("3개월 평균", vol3m, false) +
-    bar("전일 거래량", volPrev, false) +
-    bar("당일 거래량", volToday, surge >= 1.5) +
-    `<div style="font-size:12px;color:${surge>=1.5?"#f04452":"#8b93a7"};font-weight:600;margin-top:4px;">
-      당일 화력: 평균 대비 ${surge.toFixed(2)}배 ${surge>=2?"— 펜타킬급 폭발":surge>=1.5?"— 트리플킬급 과열":surge<0.8?"— 관망 중":"— 평범"}</div>`;
-
-  const dayNames = ["기준일","1일 전","2일 전","3일 전","4일 전"];
-  document.getElementById("matches").innerHTML = days.map((v,i)=>{
-    const win = v > 0;
-    let badge = "";
-    if (Math.abs(v) >= 5) badge = `<span class="badge mvp">MVP · 변동성 폭발</span>`;
-    else if (Math.abs(v) >= 2.5) badge = `<span class="badge ace">ACE</span>`;
-    return `<div class="match ${win?"win":"loss"}">
-      <span class="res ${cls(v)}">${win?"WIN":"LOSS"}</span>
-      <span class="day">${dayNames[i]}</span>
-      <span class="mv ${cls(v)}">${pct(v)}</span>
-      <span class="detail">일간 등락률 기준</span>${badge}</div>`;
-  }).join("");
-
-  const wins = days.filter(x=>x>0).length;
-  document.getElementById("aiq").textContent = `${displayName(src, key)}, ${gr.g}급에서 벗어나지 못하는 이유는?`;
-  const reasons = [];
-  if (per <= 0) reasons.push("적자 상태라 체급(PER) 측정 불가");
-  else if (per > (us?80:60)) reasons.push("체급(PER) 대비 기대치가 과도함");
-  if (roe < 8) reasons.push("딜량(ROE)이 팀 평균 이하");
-  if (!us && forn != null && forn < 10) reasons.push("팀운(외국인 수급)이 따라주지 않음");
-  if (surge >= 2) reasons.push("당일 화력 폭발 — 과열 주의");
-  if (wins >= 4) reasons.push(`최근 전적 ${wins}승 ${5-wins}패로 상승 관성 유지 중`);
-  if (r3m != null && r3m <= -20) reasons.push("최근 3개월 시즌 성적 부진");
-  if (!reasons.length) reasons.push("스탯 밸런스가 준수함 — 꾸준히 티어 방어 중");
-  document.getElementById("aia").textContent = reasons.join(" · ") + ".";
-  const prob = Math.min(97, Math.max(0.1, (sc - gr.min) * 2 + wins * 5));
-  document.getElementById("prob").textContent = prob.toFixed(1) + "%";
-  document.getElementById("prob").style.color = gr.fg;
-
-  document.getElementById("result").scrollIntoView({behavior:"smooth", block:"start"});
-}
-
-// 자동완성 (국내 + 미국 통합)
-const input = document.getElementById("q"), sug = document.getElementById("suggest");
-input.addEventListener("input", () => {
-  const q = input.value.trim();
-  if (!q) { hideSuggest(); return; }
-  const qU = q.toUpperCase();
-  const hits = [];
-  for (const k of Object.keys(KR)) {
-    if (hits.length >= 8) break;
-    if (k.startsWith(q) || KR[k][0].startsWith(q)) hits.push(["kr", k]);
-  }
-  for (const a of Object.keys(ALIAS)) {
-    if (hits.length >= 8) break;
-    if (a.startsWith(q) && US[ALIAS[a]]) hits.push(["us", ALIAS[a]]);
-  }
-  for (const k of Object.keys(US)) {
-    if (hits.length >= 8) break;
-    if (k.startsWith(qU) || (US[k][17]||"").toUpperCase().startsWith(qU)) {
-      if (!hits.some(h => h[0]==="us" && h[1]===k)) hits.push(["us", k]);
-    }
-  }
-  if (hits.length < 8) {
-    for (const k of Object.keys(KR)) {
-      if (hits.length >= 8) break;
-      if (!k.startsWith(q) && k.includes(q)) hits.push(["kr", k]);
-    }
-  }
-  if (!hits.length) { hideSuggest(); return; }
-  sug.innerHTML = hits.map(([src,k],i)=>{
-    const label = src==="kr" ? k : displayName(src,k);
-    const meta = src==="kr" ? `${KR[k][0]} · ${KR[k][1]}` : `${k} · ${US[k][1]}`;
-    return `<div data-i="${i}">${label}<span class="code">${meta}</span></div>`;
-  }).join("");
-  sug.style.display = "block";
-  sug.querySelectorAll("div[data-i]").forEach(el =>
-    el.addEventListener("click", () => {
-      const [src, k] = hits[+el.dataset.i];
-      input.value = displayName(src, k);
-      hideSuggest();
-      render(src, k);
-    }));
-});
-input.addEventListener("keydown", e => { if (e.key === "Enter") search(); });
-function hideSuggest(){ sug.style.display = "none"; }
-document.addEventListener("click", e => { if (!e.target.closest(".searchbox")) hideSuggest(); });
+// 히어로 검색
+(function(){
+  const input = document.getElementById("heroq"), sug = document.getElementById("herosug");
+  input.addEventListener("input", () => {
+    const q = input.value.trim();
+    if (!q) { sug.style.display="none"; return; }
+    const hits = ST.suggestions(q);
+    if (!hits.length) { sug.style.display="none"; return; }
+    sug.innerHTML = hits.map(([src,k]) => {
+      const e = ST.get(src,k);
+      return `<div onclick="location.href='${ST.stockUrl(src,k)}'">${ST.displayName(src,k)}<span class="code">${e[0]} · ${e[1]}</span></div>`;
+    }).join("");
+    sug.style.display="block";
+  });
+  input.addEventListener("keydown", e => {
+    if (e.key==="Enter") { const hit = ST.findStock(input.value.trim()); if (hit) location.href = ST.stockUrl(hit[0],hit[1]); }
+  });
+  document.addEventListener("click", e => { if (!e.target.closest(".sbox")) sug.style.display="none"; });
+})();
 </script>
 </body>
 </html>

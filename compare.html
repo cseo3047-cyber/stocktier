@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stocktier — 종목 비교</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .pick { display:grid; grid-template-columns:1fr auto 1fr; gap:14px; align-items:center; margin-bottom:16px; }
+  .pick .sbox { position:relative; }
+  .pick input { width:100%; padding:13px 15px; font-size:14px; background:var(--panel); border:2px solid var(--border); border-radius:12px; color:var(--text); outline:none; }
+  .pick input:focus { border-color:var(--gold-dim); }
+  .pick .vs { font-size:16px; font-weight:800; color:var(--gold); }
+  .cmp { width:100%; border-collapse:collapse; font-size:13px; }
+  .cmp td, .cmp th { padding:11px 10px; border-bottom:1px solid var(--border); }
+  .cmp .lbl { text-align:center; color:var(--muted); font-size:12px; width:130px; }
+  .cmp .a { text-align:right; } .cmp .b { text-align:left; }
+  .crown { color:var(--gold); }
+  .headrow { font-size:16px; font-weight:800; }
+  .mbar { display:inline-block; height:7px; border-radius:4px; background:#3f8f74; vertical-align:middle; }
+  @media (max-width:700px){ .pick { grid-template-columns:1fr; } .pick .vs { text-align:center; } }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<div class="wrap" style="max-width:980px;">
+  <div class="page-title">종목 비교</div>
+  <div class="page-sub">두 종목의 티어와 핵심 지표를 나란히 비교하세요. 우세한 쪽에 👑가 붙습니다.</div>
+
+  <div class="pick">
+    <div class="sbox"><input id="qa" placeholder="종목 A 검색 (예: 삼성전자)" autocomplete="off"><div class="suggest" id="suga"></div></div>
+    <div class="vs">VS</div>
+    <div class="sbox"><input id="qb" placeholder="종목 B 검색 (예: SK하이닉스)" autocomplete="off"><div class="suggest" id="sugb"></div></div>
+  </div>
+
+  <div id="result"></div>
+
+  <div class="footer">Stocktier는 재미용 사이트입니다. 등급과 지표는 오락 목적의 가공 수치이며 투자 권유·조언이 아닙니다.</div>
+</div>
+
+<script src="data.js"></script>
+<script src="data_us.js"></script>
+<script src="common.js"></script>
+<script>
+ST.nav("compare.html");
+let A = null, B = null;   // {src,key}
+
+function parseParam(p) {
+  if (!p) return null;
+  const i = p.indexOf(":");
+  if (i < 0) return null;
+  const src = p.slice(0,i), key = decodeURIComponent(p.slice(i+1));
+  return ST.get(src,key) ? { src, key } : null;
+}
+A = parseParam(ST.qp("a"));
+B = parseParam(ST.qp("b"));
+
+function bindSearch(inputId, sugId, setter) {
+  const input = document.getElementById(inputId), sug = document.getElementById(sugId);
+  input.addEventListener("input", () => {
+    const q = input.value.trim();
+    if (!q) { sug.style.display="none"; return; }
+    const hits = ST.suggestions(q);
+    if (!hits.length) { sug.style.display="none"; return; }
+    sug.innerHTML = hits.map(([src,k],i)=>`<div data-i="${i}">${ST.displayName(src,k)}<span class="code">${ST.get(src,k)[0]} · ${ST.get(src,k)[1]}</span></div>`).join("");
+    sug.style.display="block";
+    sug.querySelectorAll("div[data-i]").forEach(el => el.addEventListener("click", () => {
+      const [src,k] = hits[+el.dataset.i];
+      setter({src, key:k});
+      input.value = ST.displayName(src,k);
+      sug.style.display="none";
+      render();
+    }));
+  });
+  input.addEventListener("keydown", e => {
+    if (e.key==="Enter") {
+      const hit = ST.findStock(input.value.trim());
+      if (hit) { setter({src:hit[0], key:hit[1]}); input.value = ST.displayName(hit[0],hit[1]); sug.style.display="none"; render(); }
+    }
+  });
+}
+bindSearch("qa","suga", v=>A=v);
+bindSearch("qb","sugb", v=>B=v);
+document.addEventListener("click", e => { if (!e.target.closest(".sbox")) { document.getElementById("suga").style.display="none"; document.getElementById("sugb").style.display="none"; } });
+
+function render() {
+  const box = document.getElementById("result");
+  if (!A || !B) {
+    box.innerHTML = `<div class="card" style="text-align:center;padding:44px;color:var(--muted);font-size:14px;">
+      ${A||B ? "나머지 한 종목을 검색해주세요." : "비교할 두 종목을 위에서 검색해주세요."}</div>`;
+    if (A) document.getElementById("qa").value = ST.displayName(A.src,A.key);
+    if (B) document.getElementById("qb").value = ST.displayName(B.src,B.key);
+    return;
+  }
+  const ea = ST.get(A.src,A.key), eb = ST.get(B.src,B.key);
+  const usA = A.src==="us", usB = B.src==="us";
+  const sa = ST.score(ea,usA), sb = ST.score(eb,usB);
+  const ga = ST.gradeOf(sa), gb = ST.gradeOf(sb);
+  const ra = ST.risk(ea), rb = ST.risk(eb);
+  const na = ST.displayName(A.src,A.key), nb = ST.displayName(B.src,B.key);
+  document.getElementById("qa").value = na;
+  document.getElementById("qb").value = nb;
+
+  // 비교 행: [라벨, 값A표시, 값B표시, 우세판정(1=A,2=B,0=무)]
+  const win = (va,vb,higherBetter) => {
+    if (va==null||vb==null||va===vb) return 0;
+    return (higherBetter ? va>vb : va<vb) ? 1 : 2;
+  };
+  const rows = [
+    ["종합점수", sa+"점", sb+"점", win(sa,sb,true)],
+    ["티어", `<span class="tierb tier-${ga.g}">${ga.g}</span>`, `<span class="tierb tier-${gb.g}">${gb.g}</span>`, win(sa,sb,true)],
+    ["현재가", ST.priceStr(ea[2],usA), ST.priceStr(eb[2],usB), 0],
+    ["당일 등락", `<b class="${ST.cls(ea[3])}">${ST.pct2(ea[3])}</b>`, `<b class="${ST.cls(eb[3])}">${ST.pct2(eb[3])}</b>`, win(ea[3],eb[3],true)],
+    ["PER (체급)", ea[4]>0?ea[4].toFixed(1)+"배":"적자/없음", eb[4]>0?eb[4].toFixed(1)+"배":"적자/없음", win(ea[4]>0?ea[4]:null, eb[4]>0?eb[4]:null, false)],
+    ["PBR", ea[5]>0?ea[5].toFixed(2)+"배":"-", eb[5]>0?eb[5].toFixed(2)+"배":"-", win(ea[5]>0?ea[5]:null, eb[5]>0?eb[5]:null, false)],
+    ["ROE (딜량)", ea[7].toFixed(1)+"%", eb[7].toFixed(1)+"%", win(ea[7],eb[7],true)],
+    ["배당수익률", ea[6].toFixed(1)+"%", eb[6].toFixed(1)+"%", win(ea[6],eb[6],true)],
+    ["시가총액", ST.capStr(ea[8],usA), ST.capStr(eb[8],usB), win(ea[8],eb[8],true)],
+    ["1개월 수익률", `<b class="${ST.cls(ea[15]||0)}">${ST.pct(ea[15])}</b>`, `<b class="${ST.cls(eb[15]||0)}">${ST.pct(eb[15])}</b>`, win(ea[15],eb[15],true)],
+    ["3개월 수익률", `<b class="${ST.cls(ea[16]||0)}">${ST.pct(ea[16])}</b>`, `<b class="${ST.cls(eb[16]||0)}">${ST.pct(eb[16])}</b>`, win(ea[16],eb[16],true)],
+    ["위험도 (낮을수록 좋음)", ra, rb, win(ra,rb,false)],
+  ];
+  let winA = 0, winB = 0;
+  const body = rows.map(([lb,va,vb,w])=>{
+    if (w===1) winA++; if (w===2) winB++;
+    return `<tr>
+      <td class="a num">${w===1?'<span class="crown">👑 </span>':""}${va}</td>
+      <td class="lbl">${lb}</td>
+      <td class="b num">${vb}${w===2?' <span class="crown">👑</span>':""}</td></tr>`;
+  }).join("");
+
+  const overall = winA===winB ? "막상막하" : (winA>winB ? na : nb) + " 우세";
+  box.innerHTML = `
+    <div class="card" style="margin-bottom:14px;">
+      <table class="cmp">
+        <tr class="headrow">
+          <td class="a"><a class="stock" href="${ST.stockUrl(A.src,A.key)}">${na}</a> <span style="font-size:11px;color:var(--dim);">${ea[0]}</span></td>
+          <td class="lbl" style="color:var(--gold);font-weight:800;">VS</td>
+          <td class="b"><a class="stock" href="${ST.stockUrl(B.src,B.key)}">${nb}</a> <span style="font-size:11px;color:var(--dim);">${eb[0]}</span></td>
+        </tr>
+        ${body}
+      </table>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:6px;">종합 판정 (${winA} : ${winB})</div>
+      <div style="font-size:22px;font-weight:800;color:var(--gold);">🏆 ${overall}</div>
+      <div style="font-size:12px;color:var(--dim);margin-top:8px;">항목별 우세 수 기준의 재미용 판정입니다.</div>
+    </div>`;
+}
+render();
+</script>
+</body>
+</html>

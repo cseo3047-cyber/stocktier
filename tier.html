@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stocktier — 티어 랭킹</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .layout { display:grid; grid-template-columns:1fr 300px; gap:14px; }
+  @media (max-width:900px){ .layout { grid-template-columns:1fr; } }
+  .donut { width:150px; height:150px; border-radius:50%; margin:0 auto 14px; position:relative; }
+  .donut .hole { position:absolute; inset:26px; background:var(--panel); border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .donut .hole b { font-size:19px; }
+  .donut .hole span { font-size:11px; color:var(--muted); }
+  .legend { font-size:12px; }
+  .legend .r { display:flex; align-items:center; gap:8px; padding:3px 0; }
+  .legend .dot { width:9px; height:9px; border-radius:3px; }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<div class="wrap">
+  <span class="asof" id="asof"></span>
+  <div class="page-title">티어 랭킹</div>
+  <div class="page-sub">전 종목을 종합 점수로 줄 세운 순위표입니다. 등급은 재미용 지표예요.</div>
+  <div class="notice hidden" id="notice"></div>
+
+  <div class="stat-cards" id="cards"></div>
+
+  <div class="layout">
+    <div class="card">
+      <h3>종합 티어 랭킹
+        <span style="margin-left:auto;display:flex;gap:6px;" class="chips" id="mktchips"></span>
+      </h3>
+      <table class="tbl">
+        <thead><tr><th>순위</th><th>종목명</th><th>티어</th><th class="r">종합점수</th><th class="r">현재가</th><th class="r">등락</th><th class="r">시가총액</th><th class="r">위험도</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div style="text-align:center;margin-top:14px;"><button class="btn ghost" id="morebtn" onclick="showMore()">더보기 (100개씩)</button></div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card"><h3>티어 분포</h3>
+        <div class="donut" id="donut"><div class="hole"><b id="totalN"></b><span>전체 종목</span></div></div>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="card"><h3>오늘의 S티어 급등</h3><div class="rowlist" id="snew"></div></div>
+      <div class="card"><h3>평가 기준</h3>
+        <div class="legend">
+          <div class="r"><span style="flex:1;">체급 (PER)</span><div class="meter gold" style="width:90px;"><i style="width:75%"></i></div><b style="width:34px;text-align:right;">25%</b></div>
+          <div class="r"><span style="flex:1;">딜량 (ROE)</span><div class="meter gold" style="width:90px;"><i style="width:75%"></i></div><b style="width:34px;text-align:right;">25%</b></div>
+          <div class="r"><span style="flex:1;">유지력 (배당)</span><div class="meter gold" style="width:90px;"><i style="width:45%"></i></div><b style="width:34px;text-align:right;">15%</b></div>
+          <div class="r"><span style="flex:1;">팀운 (외국인)</span><div class="meter gold" style="width:90px;"><i style="width:40%"></i></div><b style="width:34px;text-align:right;">13%</b></div>
+          <div class="r"><span style="flex:1;">기세 (전적·화력)</span><div class="meter gold" style="width:90px;"><i style="width:65%"></i></div><b style="width:34px;text-align:right;">22%</b></div>
+        </div>
+        <div style="font-size:11px;color:var(--dim);margin-top:10px;">Stocktier 종합점수는 100점 만점 기준으로 산출됩니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Stocktier는 재미용 사이트입니다. 등급과 지표는 오락 목적의 가공 수치이며 투자 권유·조언이 아닙니다.</div>
+</div>
+
+<script src="data.js"></script>
+<script src="data_us.js"></script>
+<script src="common.js"></script>
+<script>
+ST.nav("tier.html");
+ST.sampleNotice("notice");
+document.getElementById("asof").textContent = "업데이트: " + ST.asofText();
+
+const A = ST.all();
+for (const x of A) { x.sc = ST.score(x.e, x.src==="us"); x.rk = ST.risk(x.e); }
+
+let mkt = "ALL", shown = 100;
+const MKTS = [["ALL","전체"],["KOSPI","코스피"],["KOSDAQ","코스닥"],["US","미국"]];
+document.getElementById("mktchips").innerHTML = MKTS.map(([v,t]) =>
+  `<span class="chip ${v==="ALL"?"on":""}" data-v="${v}" onclick="setMkt('${v}')">${t}</span>`).join("");
+
+function pool() {
+  if (mkt==="ALL") return A;
+  if (mkt==="US") return A.filter(x=>x.src==="us");
+  return A.filter(x=>x.e[1]===mkt);
+}
+
+function renderCards(P) {
+  const sN = P.filter(x=>x.sc>=80).length;
+  const upT = P.filter(x=>x.e[3]>=5).length;
+  const warnN = P.filter(x=>x.rk>=70).length;
+  document.getElementById("cards").innerHTML = `
+    <div class="stat-card"><div class="lb">📋 전체 커버 종목</div><div class="vl num">${ST.num(P.length)}<small>개</small></div></div>
+    <div class="stat-card"><div class="lb">🛡 S티어 종목</div><div class="vl num" style="color:var(--gold);">${sN}<small>개</small></div></div>
+    <div class="stat-card"><div class="lb">📈 오늘 급등 (+5%↑)</div><div class="vl num" style="color:var(--up);">${upT}<small>개</small></div></div>
+    <div class="stat-card"><div class="lb">🚨 위험 경고 종목</div><div class="vl num" style="color:var(--down);">${warnN}<small>개</small></div></div>`;
+}
+
+function renderTable() {
+  const P = pool().slice().sort((a,b)=>b.sc-a.sc);
+  renderCards(P);
+  document.getElementById("tbody").innerHTML = P.slice(0, shown).map((x,i)=>{
+    const g = ST.gradeOf(x.sc), us = x.src==="us";
+    return `<tr>
+      <td class="num" style="color:var(--muted);">${i+1}</td>
+      <td><a class="stock" href="${ST.stockUrl(x.src,x.key)}">${ST.displayName(x.src,x.key)}</a> <span style="font-size:11px;color:var(--dim);">${x.e[1]}</span></td>
+      <td><span class="tierb tier-${g.g}">${g.g}</span></td>
+      <td class="r num" style="font-weight:800;">${x.sc}</td>
+      <td class="r num">${ST.priceStr(x.e[2],us)}</td>
+      <td class="r num ${ST.cls(x.e[3])}" style="font-weight:700;">${ST.pct2(x.e[3])}</td>
+      <td class="r num" style="color:var(--muted);">${ST.capStr(x.e[8],us)}</td>
+      <td class="r num" style="color:${x.rk>=70?"var(--down)":x.rk>=40?"var(--gold)":"var(--up)"};font-weight:700;">${x.rk}</td></tr>`;
+  }).join("");
+  document.getElementById("morebtn").style.display = shown >= P.length ? "none" : "";
+  renderDonut(P);
+  renderSnew(P);
+}
+window.setMkt = function(v){
+  mkt = v; shown = 100;
+  document.querySelectorAll("#mktchips .chip").forEach(c=>c.classList.toggle("on", c.dataset.v===v));
+  renderTable();
+};
+window.showMore = function(){ shown += 100; renderTable(); };
+
+function renderDonut(P) {
+  const colors = {S:"#f0c948",A:"#4cc3d7",B:"#4cd7a5",C:"#aeb6c9",D:"#f0708a"};
+  const cnt = {S:0,A:0,B:0,C:0,D:0};
+  for (const x of P) cnt[ST.gradeOf(x.sc).g]++;
+  let acc = 0; const segs = [];
+  for (const g of ["S","A","B","C","D"]) {
+    const p = P.length ? cnt[g]/P.length*100 : 0;
+    segs.push(`${colors[g]} ${acc}% ${acc+p}%`);
+    acc += p;
+  }
+  document.getElementById("donut").style.background = `conic-gradient(${segs.join(",")})`;
+  document.getElementById("totalN").textContent = ST.num(P.length);
+  document.getElementById("legend").innerHTML = ["S","A","B","C","D"].map(g=>`
+    <div class="r"><span class="dot" style="background:${colors[g]};"></span><span style="flex:1;">${g}급</span>
+    <b class="num">${P.length?(cnt[g]/P.length*100).toFixed(1):0}%</b><span class="num" style="color:var(--dim);width:52px;text-align:right;">(${ST.num(cnt[g])})</span></div>`).join("");
+}
+
+function renderSnew(P) {
+  const s = P.filter(x=>x.sc>=80 && x.e[3]>0).sort((a,b)=>b.e[3]-a.e[3]).slice(0,5);
+  document.getElementById("snew").innerHTML = s.length ? s.map((x,i)=>`
+    <div class="row" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
+      <span class="rank">${i+1}</span><span class="nm">${ST.displayName(x.src,x.key)}</span>
+      <span class="tierb tier-S">S</span>
+      <span class="num up" style="width:66px;text-align:right;font-weight:700;">${ST.pct2(x.e[3])}</span></div>`).join("")
+    : `<div style="font-size:12px;color:var(--dim);padding:8px 0;">오늘 상승한 S티어 종목이 없습니다.</div>`;
+}
+
+renderTable();
+</script>
+</body>
+</html>
