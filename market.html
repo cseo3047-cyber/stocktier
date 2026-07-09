@@ -10,12 +10,13 @@
   .idxgrid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:14px; }
   @media (max-width:1080px){ .idxgrid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
   @media (max-width:600px){ .idxgrid { grid-template-columns:1fr; } }
-  .idxcard { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px 18px; display:flex; gap:12px; align-items:center; }
+  .idxcard { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px 16px; display:flex; gap:10px; align-items:center; }
   .idxcard .l { flex:1; min-width:0; }
   .idxcard .nm { font-size:13px; color:var(--muted); font-weight:700; margin-bottom:4px; }
-  .idxcard .pr { font-size:23px; font-weight:800; font-variant-numeric:tabular-nums; }
-  .idxcard .ch { font-size:12.5px; font-weight:700; margin-top:2px; }
-  .idxcard .hl { font-size:11px; color:var(--dim); margin-top:5px; line-height:1.6; }
+  .idxcard .pr { font-size:22px; font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .idxcard .ch { font-size:12px; font-weight:700; margin-top:2px; white-space:nowrap; }
+  .idxcard .hl2 { font-size:10.5px; color:var(--dim); text-align:left; line-height:2.0; flex-shrink:0; white-space:nowrap; }
+  .idxcard .hl2 b { color:var(--muted); font-weight:700; font-variant-numeric:tabular-nums; margin-left:7px; }
   .row2 { display:grid; grid-template-columns:1.4fr 1fr; gap:14px; margin-bottom:14px; }
   @media (max-width:1000px){ .row2 { grid-template-columns:1fr; } }
   .row3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-bottom:14px; }
@@ -35,8 +36,8 @@
   .umap .tile { border-radius:8px; padding:11px 6px; text-align:center; min-width:0; }
   .umap .tile .nm { font-size:11.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .umap .tile .pc { font-size:12px; font-weight:800; margin-top:3px; }
-  .maplegend { display:flex; justify-content:space-between; font-size:10px; color:var(--dim); margin-top:9px; }
-  .maplegend .bar { flex:1; height:5px; margin:5px 8px 0; border-radius:3px; background:linear-gradient(90deg,#c14a42,#5a4a44 45%,#3c5a4a 55%,#1d9e75); }
+  .maplegend { display:flex; align-items:center; gap:7px; font-size:10.5px; color:var(--dim); margin-top:10px; font-weight:700; }
+  .maplegend i { flex:1; height:6px; border-radius:3px; min-width:22px; }
   /* 강도 지표 */
   .gaugerow { display:flex; align-items:center; gap:10px; padding:7px 0; font-size:13px; }
   .gaugerow .lb { width:118px; color:var(--muted); flex-shrink:0; }
@@ -71,7 +72,15 @@
     <div class="card">
       <h3>업종별 등락 지도 <span class="more" style="cursor:default;" id="mapnote"></span></h3>
       <div class="umap" id="umap"></div>
-      <div class="maplegend"><span>하락</span><span class="bar"></span><span>상승</span></div>
+      <div class="maplegend">
+        <span>하락</span>
+        <i style="background:linear-gradient(90deg,#c14a42,#8a4038);"></i><span>-3%</span>
+        <i style="background:linear-gradient(90deg,#8a4038,#33465e);"></i><span>-1%</span>
+        <i style="background:linear-gradient(90deg,#33465e,#33413a,#2e5d47);"></i><span>0%</span>
+        <i style="background:linear-gradient(90deg,#2e5d47,#2c6a4e);"></i><span>+1%</span>
+        <i style="background:linear-gradient(90deg,#2c6a4e,#1d9e75);"></i><span>+3%</span>
+        <i style="background:linear-gradient(90deg,#1d9e75,#c9c94e);"></i><span>상승</span>
+      </div>
     </div>
   </div>
 
@@ -128,6 +137,18 @@ if (!MK) {
       <polygon points="0,${H} ${xy} ${W},${H}" fill="url(#mg${id})"/>
       <polyline points="${xy}" fill="none" stroke="${col}" stroke-width="1.6"/></svg>`;
   }
+  function miniBars(vols){
+    const pts = vols.slice(-22).filter(v=>v>0);
+    if (pts.length < 4) return "";
+    const W=96, H=44, maxV = Math.max(...pts);
+    const bw = W/pts.length*0.62;
+    let bars = "";
+    for (let i = 0; i < pts.length; i++) {
+      const bh = Math.max(2, pts[i]/maxV*(H-4));
+      bars += `<rect x="${(i/pts.length*W).toFixed(1)}" y="${(H-bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="1" fill="#4cd7a5" opacity="0.75"/>`;
+    }
+    return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="flex-shrink:0;">${bars}</svg>`;
+  }
   let mi = 0;
   for (const [k, nm] of defs) {
     const o = MK && MK[k];
@@ -138,13 +159,22 @@ if (!MK) {
         <div class="nm">${nm}</div>
         <div class="pr num">${fmt2(o.price)}</div>
         <div class="ch ${o.ratio>0?"up":o.ratio<0?"down":"flat"} num">${arrow(o.ratio)}${Math.abs(o.chg||0).toLocaleString("ko-KR")} ${ST.pct2(o.ratio)}</div>
-        ${o.high ? `<div class="hl num">고가 ${fmt2(o.high)} · 저가 ${fmt2(o.low)}</div>` : ""}
-      </div>${spark}</div>`;
+      </div>${spark}
+      ${o.high ? `<div class="hl2">고가<b>${fmt2(o.high)}</b><br>저가<b>${fmt2(o.low)}</b></div>` : ""}</div>`;
   }
-  html += `<div class="idxcard"><div class="l">
-    <div class="nm">거래대금 (추정)</div>
-    <div class="pr num">${(amt/1e12).toFixed(1)}조</div>
-    <div class="hl num">상승 <b class="up">${ST.num(upN)}</b> · 하락 <b class="down">${ST.num(dnN)}</b> · 보합 ${ST.num(flN)}</div></div></div>`;
+  (function(){
+    const kv = (MK && MK.kospi && MK.kospi.vhist) ? MK.kospi.vhist : [];
+    const fmtV = v => { const s = v*1000; return s>=1e8 ? (s/1e8).toFixed(1)+"억주" : (s/1e4).toFixed(0)+"만주"; };
+    const prev = kv.length>1 ? fmtV(kv[kv.length-2]) : "-";
+    const avg5 = kv.length>5 ? fmtV(Math.round(kv.slice(-5).reduce((a,b)=>a+b,0)/5)) : "-";
+    html += `<div class="idxcard">
+      <div class="l">
+        <div class="nm">거래대금 (추정)</div>
+        <div class="pr num">${(amt/1e12).toFixed(1)}조</div>
+        <div class="ch num"><span class="up">▲${ST.num(upN)}</span> <span style="color:var(--dim);">·</span> <span class="down">▼${ST.num(dnN)}</span></div>
+      </div>${miniBars(kv)}
+      ${kv.length>5 ? `<div class="hl2">전일<b>${prev}</b><br>5일 평균<b>${avg5}</b></div>` : ""}</div>`;
+  })();
   document.getElementById("idxcards").innerHTML = html;
 })();
 // hist(종가 배열) → 스파크라인용 일별 등락 배열
@@ -272,9 +302,11 @@ drawChart();
 (function(){
   const el = document.getElementById("umap");
   const tileColor = c => {
-    if (c >= 3) return ["#1d9e75","#eafff6"]; if (c >= 1) return ["#2a6e52","#d9f5e8"];
-    if (c > 0) return ["#28503f","#bfe0cf"]; if (c === 0) return ["#33413a","#9db8a9"];
-    if (c > -1) return ["#4a3733","#e8c9c2"]; if (c > -3) return ["#8a4038","#ffe3dd"];
+    if (c >= 3) return ["#1d9e75","#eafff6"]; if (c >= 1.5) return ["#257e5c","#dff7ec"];
+    if (c >= 0.5) return ["#2c6a4e","#cfeee0"]; if (c > 0) return ["#2e5d47","#c0e3d2"];
+    if (c === 0) return ["#33413a","#9db8a9"];
+    if (c > -0.5) return ["#2c3e52","#b9c9dd"]; if (c > -1.5) return ["#33465e","#b9c9dd"];
+    if (c > -3) return ["#8a4038","#ffe3dd"];
     return ["#c14a42","#fff0ee"];
   };
   if (MK && MK.upjong && MK.upjong.length >= 10) {
