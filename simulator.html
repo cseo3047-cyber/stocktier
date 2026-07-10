@@ -16,10 +16,19 @@
   .scard .ic { width:44px; height:44px; border-radius:12px; background:#4cd7a51a; border:1px solid #4cd7a544; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   .scard .l { flex:1; min-width:0; }
   .scard .lb { font-size:11.5px; color:var(--muted); font-weight:700; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .scard .vl { font-size:22px; font-weight:800; line-height:1.1; }
-  .scard .vl small { font-size:12px; color:var(--dim); font-weight:600; }
+  .scard .vl { font-size:25px; font-weight:800; line-height:1.05; }
+  .scard .vl small { font-size:13px; color:var(--dim); font-weight:600; }
   .scard .sub { font-size:10.5px; color:var(--dim); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .scard svg.mini { flex-shrink:0; }
+  /* 종목 추가 검색 */
+  .addrow { display:flex; gap:8px; align-items:center; margin:2px 0 10px; }
+  .addrow .sbox { position:relative; flex:1; max-width:280px; }
+  .addrow input { width:100%; padding:8px 12px; font-size:12.5px; background:var(--panel2); border:1.5px solid var(--border); border-radius:9px; color:var(--text); outline:none; }
+  .addrow input:focus { border-color:var(--gold-dim); }
+  .addbtn { background:#3d3313; color:#f0c948; border:1px solid #c9a83266; border-radius:9px; padding:8px 16px; font-size:12px; font-weight:800; cursor:pointer; }
+  .addbtn:hover { background:#4a3f17; }
+  .rmx { color:var(--dim); cursor:pointer; font-weight:800; padding:0 4px; }
+  .rmx:hover { color:#f0708a; }
   /* 중단 그리드 */
   .simgrid { display:grid; grid-template-columns:1.55fr 1fr; gap:14px; align-items:stretch; }
   @media (max-width:1000px){ .simgrid { grid-template-columns:1fr; } }
@@ -97,6 +106,10 @@
           <div class="card"><h3>만약 그때 샀더라면? <span class="selctl">
               정렬 <select id="sortsel"><option value="ret">수익률순</option><option value="sc">종합점수순</option><option value="cap">시가총액순</option></select>
               기준일 <select id="persel"><option value="1m">1개월 전</option><option value="3m" selected>3개월 전</option><option value="6m">6개월 전</option><option value="12m">1년 전</option></select></span></h3>
+            <div class="addrow">
+              <div class="sbox"><input id="addq" placeholder="종목명 검색 후 목록에 추가 (예: 카카오)" autocomplete="off"><div class="suggest" id="addsug"></div></div>
+              <button class="addbtn" id="addbtn">+ 추가</button>
+            </div>
             <table class="stbl"><thead><tr><th>순위</th><th style="text-align:left;">종목명</th><th>티어 변화</th><th>기준일</th><th>기준가</th><th>현재가</th><th>가정 투자금</th><th>현재 평가금액</th><th>수익률</th></tr></thead>
             <tbody id="simtop"></tbody></table></div>
           <div class="card simchart"><h3>주가 흐름 시뮬레이션 <span class="chips2" id="chartchips"></span></h3>
@@ -186,34 +199,46 @@ const logo = code => {
     onerror="if(!this.dataset.f){this.dataset.f=1;this.src='${naver}';}else{this.style.visibility='hidden';}">`;
 };
 
-// ── 상단 카드 (아이콘 + 미니 그래프)
-const upIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4cd7a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 15l3.5-3.5 2 2L16.5 9M13 9h3.5v3.5"/></svg>`;
-const coinIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4cd7a5" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="13" width="4" height="8" rx="1"/><rect x="10" y="9" width="4" height="12" rx="1"/><rect x="17" y="4" width="4" height="17" rx="1"/></svg>`;
-const warnIcon = `<svg width="25" height="23" viewBox="0 0 24 22" fill="none" stroke="#f0645a" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2L22 20H2z"/><line x1="12" y1="9" x2="12" y2="14" stroke-linecap="round"/><circle cx="12" cy="17" r="1.2" fill="#f0645a" stroke="none"/></svg>`;
-const cycIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4cd7a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>`;
-const miniLine = (id,c1,c2,seed) => { const pts=[]; let v=15;
-  for (let i=0;i<12;i++){ v=Math.max(4,Math.min(26,v+((seed>>(i%9))%7)-3)); pts.push(`${i*6},${30-v}`); }
-  return `<svg class="mini" width="68" height="30" viewBox="0 0 68 30"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs><polyline points="${pts.join(" ")}" fill="none" stroke="url(#${id})" stroke-width="2"/></svg>`; };
-const miniBars = (id,c1,c2,seed) => { let b="";
-  for (let i=0;i<7;i++){ const h=7+((seed*(i+3))%19); b+=`<rect x="${i*9}" y="${30-h}" width="6" height="${h}" rx="2" fill="url(#${id})"/>`; }
-  return `<svg class="mini" width="63" height="30" viewBox="0 0 63 30"><defs><linearGradient id="${id}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>${b}</svg>`; };
+// ── 상단 카드 (아이콘 + 그라데이션 미니 그래프 — 시안 동일)
+const upIcon = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4cd7a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8.5 15.5L15.5 8.5M10.2 8.5h5.3v5.3"/></svg>`;
+const barsUpIcon = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4cd7a5" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="14.5" width="3.8" height="7" rx="1"/><rect x="10" y="11" width="3.8" height="10.5" rx="1"/><rect x="17" y="7.5" width="3.8" height="14" rx="1"/><path d="M3.5 7.5L9 4l4 2 6.5-4M17 2h2.5v2.5"/></svg>`;
+const warnIcon = `<svg width="27" height="25" viewBox="0 0 24 22" fill="none" stroke="#f0645a" stroke-width="1.9" stroke-linejoin="round"><path d="M12 2L22 20H2z"/><line x1="12" y1="9" x2="12" y2="14" stroke-linecap="round"/><circle cx="12" cy="17" r="1.2" fill="#f0645a" stroke="none"/></svg>`;
+const cycIcon = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4cd7a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/><path d="M9 14.5L14.5 9M10.5 9h4v4"/></svg>`;
+const miniLine = (id,c1,c2,seed) => { const pts=[]; let v=13;
+  for (let i=0;i<13;i++){ v=Math.max(5,Math.min(29,v+((seed>>(i%9))%7)-2.6)); pts.push(`${(i*6.5).toFixed(1)},${(36-v).toFixed(1)}`); }
+  return `<svg class="mini" width="80" height="36" viewBox="0 0 80 36"><defs>
+    <linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>
+    <linearGradient id="${id}f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c2}" stop-opacity="0.35"/><stop offset="1" stop-color="${c2}" stop-opacity="0"/></linearGradient></defs>
+    <polygon points="0,36 ${pts.join(" ")} 80,36" fill="url(#${id}f)"/>
+    <polyline points="${pts.join(" ")}" fill="none" stroke="url(#${id})" stroke-width="2"/></svg>`; };
+const miniBars = (id,c1,c2,seed,desc) => { let b="";
+  for (let i=0;i<8;i++){ const rnd=7+((seed*(i+3))%17); const h=desc?Math.max(5,24-i*2.6):rnd;
+    b+=`<rect x="${i*9.5}" y="${36-h}" width="6.5" height="${h}" rx="2" fill="url(#${id})"/>`; }
+  return `<svg class="mini" width="78" height="36" viewBox="0 0 78 36"><defs><linearGradient id="${id}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>${b}</svg>`; };
 (function(){
   const sUp = A.filter(x=>x.sc>=80 && x.e[3]>0).length;
   const avgR = TBL.length ? TBL.reduce((a,o)=>a+o.r,0)/TBL.length : 0;
   const dipN = A.filter(x=>(x.e[15]||0)<=-10).length;
   document.getElementById("cards").innerHTML = `
     <div class="scard"><span class="ic">${upIcon}</span><div class="l"><div class="lb">오늘 S티어 상승 종목</div><div class="vl num">${sUp}<small> 개</small></div><div class="sub">S티어 & 당일 상승</div></div>${miniLine("sg1","#1d9e75","#4cd7a5",sUp*13+9)}</div>
-    <div class="scard"><span class="ic">${coinIcon}</span><div class="l"><div class="lb">시뮬레이션 평균 수익률</div><div class="vl num ${avgR>=0?"up":"down"}">${avgR>=0?"+":""}${avgR.toFixed(1)}<small> %</small></div><div class="sub">TOP 5 · ${PERIODS[PER][0]} 기준</div></div>${miniLine("sg2","#1d9e75","#8fd6b8",Math.abs(Math.round(avgR))*7+11)}</div>
+    <div class="scard"><span class="ic">${barsUpIcon}</span><div class="l"><div class="lb">시뮬레이션 평균 수익률</div><div class="vl num ${avgR>=0?"up":"down"}">${avgR>=0?"+":""}${avgR.toFixed(1)}<small> %</small></div><div class="sub">TOP 5 · ${PERIODS[PER][0]} 기준</div></div>${miniLine("sg2","#1d9e75","#8fd6b8",Math.abs(Math.round(avgR))*7+11)}</div>
     <div class="scard"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${warnIcon}</span><div class="l"><div class="lb">물타기 대상 종목</div><div class="vl num">${ST.num(dipN)}<small> 개</small></div><div class="sub">1개월 -10% 이하</div></div>${miniBars("sg3","#7a2822","#f0645a",dipN+7)}</div>
-    <div class="scard"><span class="ic">${cycIcon}</span><div class="l"><div class="lb">손익분기 단축 효과</div><div class="vl num" id="cardBE">-</div><div class="sub">물타기 계산기 연동</div></div>${miniBars("sg4","#0f7a56","#4cd7a5",29)}</div>`;
+    <div class="scard"><span class="ic">${cycIcon}</span><div class="l"><div class="lb">손익분기 단축 효과</div><div class="vl num" id="cardBE">-</div><div class="sub">물타기 계산기 연동</div></div>${miniBars("sg4","#0f7a56","#4cd7a5",29,true)}</div>`;
 })();
 
-// ── 만약 그때 샀더라면 테이블
+// ── 만약 그때 샀더라면 테이블 (TOP5 + 직접 추가 종목)
+let EXTRA = [];
 function drawTbl(){
   TBL = ranked();
-  if (!TBL.some(o=>o.x===SEL)) SEL = TBL[0] ? TBL[0].x : SEL;
-  document.getElementById("simtop").innerHTML = TBL.map((o,i)=>{
+  const list = TBL.concat(EXTRA.filter(x=>!TBL.some(o=>o.x===x)).map(x=>({x, r:retOf(x,PER), ex:true})));
+  if (!list.some(o=>o.x===SEL)) SEL = list[0] ? list[0].x : SEL;
+  document.getElementById("simtop").innerHTML = list.map((o,i)=>{
     const x = o.x, r = o.r;
+    if (r==null) return `<tr data-k="${encodeURIComponent(x.key)}">
+      <td class="num" style="color:var(--muted);">${i+1}</td>
+      <td class="nm">${logo(x.e[0])}${x.key}</td>
+      <td colspan="6" style="color:var(--dim);font-size:11px;">해당 기간 데이터 없음 (장기 시세 수집 후 표시)</td>
+      <td>${o.ex?`<span class="rmx" data-rm="${encodeURIComponent(x.key)}">✕</span>`:""}</td></tr>`;
     const gNow = ST.gradeOf(x.sc), gPast = ST.gradeOf(clip(x.sc - r*0.35));
     const basePx = x.e[2]/(1+r/100);
     const val = INVEST*(1+r/100);
@@ -226,8 +251,14 @@ function drawTbl(){
       <td class="num">${wonN(x.e[2])}</td>
       <td class="num" style="color:var(--muted);">${wonN(INVEST)}</td>
       <td class="num" style="font-weight:800;">${wonN(val)}</td>
-      <td class="num ${r>=0?"up":"down"}" style="font-weight:800;">${x===SEL?`<span class="pickbadge">만약 그때 샀더라면</span> `:""}${r>=0?"+":""}${r.toFixed(1)}%</td></tr>`;
+      <td class="num ${r>=0?"up":"down"}" style="font-weight:800;">${x===SEL?`<span class="pickbadge">만약 그때 샀더라면</span> `:""}${r>=0?"+":""}${r.toFixed(1)}%${o.ex?` <span class="rmx" data-rm="${encodeURIComponent(x.key)}">✕</span>`:""}</td></tr>`;
   }).join("");
+  document.querySelectorAll("#simtop .rmx").forEach(el => el.addEventListener("click", ev => {
+    ev.stopPropagation();
+    const k = decodeURIComponent(el.dataset.rm);
+    EXTRA = EXTRA.filter(x=>x.key!==k);
+    drawTbl();
+  }));
   document.querySelectorAll("#simtop tr[data-k]").forEach(tr => tr.addEventListener("click", () => {
     const k = decodeURIComponent(tr.dataset.k);
     SEL = A.find(x=>x.key===k) || SEL;
@@ -241,6 +272,38 @@ function drawTbl(){
 }
 document.getElementById("sortsel").addEventListener("change", e => { SORT = e.target.value; drawTbl(); });
 document.getElementById("persel").addEventListener("change", e => { PER = e.target.value; drawTbl(); drawChart(); });
+
+// ── 종목 검색 → 목록에 추가
+(function(){
+  const input = document.getElementById("addq"), sug = document.getElementById("addsug");
+  const krSug = q => ST.suggestions(q, 12).filter(([src])=>src==="kr").filter(([,k])=>A.some(x=>x.key===k)).slice(0,8);
+  input.addEventListener("input", () => {
+    const q = input.value.trim();
+    if (!q) { sug.style.display="none"; return; }
+    const hits = krSug(q);
+    if (!hits.length) { sug.style.display="none"; return; }
+    sug.innerHTML = hits.map(([,k])=>`<div data-k="${encodeURIComponent(k)}">${k}<span class="code">${ST.get("kr",k)[0]} · ${ST.get("kr",k)[1]}</span></div>`).join("");
+    sug.style.display="block";
+    sug.querySelectorAll("div[data-k]").forEach(el => el.addEventListener("click", () => {
+      input.value = decodeURIComponent(el.dataset.k);
+      sug.style.display="none";
+    }));
+  });
+  function addStock(){
+    const q = input.value.trim();
+    if (!q) return;
+    let x = A.find(s=>s.key===q);
+    if (!x) { const h = krSug(q)[0]; if (h) x = A.find(s=>s.key===h[1]); }
+    if (!x) { alert("국내 종목 중에서 찾지 못했어요: " + q); return; }
+    if (!EXTRA.includes(x) && !TBL.some(o=>o.x===x)) EXTRA.push(x);
+    SEL = x;
+    input.value = "";
+    drawTbl(); drawChart(); fillCalc(); runCalc(); side();
+  }
+  document.getElementById("addbtn").addEventListener("click", addStock);
+  input.addEventListener("keydown", e => { if (e.key==="Enter") addStock(); });
+  document.addEventListener("click", e => { if (!e.target.closest(".addrow")) sug.style.display="none"; });
+})();
 
 // ── 주가 흐름 차트 (기간 칩 + 가정 매수 시점 + 현재 뱃지)
 let CPER = "6m";

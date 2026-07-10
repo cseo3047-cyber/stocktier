@@ -383,7 +383,7 @@ drawChart();
   const el = document.getElementById("flow");
   const cand = A.filter(x=>x.e.length>18 && x.e[17]!=null && x.e[18]!=null)
     .map(x=>({x, amt:(x.e[17]+x.e[18])*x.e[2]/1e8}))
-    .filter(c=>c.amt>0).sort((a,b)=>b.amt-a.amt).slice(0,8);
+    .filter(c=>c.amt>0).sort((a,b)=>b.amt-a.amt).slice(0,7);
   el.innerHTML = cand.length ? cand.map((c,i)=>`
     <div class="row" onclick="location.href='${ST.stockUrl("kr",c.x.key)}'">
       <span class="rank">${i+1}</span><span class="nm">${c.x.key}</span>
