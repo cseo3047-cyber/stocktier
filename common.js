@@ -4,9 +4,9 @@
 // Firebase 콘솔(console.firebase.google.com) → 프로젝트 설정 ⚙ → 일반 → 내 앱(웹)에서
 // 아래 3개 값을 복사해 붙여넣으면 로그인 기능이 자동으로 켜집니다. (비워두면 로그인 버튼은 '준비 중')
 window.FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
+  apiKey: "AIzaSyAWwuhXh_maZB5mmsmuKU82XgCMAxEUzVE",
+  authDomain: "stocktier-10c96.firebaseapp.com",
+  projectId: "stocktier-10c96",
 };
 // ================================================================
 // 필드: 0코드 1시장 2주가 3등락 4PER 5PBR 6배당 7ROE 8시총 9평균거래량 10전일 11당일 12최근5일 13외인 14주간 15월간 16분기 [17] [18]
