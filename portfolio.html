@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stocktier — 포트폴리오 진단</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap { max-width:1460px; }
+  .layout { display:grid; grid-template-columns:1fr 310px; gap:14px; align-items:start; }
+  @media (max-width:1080px){ .layout { grid-template-columns:1fr; } }
+  .cards4 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
+  @media (max-width:900px){ .cards4 { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .scard { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:14px 15px; display:flex; gap:11px; align-items:center; min-width:0; }
+  .scard .ic { width:38px; height:38px; border-radius:50%; background:#c9a83222; border:1px solid #c9a83244; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
+  .scard .lb { font-size:11px; color:var(--muted); font-weight:700; margin-bottom:3px; white-space:nowrap; }
+  .scard .vl { font-size:18px; font-weight:800; }
+  .scard .sub { font-size:10px; color:var(--dim); margin-top:2px; white-space:nowrap; }
+  .donut { width:110px; height:110px; border-radius:50%; margin:6px auto 10px; position:relative; }
+  .donut .hole { position:absolute; inset:24px; background:var(--panel); border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .donut .hole b { font-size:13px; }
+  .dlegend { font-size:11.5px; }
+  .dlegend .r { display:flex; align-items:center; gap:7px; padding:2.5px 0; color:var(--muted); }
+  .dlegend .dot { width:9px; height:9px; border-radius:3px; flex-shrink:0; }
+  .dlegend b { margin-left:auto; color:var(--text); font-variant-numeric:tabular-nums; }
+  .dfoot { font-size:10.5px; color:var(--dim); border-top:1px solid var(--border); padding-top:8px; margin-top:8px; }
+  .row4 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-top:14px; }
+  @media (max-width:1000px){ .row4 { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .gauge { width:150px; height:80px; position:relative; overflow:hidden; margin:2px auto 6px; }
+  .gauge .arc { width:150px; height:150px; border-radius:50%; }
+  .gauge .hole { position:absolute; left:21px; top:21px; width:108px; height:108px; background:var(--panel); border-radius:50%; text-align:center; }
+  .gauge .hole b { font-size:25px; display:block; margin-top:20px; }
+  .gauge .hole small { font-size:12px; color:var(--dim); font-weight:500; }
+  .gsub { text-align:center; font-size:11px; color:var(--muted); font-weight:700; margin-bottom:8px; }
+  .sbars .r { display:flex; align-items:center; gap:8px; font-size:11.5px; padding:3px 0; color:var(--muted); }
+  .sbars .r .lb { width:66px; flex-shrink:0; white-space:nowrap; }
+  .sbars .m { flex:1; height:6px; background:var(--panel2); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+  .sbars .m i { display:block; height:100%; background:linear-gradient(90deg,#0f7a56,#4cd7a5); border-radius:4px; }
+  .sbars .r b { width:26px; text-align:right; color:var(--text); }
+  .warnrow { display:flex; align-items:center; gap:8px; background:var(--panel2); border:1px solid var(--border); border-radius:9px; padding:8px 11px; font-size:12px; color:var(--muted); margin-bottom:7px; font-weight:600; }
+  .cmts { font-size:12.5px; color:var(--muted); line-height:2.0; }
+  .cmts li { list-style:none; padding-left:16px; position:relative; }
+  .cmts li:before { content:"•"; position:absolute; left:2px; color:var(--gold); }
+  .riskb { display:inline-flex; padding:2px 9px; border-radius:7px; font-size:11px; font-weight:800; }
+  .r-low { background:#13322a; color:#4cd7a5; } .r-med { background:#3d3313; color:#f0c948; } .r-high { background:#3a1a22; color:#f0708a; }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<div class="wrap">
+  <span class="asof" id="asof"></span>
+  <div class="page-title">포트폴리오 진단</div>
+  <div class="page-sub">관심종목(보유 종목) 구성과 리스크를 분석하고, 개선 방향을 제시합니다.</div>
+  <div id="body"></div>
+  <div class="footer">Stocktier는 재미용 사이트입니다. 지표는 오락 목적의 가공 수치이며 투자 권유·조언이 아닙니다.</div>
+</div>
+
+<script src="data.js"></script>
+<script src="data_us.js"></script>
+<script src="common.js"></script>
+<script>
+ST.nav("portfolio.html");
+document.getElementById("asof").textContent = "업데이트: " + ST.asofText();
+
+const clip = v => Math.max(0, Math.min(100, Math.round(v)));
+const list = ST.watchGet().filter(w => ST.get(w[0],w[1]));
+const box = document.getElementById("body");
+
+if (!list.length) {
+  box.innerHTML = `<div class="card" style="text-align:center;padding:56px;">
+    <div style="font-size:18px;font-weight:800;margin-bottom:8px;">진단할 보유 종목이 없어요</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">종목 페이지에서 ☆ 관심종목을 눌러 담으면<br>포트폴리오 진단이 자동으로 만들어집니다.</div>
+    <a class="btn" href="tier.html">종목 담으러 가기 →</a></div>`;
+} else {
+  const items = list.map(([src,key]) => {
+    const e = ST.get(src,key);
+    return { src, key, e, us:src==="us", sc:ST.score(e,src==="us"), rk:ST.risk(e) };
+  }).sort((a,b)=>b.sc-a.sc);
+  const n = items.length;
+  const weight = (100/n);
+  const avgOf = f => clip(items.reduce((a,x)=>a+f(x),0)/n);
+  const supply = avgOf(x => x.e.length>18 && x.e[17]!=null ? ((x.e[17]>0?1:0)+(x.e[18]>0?1:0))*27+40 : 55);
+  const momentum = avgOf(x => 50 + (x.e[14]||0)*4);
+  const funda = avgOf(x => 50 + x.e[7]*2);
+  const value = avgOf(x => x.e[4]>0 ? 100 - x.e[4]*2 : 30);
+  const riskV = avgOf(x => 100 - x.rk);
+  const surv = Math.round((supply+momentum+funda+value+riskV)/5);
+  const g = ST.gradeOf(surv);
+  const highRisk = items.filter(x=>x.rk>=70);
+  const highPct = Math.round(highRisk.length/n*100);
+  const hotN = items.filter(x=>x.e[11]/Math.max(1,x.e[9])>=2).length;
+  const downN = items.filter(x=>(x.e[15]||0)<0).length;
+  const gcol = surv>=65?"#4cd7a5":surv>=45?"#f0c948":"#f0645a";
+
+  // 상단 4카드
+  const cards = `
+  <div class="cards4">
+    <div class="scard"><span class="ic">📋</span><div><div class="lb">전체 보유 종목</div><div class="vl num">${n}<small style="font-size:12px;color:var(--dim);"> 개</small></div><div class="sub">관심종목 기준</div></div></div>
+    <div class="scard"><span class="ic">💯</span><div><div class="lb">포트폴리오 생존점수</div><div class="vl num">${surv}<small style="font-size:12px;color:var(--dim);"> 점</small></div><div class="sub"><span class="tierb tier-${g.g}" style="font-size:9px;padding:1px 6px;">${g.g}</span> 티어 · ${surv>=65?"양호":surv>=45?"보통":"주의"}</div></div></div>
+    <div class="scard"><span class="ic" style="background:#f0645a22;border-color:#f0645a44;">⚠️</span><div><div class="lb">고위험 종목 비중</div><div class="vl num" style="color:${highPct>=40?"var(--down)":"var(--text)"};">${highPct}<small style="font-size:12px;color:var(--dim);"> %</small></div><div class="sub">${highRisk.length}개 종목</div></div></div>
+    <div class="scard"><span class="ic" style="background:#f0645a22;border-color:#f0645a44;">🔥</span><div><div class="lb">거래 과열 종목</div><div class="vl num">${hotN}<small style="font-size:12px;color:var(--dim);"> 개</small></div><div class="sub">거래량 2배 이상</div></div></div>
+  </div>`;
+
+  // 구성 테이블
+  const flow5 = e => { const w = e[12].filter(d=>d>0).length; const arr = w>=4?"↗":w<=1?"↘":"→"; return `${arr} ${w}승 ${5-w}패`; };
+  const rows = items.map((x,i)=>{
+    const gg = ST.gradeOf(x.sc);
+    const rb = x.rk<40?["Low","r-low"]:x.rk<70?["Medium","r-med"]:["High","r-high"];
+    return `<tr>
+      <td class="num" style="color:var(--muted);">${i+1}</td>
+      <td><a class="stock" href="${ST.stockUrl(x.src,x.key)}">${ST.displayName(x.src,x.key)}</a></td>
+      <td class="r num">${weight.toFixed(1)}%</td>
+      <td><span class="tierb tier-${gg.g}">${gg.g}</span></td>
+      <td class="r num" style="font-weight:800;">${x.sc}</td>
+      <td style="color:var(--muted);font-size:12px;">${x.e[1]}</td>
+      <td class="r num ${ST.cls(x.e[15]||0)}" style="font-weight:700;">${ST.pct(x.e[15])}</td>
+      <td><span class="riskb ${rb[1]}">${rb[0]}</span></td>
+      <td class="r num" style="font-size:12px;color:var(--muted);">${flow5(x.e)}</td>
+      <td class="r num" style="color:${x.rk>=70?"var(--down)":x.rk>=40?"var(--gold)":"var(--up)"};font-weight:800;">${x.rk}</td></tr>`;
+  }).join("");
+  const table = `
+  <div class="card"><h3>내 포트폴리오 구성 <span class="more" style="cursor:default;">균등 비중 가정 · 종합점수 순</span></h3>
+    <table class="tbl"><thead><tr><th>순위</th><th>종목명</th><th class="r">비중</th><th>현재 티어</th><th class="r">종합점수</th><th>시장</th><th class="r">1개월</th><th>리스크</th><th class="r">최근 5일</th><th class="r">위험도</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
+
+  // 도넛 3종 + 한줄 진단
+  function donut(counts, colors, centerTxt) {
+    const total = Object.values(counts).reduce((a,b)=>a+b,0) || 1;
+    let acc = 0; const segs = [];
+    const legend = Object.keys(counts).map((k,i)=>{
+      const p = counts[k]/total*100;
+      segs.push(`${colors[i%colors.length]} ${acc}% ${acc+p}%`);
+      acc += p;
+      return `<div class="r"><span class="dot" style="background:${colors[i%colors.length]};"></span>${k}<b>${Math.round(p)}%</b></div>`;
+    }).join("");
+    return { html:`<div class="donut" style="background:conic-gradient(${segs.join(",")});"><div class="hole"><b>${centerTxt}</b></div></div><div class="dlegend">${legend}</div>` };
+  }
+  const mktCnt = {};
+  for (const x of items) mktCnt[x.e[1]] = (mktCnt[x.e[1]]||0)+1;
+  const tierCnt = {};
+  for (const x of items) { const t = ST.gradeOf(x.sc).g+"급"; tierCnt[t] = (tierCnt[t]||0)+1; }
+  const riskCnt = {"안정":0,"주의":0,"고위험":0};
+  for (const x of items) riskCnt[x.rk<40?"안정":x.rk<70?"주의":"고위험"]++;
+  const dm = donut(mktCnt, ["#4cc3d7","#4cd7a5","#f0c948","#aeb6c9"], "시장");
+  const dt = donut(tierCnt, ["#f0c948","#4cc3d7","#4cd7a5","#aeb6c9","#f0708a"], "티어");
+  const dr = donut(riskCnt, ["#4cd7a5","#f0c948","#f0645a"], "리스크");
+  const maxMkt = Object.entries(mktCnt).sort((a,b)=>b[1]-a[1])[0];
+  const sTier = items.filter(x=>x.sc>=80).length;
+  const diag = [];
+  if (highPct >= 40) diag.push(`보유 포트폴리오의 ${highPct}%가 고위험 종목에 집중되어 있습니다.`);
+  else diag.push(`고위험 비중 ${highPct}%로 위험 노출은 ${highPct>=25?"보통":"낮은"} 수준입니다.`);
+  if (maxMkt && maxMkt[1]/n >= 0.7) diag.push(`${maxMkt[0]} 쏠림이 ${Math.round(maxMkt[1]/n*100)}%로 높습니다.`);
+  if (downN) diag.push(`최근 1개월 하락 중인 종목이 ${downN}개입니다.`);
+  if (sTier) diag.push(`S티어 종목 ${sTier}개가 포트폴리오를 지탱하고 있습니다.`);
+  const donuts = `
+  <div class="row4">
+    <div class="card"><h3>시장 쏠림</h3>${dm.html}<div class="dfoot">시장 분산이 잘 될수록 변동성이 낮아집니다.</div></div>
+    <div class="card"><h3>티어 구성</h3>${dt.html}<div class="dfoot">S·A티어 비중 ${Math.round(items.filter(x=>x.sc>=65).length/n*100)}%</div></div>
+    <div class="card"><h3>리스크 구성</h3>${dr.html}<div class="dfoot">고위험 ${riskCnt["고위험"]}개 · 주의 ${riskCnt["주의"]}개 · 안정 ${riskCnt["안정"]}개</div></div>
+    <div class="card"><h3>오늘의 한줄 진단</h3><ul class="cmts">${diag.map(d=>`<li>${d}</li>`).join("")}</ul></div>
+  </div>`;
+
+  // 사이드
+  const sideSurv = `
+  <div class="card"><h3>포트폴리오 생존점수</h3>
+    <div class="gauge"><div class="arc" style="background:conic-gradient(from 270deg, ${gcol} 0% ${surv/2}%, #ffffff14 ${surv/2}% 50%, transparent 50%);"></div>
+      <div class="hole"><b>${surv}<small>/100</small></b></div></div>
+    <div class="gsub"><span class="tierb tier-${g.g}">${g.g}</span> 티어 · ${surv>=65?"양호":surv>=45?"보통":"주의"}</div>
+    <div class="sbars">
+      ${[["수급",supply],["모멘텀",momentum],["펀더멘털",funda],["밸류에이션",value],["리스크",riskV]].map(([lb,v])=>
+        `<div class="r"><span class="lb">${lb}</span><div class="m"><i style="width:${clip(v)}%"></i></div><b>${clip(v)}</b></div>`).join("")}
+    </div>
+    <div class="dfoot">보유 종목 ${n}개 기준</div>
+  </div>`;
+  const warns = [];
+  if (highPct >= 30) warns.push(`⚠️ 고위험 종목 비중 ${highPct}%`);
+  if (hotN) warns.push(`🔥 거래 과열 종목 ${hotN}개`);
+  if (downN >= Math.ceil(n/2)) warns.push(`📉 절반 이상이 1개월 하락 중`);
+  const worst = items[items.length-1];
+  if (worst && worst.sc < 40) warns.push(`🕳 최저 점수: ${ST.displayName(worst.src,worst.key)} (${worst.sc}점)`);
+  if (!warns.length) warns.push("✅ 특이 경고 없음 — 안정적인 구성입니다");
+  const sideWarn = `<div class="card"><h3>포트폴리오 경고</h3>${warns.map(w=>`<div class="warnrow">${w}</div>`).join("")}</div>`;
+  const sideCrit = `
+  <div class="card"><h3>평가 기준</h3>
+    <div class="sbars">
+      ${[["분산도",20],["티어 품질",30],["리스크 노출",20],["모멘텀",20],["변동성",10]].map(([lb,v])=>
+        `<div class="r"><span class="lb">${lb}</span><div class="m"><i style="width:${v*3}%;background:linear-gradient(90deg,#8a6f1e,#f0c948);"></i></div><b>${v}%</b></div>`).join("")}
+    </div>
+    <div class="dfoot">생존점수는 100점 만점 기준으로 산출됩니다.</div>
+  </div>`;
+  const rebal = [];
+  if (highPct >= 40) rebal.push("고위험 종목 비중이 높아 리스크 축소가 필요합니다.");
+  if (maxMkt && maxMkt[1]/n >= 0.7) rebal.push(`${maxMkt[0]} 외 시장으로 분산을 고려해보세요.`);
+  const lowVal = items.filter(x=>x.e[4]>50).length;
+  if (lowVal) rebal.push(`고PER 종목 ${lowVal}개 — 밸류 부담 점검 권장.`);
+  if (downN) rebal.push(`하락 추세 종목 ${downN}개에 대한 점검이 필요합니다.`);
+  if (!rebal.length) rebal.push("현재 구성 유지가 무난해 보입니다.");
+  const sideRebal = `<div class="card"><h3>리밸런싱 제안</h3><ul class="cmts">${rebal.map(r=>`<li>${r}</li>`).join("")}</ul></div>`;
+
+  box.innerHTML = `
+  <div class="layout">
+    <div>${cards}${table}${donuts}</div>
+    <div style="display:flex;flex-direction:column;gap:14px;">${sideSurv}${sideWarn}${sideCrit}${sideRebal}</div>
+  </div>`;
+}
+</script>
+</body>
+</html>
