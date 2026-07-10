@@ -197,13 +197,18 @@ const amtStrOf = (e, us) => {
 };
 const buyStr = (q, e) => q==null ? "-" : (q>=0?"+":"-")+Math.round(Math.abs(q)*e[2]/1e8).toLocaleString("ko-KR")+"억";
 const vol5 = e => e[12].reduce((a,b)=>a+Math.abs(b),0)/5;
-// 상대 시계열 (현재가=1000 기준 신형 데이터만; 마지막 값이 1000이면 신형)
-function relSeries(e) {
-  if (e.length>19 && e[19] && e[19].length>5 && e[19][e[19].length-1]===1000) return e[19];
-  return null;
+// 장기 시계열: 국내는 [19], 미국은 [18] (현재가=1000 기준 상대값)
+function sparkOf(e, us) {
+  const i = us ? 18 : 19;
+  return (e.length > i && e[i] && e[i].length) ? e[i] : null;
 }
-function shapeSeries(e) {
-  if (e.length>19 && e[19] && e[19].length>3) return e[19];
+function relSeries(e, us) {
+  const s = sparkOf(e, us);
+  return (s && s.length > 5 && s[s.length-1] === 1000) ? s : null;
+}
+function shapeSeries(e, us) {
+  const s = sparkOf(e, us);
+  if (s && s.length > 3) return s;
   const seq = e[12].slice().reverse();
   let v = 100; const pts = [v];
   for (const d of seq) { v = v*(1+d/100); pts.push(v); }
@@ -215,14 +220,14 @@ function decoBars(col){
   return `<svg width="72" height="40" viewBox="0 0 72 40" style="flex-shrink:0;">${b}</svg>`;
 }
 // 비교 종목 카드용: 위아래 분리 미니 차트
-function stackedSpark(ea, eb){
+function stackedSpark(ea, eb, usA, usB){
   const W=92, H=44;
   const line = (pts,col,y0,h)=>{ const mn=Math.min(...pts),mx=Math.max(...pts),rg=(mx-mn)||1;
     return `<polyline points="${pts.map((p,i)=>`${(i/(pts.length-1)*W).toFixed(1)},${(y0+h-1-(p-mn)/rg*(h-2)).toFixed(1)}`).join(" ")}" fill="none" stroke="${col}" stroke-width="1.5"/>`; };
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="flex-shrink:0;">
-    ${line(shapeSeries(ea),"#f0c948",0,20)}
+    ${line(shapeSeries(ea,usA),"#f0c948",0,20)}
     <line x1="0" y1="22" x2="${W}" y2="22" stroke="#1c3440" stroke-width="1"/>
-    ${line(shapeSeries(eb),"#4cd7a5",24,20)}</svg>`;
+    ${line(shapeSeries(eb,usB),"#4cd7a5",24,20)}</svg>`;
 }
 const menuIcon = `<svg width="22" height="20" viewBox="0 0 22 20"><g fill="none" stroke="#4cd7a5" stroke-width="2" stroke-linecap="round">
   <circle cx="2.5" cy="3" r="1.6" fill="#f0c948" stroke="none"/><line x1="8" y1="3" x2="20" y2="3"/>
@@ -251,7 +256,7 @@ function render() {
   const rkWin = ma.rk<=mb.rk ? na : nb;
   const cards = `
   <div class="cards4">
-    <div class="scard"><span class="ic">${menuIcon}</span><div class="l"><div class="lb">비교 종목</div><div class="vl">2개</div></div>${stackedSpark(ea,eb)}</div>
+    <div class="scard"><span class="ic">${menuIcon}</span><div class="l"><div class="lb">비교 종목</div><div class="vl">2개</div></div>${stackedSpark(ea,eb,usA,usB)}</div>
     <div class="scard"><span class="ic gold">👑</span><div class="l"><div class="lb">종합 우세</div><div class="vl">${scWin}</div><div class="sub">${scDiff<5?"근소 우위":"확실 우위"} (${ma.sc} : ${mb.sc})</div></div></div>
     <div class="scard"><span class="ic">📈</span><div class="l"><div class="lb">높은 모멘텀</div><div class="vl">${moWin}</div><div class="sub">${Math.max(ma.momentum,mb.momentum)}점</div></div>${decoBars("#4cd7a5")}</div>
     <div class="scard"><span class="ic">🛡</span><div class="l"><div class="lb">낮은 리스크</div><div class="vl">${rkWin}</div><div class="sub">위험도 ${Math.min(ma.rk,mb.rk)}</div></div>${decoBars("#4cd7a5")}</div>
@@ -433,15 +438,15 @@ function render() {
   const PERS = [["6개월",10],["1년",20],["3년",60],["5년",100]];
   document.getElementById("perchips").innerHTML = PERS.map(([t,v])=>
     `<span class="chip ${v===PER?"on":""}" data-v="${v}" onclick="setPer(${v})">${t}</span>`).join("");
-  drawCmp(ea, eb, na, nb);
+  drawCmp(ea, eb, na, nb, usA, usB);
 }
 window.setPer = v => { PER = v; render(); };
 
-function drawCmp(ea, eb, na, nb) {
+function drawCmp(ea, eb, na, nb, usA, usB) {
   const svg = document.getElementById("cmpchart"), tip = document.getElementById("cmptip"), note = document.getElementById("cmpnote");
-  const ra = relSeries(ea), rb = relSeries(eb);
+  const ra = relSeries(ea, usA), rb = relSeries(eb, usB);
   if (!ra || !rb) {
-    svg.innerHTML = `<text x="500" y="115" text-anchor="middle" fill="#5a737d" font-size="14">장기 시세 데이터가 아직 없습니다 — 새 수집(collect_data.py) 실행 후 표시됩니다</text>`;
+    svg.innerHTML = `<text x="500" y="115" text-anchor="middle" fill="#5a737d" font-size="14">장기 시세 데이터가 아직 없습니다 — 새 수집 워크플로 실행 후 표시됩니다</text>`;
     note.textContent = "";
     return;
   }
