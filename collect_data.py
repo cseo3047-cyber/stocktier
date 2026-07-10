@@ -277,6 +277,38 @@ def market_extra():
                 print("[진단] upjong 스크래핑 실패:", str(e)[:150], flush=True)
         return []
 
+    def rss_news(feeds, n=8):
+        """언론사 공식 RSS에서 제목+링크만 수집 (네이버 API 실패 시 폴백)"""
+        import html as _h
+        mon = {"Jan": "01", "Feb": "02", "Mar": "03", "Apr": "04", "May": "05", "Jun": "06",
+               "Jul": "07", "Aug": "08", "Sep": "09", "Oct": "10", "Nov": "11", "Dec": "12"}
+        for url, office in feeds:
+            try:
+                r = requests.get(url, headers=PC_HEADERS, timeout=15)
+                if r.status_code != 200:
+                    print("[진단] RSS status=", r.status_code, url[:60], flush=True)
+                    continue
+                out = []
+                for it in re.findall(r"<item>(.*?)</item>", r.text, re.S):
+                    tmt = re.search(r"<title>\s*(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?\s*</title>", it, re.S)
+                    lmt = re.search(r"<link>\s*(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?\s*</link>", it, re.S)
+                    dmt = re.search(r"(\d{1,2}) ([A-Za-z]{3}) \d{4} (\d{2}):(\d{2})", it)
+                    if not tmt or not lmt:
+                        continue
+                    t = _h.unescape(re.sub(r"<[^>]+>", "", tmt.group(1))).strip()
+                    u = lmt.group(1).strip()
+                    tm2 = f"{mon.get(dmt.group(2), '01')}/{int(dmt.group(1)):02d} {dmt.group(3)}:{dmt.group(4)}" if dmt else ""
+                    if t and u.startswith("http"):
+                        out.append([t, office, tm2, u])
+                    if len(out) >= n:
+                        break
+                if out:
+                    print("RSS 뉴스:", len(out), "건 ←", office, flush=True)
+                    return out
+            except Exception as e:
+                print("[진단] RSS 실패:", str(e)[:100], url[:60], flush=True)
+        return []
+
     def news_kr():
         import html as _h
         j = get_json("https://m.stock.naver.com/api/news/mainnews?page=1&pageSize=12")
@@ -296,56 +328,19 @@ def market_extra():
                     break
         except Exception as e:
             print("[진단] 뉴스 파싱 실패:", str(e)[:120], flush=True)
+        if not out:
+            out = rss_news([
+                ("https://www.hankyung.com/feed/finance", "한국경제"),
+                ("https://www.mk.co.kr/rss/50200011/", "매일경제"),
+                ("https://www.yna.co.kr/rss/economy.xml", "연합뉴스"),
+            ])
         print("뉴스:", len(out), "건", flush=True)
         return out
-
-    def earn_kr():
-        """실적 발표 일정 시도 (증시 캘린더 API 후보 순차 시도 — 실패해도 무시)"""
-        s2 = datetime.date.today().strftime("%Y%m%d")
-        e2 = (datetime.date.today() + datetime.timedelta(days=45)).strftime("%Y%m%d")
-        cands = [
-            f"https://m.stock.naver.com/api/calendar/earnings?startDate={s2}&endDate={e2}&page=1&pageSize=300",
-            f"https://m.stock.naver.com/api/calendar/schedules/earnings?startDate={s2}&endDate={e2}",
-            f"https://api.stock.naver.com/calendar/earnings?startDate={s2}&endDate={e2}&page=1&pageSize=300",
-        ]
-
-        def walk(o, out):
-            # JSON 재귀 탐색: 같은 객체 안의 6자리 종목코드 + 8자리 날짜 쌍 수집
-            if isinstance(o, dict):
-                code = date = None
-                for k, v in o.items():
-                    if isinstance(v, str):
-                        lk = k.lower()
-                        if re.fullmatch(r"\d{6}", v) and ("code" in lk or "item" in lk or "stock" in lk):
-                            code = v
-                        m = re.search(r"(20\d{6})", v.replace("-", "").replace(".", ""))
-                        if m and ("date" in lk or "day" in lk or lk.endswith("dt")):
-                            date = m.group(1)
-                if code and date:
-                    out.setdefault(code, date)
-                for v in o.values():
-                    walk(v, out)
-            elif isinstance(o, list):
-                for v in o:
-                    walk(v, out)
-
-        for url in cands:
-            j = get_json(url)
-            if not j:
-                print("[진단] 실적 캘린더 응답 없음:", url[:90], flush=True)
-                continue
-            found = {}
-            walk(j, found)
-            if found:
-                print("실적 일정:", len(found), "종목", flush=True)
-                return found
-            print("[진단] 실적 캘린더 파싱 0건:", str(j)[:200], flush=True)
-        return {}
 
     mk["upjong"] = groups("upjong", 100) or upjong_scrape()
     mk["theme"] = groups("theme", 30)
     mk["news"] = news_kr()
-    mk["earn"] = earn_kr()
+    mk["earn"] = {}   # 국내 실적 발표 예정일: 무료 공개 소스 없음(브라우저 확인 완료) — 미국은 collect_us에서 수집
     print("지수:", [k for k in mk if k not in ("upjong", "theme")],
           "/ 업종", len(mk.get("upjong", [])), "/ 테마", len(mk.get("theme", [])), flush=True)
     return mk
