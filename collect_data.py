@@ -4,6 +4,7 @@
 # 종목 + 지수(KOSPI/KOSDAQ/KPI200, 3개월 추이) + 업종 + 테마 + 외인·기관 순매수
 # 결과물: data.js
 import json
+import os
 import re
 import sys
 import time
@@ -337,10 +338,72 @@ def market_extra():
         print("뉴스:", len(out), "건", flush=True)
         return out
 
+    def dart_disclosures():
+        """오픈DART 공시 수집 (GitHub Secret: DART_API_KEY) — 유형 분류 + 충격도/호악재 판정"""
+        key = os.environ.get("DART_API_KEY", "").strip()
+        if not key:
+            print("[진단] DART_API_KEY 없음 — 공시 수집 건너뜀 (GitHub Secrets 설정 필요)", flush=True)
+            return {"date": "", "items": []}
+        RULES = [
+            ("상장폐지", "거래정지", 5, -2), ("거래정지", "거래정지", 5, -2),
+            ("투자위험", "투자주의·경고", 5, -2), ("투자경고", "투자주의·경고", 4, -1),
+            ("투자주의", "투자주의·경고", 3, -1), ("불성실공시", "투자주의·경고", 4, -1),
+            ("횡령", "소송", 5, -2), ("배임", "소송", 5, -2), ("소송", "소송", 4, -1),
+            ("유상증자", "유상증자", 4, -1), ("무상증자", "증자·배당", 3, 1),
+            ("전환사채", "전환사채", 4, -1), ("신주인수권", "전환사채", 4, -1), ("교환사채", "전환사채", 3, -1),
+            ("공급계약", "공급계약", 4, 1), ("수주", "공급계약", 4, 1),
+            ("자기주식취득", "자사주", 3, 1), ("자기주식 취득", "자사주", 3, 1),
+            ("자기주식처분", "자사주", 3, -1), ("자기주식 처분", "자사주", 3, -1),
+            ("최대주주변경", "최대주주 변경", 3, 0), ("최대주주 변경", "최대주주 변경", 3, 0),
+            ("감사의견", "감사의견", 3, 0), ("감사보고서", "감사의견", 2, 0),
+            ("영업정지", "실적·영업", 4, -1), ("잠정실적", "실적·영업", 3, 0),
+            ("영업(잠정)", "실적·영업", 3, 0), ("실적", "실적·영업", 3, 0),
+            ("배당", "증자·배당", 3, 1),
+            ("합병", "지배구조", 3, 0), ("분할", "지배구조", 3, 0),
+            ("정정", "정정", 2, 0),
+        ]
+
+        def classify(nm):
+            for kw, ty, imp, tone in RULES:
+                if kw in nm:
+                    return ty, imp, tone
+            return "기타", 2, 0
+
+        d0 = datetime.date.today()
+        for back in range(6):   # 주말·휴일이면 직전 영업일까지 거슬러 탐색
+            ds = (d0 - datetime.timedelta(days=back)).strftime("%Y%m%d")
+            rows = []
+            for page in range(1, 11):
+                j = get_json(f"https://opendart.fss.or.kr/api/list.json?crtfc_key={key}"
+                             f"&bgn_de={ds}&end_de={ds}&page_no={page}&page_count=100")
+                if not j or j.get("status") != "000":
+                    if page == 1 and j:
+                        print("[진단] DART 응답:", j.get("status"), str(j.get("message"))[:80], flush=True)
+                    break
+                rows += j.get("list", [])
+                if page >= int(j.get("total_page", 1) or 1):
+                    break
+                time.sleep(0.2)
+            rows = [r for r in rows if r.get("corp_cls") in ("Y", "K") and (r.get("stock_code") or "").strip()]
+            if rows:
+                items = []
+                for r in rows:
+                    nm = str(r.get("report_nm") or "").strip()
+                    ty, imp, tone = classify(nm)
+                    items.append([str(r.get("corp_name") or ""), str(r.get("stock_code") or "").strip(),
+                                  ty, nm, imp, tone, str(r.get("rcept_no") or ""),
+                                  "Y" if r.get("corp_cls") == "Y" else "K"])
+                items.sort(key=lambda x: x[6], reverse=True)   # 접수번호 = 최신순
+                print("공시:", len(items), "건 (", ds, ")", flush=True)
+                return {"date": ds, "items": items[:400]}
+        print("[진단] 공시 0건 (최근 6일)", flush=True)
+        return {"date": "", "items": []}
+
     mk["upjong"] = groups("upjong", 100) or upjong_scrape()
     mk["theme"] = groups("theme", 30)
     mk["news"] = news_kr()
     mk["earn"] = {}   # 국내 실적 발표 예정일: 무료 공개 소스 없음(브라우저 확인 완료) — 미국은 collect_us에서 수집
+    mk["dart"] = dart_disclosures()
     print("지수:", [k for k in mk if k not in ("upjong", "theme")],
           "/ 업종", len(mk.get("upjong", [])), "/ 테마", len(mk.get("theme", [])), flush=True)
     return mk
