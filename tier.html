@@ -69,7 +69,7 @@
   .gbar .m { flex:1; height:7px; background:var(--panel2); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
   .gbar .m i { display:block; height:100%; background:linear-gradient(90deg,#8a6f1e,#f0c948); border-radius:4px; }
   .gbar b { width:34px; text-align:right; color:var(--text); }
-  .mag { position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:15px; font-weight:700; pointer-events:none; }
+  .mag { position:absolute; right:11px; top:0; bottom:0; display:flex; align-items:center; color:var(--muted); font-size:15px; font-weight:700; pointer-events:none; }
 </style>
 </head>
 <body>
@@ -83,7 +83,7 @@
     <div>
       <div class="cards4" id="cards"></div>
       <div class="card"><h3>종합 티어 랭킹
-        <span style="margin-left:auto;position:relative;flex-shrink:0;">
+        <span style="margin-left:auto;position:relative;flex-shrink:0;display:inline-flex;">
           <input id="tierq" placeholder="종목명 또는 코드 검색" autocomplete="off"
             style="width:230px;padding:8px 32px 8px 12px;font-size:12px;background:var(--panel2);border:1.5px solid var(--border);border-radius:9px;color:var(--text);outline:none;font-weight:500;">
           <span class="mag">⌕</span></span></h3>

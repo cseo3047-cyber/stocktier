@@ -14,7 +14,8 @@
   .pklab.pa { background:#3d3313; color:#f0c948; border:1px solid #c9a83255; }
   .pklab.pb { background:#13322a; color:#4cd7a5; border:1px solid #4cd7a555; }
   .pick .sbox { position:relative; flex:1; min-width:0; }
-  .pick input { width:100%; padding:12px 15px; font-size:14px; background:#032433; border:1.5px solid var(--border); border-radius:11px; color:var(--text); outline:none; }
+  .pick input { width:100%; padding:12px 40px 12px 15px; font-size:14px; background:#032433; border:1.5px solid var(--border); border-radius:11px; color:var(--text); outline:none; }
+  .mag { position:absolute; right:13px; top:0; bottom:0; display:flex; align-items:center; color:var(--muted); font-size:16px; font-weight:700; pointer-events:none; }
   .pick input:focus { border-color:var(--gold-dim); }
   .pick .vs { font-size:15px; font-weight:800; color:var(--gold); }
   @media (max-width:700px){ .pick { grid-template-columns:1fr; } .pick .vs { text-align:center; } }
@@ -126,9 +127,9 @@
   <div class="page-sub">두 종목의 티어와 핵심 지표를 한눈에 비교하세요. 우세한 쪽에 👑가 붙습니다.</div>
 
   <div class="pick">
-    <div class="pickcol"><span class="pklab pa">A 기업</span><div class="sbox"><input id="qa" placeholder="종목 A 검색 (예: 삼성전자)" autocomplete="off"><div class="suggest" id="suga"></div></div></div>
+    <div class="pickcol"><span class="pklab pa">A 기업</span><div class="sbox"><input id="qa" placeholder="종목 A 검색 (예: 삼성전자)" autocomplete="off"><span class="mag">⌕</span><div class="suggest" id="suga"></div></div></div>
     <div class="vs">VS</div>
-    <div class="pickcol"><span class="pklab pb">B 기업</span><div class="sbox"><input id="qb" placeholder="종목 B 검색 (예: SK하이닉스)" autocomplete="off"><div class="suggest" id="sugb"></div></div></div>
+    <div class="pickcol"><span class="pklab pb">B 기업</span><div class="sbox"><input id="qb" placeholder="종목 B 검색 (예: SK하이닉스)" autocomplete="off"><span class="mag">⌕</span><div class="suggest" id="sugb"></div></div></div>
   </div>
 
   <div id="result"></div>

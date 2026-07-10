@@ -23,7 +23,8 @@
   /* 종목 추가 검색 */
   .addrow { display:flex; gap:8px; align-items:center; margin:2px 0 10px; }
   .addrow .sbox { position:relative; flex:1; max-width:280px; }
-  .addrow input { width:100%; padding:8px 12px; font-size:12.5px; background:var(--panel2); border:1.5px solid var(--border); border-radius:9px; color:var(--text); outline:none; }
+  .addrow input { width:100%; padding:8px 32px 8px 12px; font-size:12.5px; background:var(--panel2); border:1.5px solid var(--border); border-radius:9px; color:var(--text); outline:none; }
+  .mag { position:absolute; right:11px; top:0; bottom:0; display:flex; align-items:center; color:var(--muted); font-size:15px; font-weight:700; pointer-events:none; }
   .addrow input:focus { border-color:var(--gold-dim); }
   .addbtn { background:#3d3313; color:#f0c948; border:1px solid #c9a83266; border-radius:9px; padding:8px 16px; font-size:12px; font-weight:800; cursor:pointer; }
   .addbtn:hover { background:#4a3f17; }
@@ -107,7 +108,7 @@
               정렬 <select id="sortsel"><option value="ret">수익률순</option><option value="sc">종합점수순</option><option value="cap">시가총액순</option></select>
               기준일 <select id="persel"><option value="1m">1개월 전</option><option value="3m" selected>3개월 전</option><option value="6m">6개월 전</option><option value="12m">1년 전</option></select></span></h3>
             <div class="addrow">
-              <div class="sbox"><input id="addq" placeholder="종목명 검색 후 목록에 추가 (예: 카카오)" autocomplete="off"><div class="suggest" id="addsug"></div></div>
+              <div class="sbox"><input id="addq" placeholder="종목명 검색 후 목록에 추가 (예: 카카오)" autocomplete="off"><span class="mag">⌕</span><div class="suggest" id="addsug"></div></div>
               <button class="addbtn" id="addbtn">+ 추가</button>
             </div>
             <table class="stbl"><thead><tr><th>순위</th><th style="text-align:left;">종목명</th><th>티어 변화</th><th>기준일</th><th>기준가</th><th>현재가</th><th>가정 투자금</th><th>현재 평가금액</th><th>수익률</th></tr></thead>

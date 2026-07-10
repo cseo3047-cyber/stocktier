@@ -65,7 +65,7 @@
   .nrow2:hover { color:var(--gold); }
   .nrow2 .rank { width:18px; height:18px; border-radius:5px; background:#13322a; color:#4cd7a5; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   .nrow2 .tx { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .mag { position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:15px; font-weight:700; pointer-events:none; }
+  .mag { position:absolute; right:11px; top:0; bottom:0; display:flex; align-items:center; color:var(--muted); font-size:15px; font-weight:700; pointer-events:none; }
 </style>
 </head>
 <body>
@@ -183,7 +183,7 @@ function pool(){
 }
 const tblCard = `
 <div class="card"><h3>최근 30일 공시
-  <span style="margin-left:auto;position:relative;flex-shrink:0;">
+  <span style="margin-left:auto;position:relative;flex-shrink:0;display:inline-flex;">
     <input id="dscq" placeholder="기업명 · 코드 · 제목 검색" autocomplete="off"
       style="width:250px;padding:8px 32px 8px 12px;font-size:12px;background:var(--panel2);border:1.5px solid var(--border);border-radius:9px;color:var(--text);outline:none;font-weight:500;">
     <span class="mag">⌕</span></span></h3>
