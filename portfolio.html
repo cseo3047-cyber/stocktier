@@ -16,16 +16,26 @@
   .scard .lb { font-size:11px; color:var(--muted); font-weight:700; margin-bottom:3px; white-space:nowrap; }
   .scard .vl { font-size:18px; font-weight:800; }
   .scard .sub { font-size:10px; color:var(--dim); margin-top:2px; white-space:nowrap; }
-  .donut { width:110px; height:110px; border-radius:50%; margin:6px auto 10px; position:relative; }
-  .donut .hole { position:absolute; inset:24px; background:var(--panel); border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  .donut .hole b { font-size:13px; }
-  .dlegend { font-size:11.5px; }
-  .dlegend .r { display:flex; align-items:center; gap:7px; padding:2.5px 0; color:var(--muted); }
-  .dlegend .dot { width:9px; height:9px; border-radius:3px; flex-shrink:0; }
-  .dlegend b { margin-left:auto; color:var(--text); font-variant-numeric:tabular-nums; }
-  .dfoot { font-size:10.5px; color:var(--dim); border-top:1px solid var(--border); padding-top:8px; margin-top:8px; }
-  .row4 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-top:14px; }
-  @media (max-width:1000px){ .row4 { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  /* 테이블: 헤더 가운데, 본문 종목명만 좌측 */
+  .ptbl { width:100%; border-collapse:collapse; font-size:12.5px; }
+  .ptbl th { text-align:center; color:var(--muted); font-size:11.5px; font-weight:700; padding:8px 6px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  .ptbl td { padding:9px 6px; border-bottom:1px solid var(--border); text-align:center; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .ptbl td.nm { text-align:left; font-weight:700; }
+  .ptbl tr:hover td { background:var(--panel2); }
+  .ptbl a.stock:hover { color:var(--gold); }
+  /* 도넛 (우측 범례) */
+  .drow3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:14px; }
+  @media (max-width:1000px){ .drow3 { grid-template-columns:1fr; } }
+  .dwrap { display:flex; gap:16px; align-items:center; }
+  .donut { width:118px; height:118px; border-radius:50%; position:relative; flex-shrink:0; }
+  .donut .hole { position:absolute; inset:27px; background:var(--panel); border-radius:50%; }
+  .dlegend { flex:1; min-width:0; font-size:12px; }
+  .dlegend .r { display:flex; align-items:center; gap:8px; padding:3.5px 0; color:var(--muted); }
+  .dlegend .dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+  .dlegend .lb { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dlegend b { color:var(--text); font-variant-numeric:tabular-nums; }
+  .dfoot { font-size:10.5px; color:var(--dim); border-top:1px solid var(--border); padding-top:8px; margin-top:10px; }
+  /* 사이드 */
   .gauge { width:150px; height:80px; position:relative; overflow:hidden; margin:2px auto 6px; }
   .gauge .arc { width:150px; height:150px; border-radius:50%; }
   .gauge .hole { position:absolute; left:21px; top:21px; width:108px; height:108px; background:var(--panel); border-radius:50%; text-align:center; }
@@ -38,8 +48,8 @@
   .sbars .m i { display:block; height:100%; background:linear-gradient(90deg,#0f7a56,#4cd7a5); border-radius:4px; }
   .sbars .r b { width:26px; text-align:right; color:var(--text); }
   .warnrow { display:flex; align-items:center; gap:8px; background:var(--panel2); border:1px solid var(--border); border-radius:9px; padding:8px 11px; font-size:12px; color:var(--muted); margin-bottom:7px; font-weight:600; }
-  .cmts { font-size:12.5px; color:var(--muted); line-height:2.0; }
-  .cmts li { list-style:none; padding-left:16px; position:relative; }
+  .cmts { font-size:12px; color:var(--muted); line-height:2.1; }
+  .cmts li { list-style:none; padding-left:15px; position:relative; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .cmts li:before { content:"•"; position:absolute; left:2px; color:var(--gold); }
   .riskb { display:inline-flex; padding:2px 9px; border-radius:7px; font-size:11px; font-weight:800; }
   .r-low { background:#13322a; color:#4cd7a5; } .r-med { background:#3d3313; color:#f0c948; } .r-high { background:#3a1a22; color:#f0708a; }
@@ -77,7 +87,7 @@ if (!list.length) {
     return { src, key, e, us:src==="us", sc:ST.score(e,src==="us"), rk:ST.risk(e) };
   }).sort((a,b)=>b.sc-a.sc);
   const n = items.length;
-  const weight = (100/n);
+  const weight = 100/n;
   const avgOf = f => clip(items.reduce((a,x)=>a+f(x),0)/n);
   const supply = avgOf(x => x.e.length>18 && x.e[17]!=null ? ((x.e[17]>0?1:0)+(x.e[18]>0?1:0))*27+40 : 55);
   const momentum = avgOf(x => 50 + (x.e[14]||0)*4);
@@ -92,7 +102,6 @@ if (!list.length) {
   const downN = items.filter(x=>(x.e[15]||0)<0).length;
   const gcol = surv>=65?"#4cd7a5":surv>=45?"#f0c948":"#f0645a";
 
-  // 상단 4카드
   const cards = `
   <div class="cards4">
     <div class="scard"><span class="ic">📋</span><div><div class="lb">전체 보유 종목</div><div class="vl num">${n}<small style="font-size:12px;color:var(--dim);"> 개</small></div><div class="sub">관심종목 기준</div></div></div>
@@ -102,38 +111,49 @@ if (!list.length) {
   </div>`;
 
   // 구성 테이블
-  const flow5 = e => { const w = e[12].filter(d=>d>0).length; const arr = w>=4?"↗":w<=1?"↘":"→"; return `${arr} ${w}승 ${5-w}패`; };
   const rows = items.map((x,i)=>{
     const gg = ST.gradeOf(x.sc);
     const rb = x.rk<40?["Low","r-low"]:x.rk<70?["Medium","r-med"]:["High","r-high"];
+    const ind = (!x.us && x.e.length>20 && x.e[20]) ? x.e[20] : "-";
+    const thm = (!x.us && x.e.length>21 && x.e[21]) ? x.e[21] : "-";
+    const w1 = x.e[14];
+    const chg = w1==null ? "-" : `<span class="${ST.cls(w1)}">${w1>0?"↗":w1<0?"↘":"→"} ${ST.pct(w1)}</span>`;
     return `<tr>
       <td class="num" style="color:var(--muted);">${i+1}</td>
-      <td><a class="stock" href="${ST.stockUrl(x.src,x.key)}">${ST.displayName(x.src,x.key)}</a></td>
-      <td class="r num">${weight.toFixed(1)}%</td>
+      <td class="nm"><a class="stock" href="${ST.stockUrl(x.src,x.key)}">${ST.displayName(x.src,x.key)} <span style="color:var(--dim);font-weight:500;">(${x.e[0]})</span></a></td>
+      <td style="color:var(--muted);font-size:11.5px;">${x.e[1]}</td>
+      <td class="num">${weight.toFixed(1)}%</td>
       <td><span class="tierb tier-${gg.g}">${gg.g}</span></td>
-      <td class="r num" style="font-weight:800;">${x.sc}</td>
-      <td style="color:var(--muted);font-size:12px;">${x.e[1]}</td>
-      <td class="r num ${ST.cls(x.e[15]||0)}" style="font-weight:700;">${ST.pct(x.e[15])}</td>
+      <td class="num" style="font-weight:800;">${x.sc}</td>
+      <td style="color:var(--muted);font-size:11.5px;max-width:110px;overflow:hidden;text-overflow:ellipsis;">${ind}</td>
+      <td style="color:var(--muted);font-size:11.5px;max-width:110px;overflow:hidden;text-overflow:ellipsis;">${thm}</td>
       <td><span class="riskb ${rb[1]}">${rb[0]}</span></td>
-      <td class="r num" style="font-size:12px;color:var(--muted);">${flow5(x.e)}</td>
-      <td class="r num" style="color:${x.rk>=70?"var(--down)":x.rk>=40?"var(--gold)":"var(--up)"};font-weight:800;">${x.rk}</td></tr>`;
+      <td class="num" style="font-size:11.5px;font-weight:700;">${chg}</td>
+      <td style="color:var(--dim);font-size:11.5px;">-</td></tr>`;
   }).join("");
   const table = `
   <div class="card"><h3>내 포트폴리오 구성 <span class="more" style="cursor:default;">균등 비중 가정 · 종합점수 순</span></h3>
-    <table class="tbl"><thead><tr><th>순위</th><th>종목명</th><th class="r">비중</th><th>현재 티어</th><th class="r">종합점수</th><th>시장</th><th class="r">1개월</th><th>리스크</th><th class="r">최근 5일</th><th class="r">위험도</th></tr></thead>
-    <tbody>${rows}</tbody></table></div>`;
+    <table class="ptbl"><thead><tr><th>순위</th><th>종목명</th><th>시장</th><th>비중</th><th>현재 티어</th><th>종합점수</th><th>업종</th><th>테마</th><th>리스크</th><th>최근 변화</th><th>실적 일정</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <div class="dfoot">업종·테마는 데이터 수집 후 표시 · 실적 일정은 실적 캘린더 페이지와 함께 제공 예정</div></div>`;
 
-  // 도넛 3종 + 한줄 진단
-  function donut(counts, colors, centerTxt) {
+  // 도넛 3종 (우측 범례, 녹색 계열)
+  const GREENS = ["#1d9e75","#4cd7a5","#2c6a4e","#8fd6b8","#476b58","#33413a"];
+  function donutCard(title, counts, colors, foot) {
     const total = Object.values(counts).reduce((a,b)=>a+b,0) || 1;
     let acc = 0; const segs = [];
-    const legend = Object.keys(counts).map((k,i)=>{
+    const legend = Object.keys(counts).filter(k=>counts[k]>0).map((k,i)=>{
       const p = counts[k]/total*100;
       segs.push(`${colors[i%colors.length]} ${acc}% ${acc+p}%`);
       acc += p;
-      return `<div class="r"><span class="dot" style="background:${colors[i%colors.length]};"></span>${k}<b>${Math.round(p)}%</b></div>`;
+      return `<div class="r"><span class="dot" style="background:${colors[i%colors.length]};"></span><span class="lb">${k}</span><b>${Math.round(p)}%</b><span style="color:var(--dim);font-size:11px;">(${counts[k]})</span></div>`;
     }).join("");
-    return { html:`<div class="donut" style="background:conic-gradient(${segs.join(",")});"><div class="hole"><b>${centerTxt}</b></div></div><div class="dlegend">${legend}</div>` };
+    return `<div class="card"><h3>${title}</h3>
+      <div class="dwrap">
+        <div class="donut" style="background:conic-gradient(${segs.join(",")});"><div class="hole"></div></div>
+        <div class="dlegend">${legend}</div>
+      </div>
+      ${foot?`<div class="dfoot">${foot}</div>`:""}</div>`;
   }
   const mktCnt = {};
   for (const x of items) mktCnt[x.e[1]] = (mktCnt[x.e[1]]||0)+1;
@@ -141,23 +161,12 @@ if (!list.length) {
   for (const x of items) { const t = ST.gradeOf(x.sc).g+"급"; tierCnt[t] = (tierCnt[t]||0)+1; }
   const riskCnt = {"안정":0,"주의":0,"고위험":0};
   for (const x of items) riskCnt[x.rk<40?"안정":x.rk<70?"주의":"고위험"]++;
-  const dm = donut(mktCnt, ["#4cc3d7","#4cd7a5","#f0c948","#aeb6c9"], "시장");
-  const dt = donut(tierCnt, ["#f0c948","#4cc3d7","#4cd7a5","#aeb6c9","#f0708a"], "티어");
-  const dr = donut(riskCnt, ["#4cd7a5","#f0c948","#f0645a"], "리스크");
   const maxMkt = Object.entries(mktCnt).sort((a,b)=>b[1]-a[1])[0];
-  const sTier = items.filter(x=>x.sc>=80).length;
-  const diag = [];
-  if (highPct >= 40) diag.push(`보유 포트폴리오의 ${highPct}%가 고위험 종목에 집중되어 있습니다.`);
-  else diag.push(`고위험 비중 ${highPct}%로 위험 노출은 ${highPct>=25?"보통":"낮은"} 수준입니다.`);
-  if (maxMkt && maxMkt[1]/n >= 0.7) diag.push(`${maxMkt[0]} 쏠림이 ${Math.round(maxMkt[1]/n*100)}%로 높습니다.`);
-  if (downN) diag.push(`최근 1개월 하락 중인 종목이 ${downN}개입니다.`);
-  if (sTier) diag.push(`S티어 종목 ${sTier}개가 포트폴리오를 지탱하고 있습니다.`);
   const donuts = `
-  <div class="row4">
-    <div class="card"><h3>시장 쏠림</h3>${dm.html}<div class="dfoot">시장 분산이 잘 될수록 변동성이 낮아집니다.</div></div>
-    <div class="card"><h3>티어 구성</h3>${dt.html}<div class="dfoot">S·A티어 비중 ${Math.round(items.filter(x=>x.sc>=65).length/n*100)}%</div></div>
-    <div class="card"><h3>리스크 구성</h3>${dr.html}<div class="dfoot">고위험 ${riskCnt["고위험"]}개 · 주의 ${riskCnt["주의"]}개 · 안정 ${riskCnt["안정"]}개</div></div>
-    <div class="card"><h3>오늘의 한줄 진단</h3><ul class="cmts">${diag.map(d=>`<li>${d}</li>`).join("")}</ul></div>
+  <div class="drow3">
+    ${donutCard("시장 쏠림", mktCnt, GREENS, "시장 분산이 잘 될수록 변동성이 낮아집니다.")}
+    ${donutCard("티어 구성", tierCnt, GREENS, `S·A티어 비중 ${Math.round(items.filter(x=>x.sc>=65).length/n*100)}%`)}
+    ${donutCard("리스크 구성", riskCnt, ["#1d9e75","#c9c94e","#d6564a"], `고위험 ${riskCnt["고위험"]}개 · 주의 ${riskCnt["주의"]}개 · 안정 ${riskCnt["안정"]}개`)}
   </div>`;
 
   // 사이드
@@ -170,7 +179,6 @@ if (!list.length) {
       ${[["수급",supply],["모멘텀",momentum],["펀더멘털",funda],["밸류에이션",value],["리스크",riskV]].map(([lb,v])=>
         `<div class="r"><span class="lb">${lb}</span><div class="m"><i style="width:${clip(v)}%"></i></div><b>${clip(v)}</b></div>`).join("")}
     </div>
-    <div class="dfoot">보유 종목 ${n}개 기준</div>
   </div>`;
   const warns = [];
   if (highPct >= 30) warns.push(`⚠️ 고위험 종목 비중 ${highPct}%`);
@@ -186,16 +194,15 @@ if (!list.length) {
       ${[["분산도",20],["티어 품질",30],["리스크 노출",20],["모멘텀",20],["변동성",10]].map(([lb,v])=>
         `<div class="r"><span class="lb">${lb}</span><div class="m"><i style="width:${v*3}%;background:linear-gradient(90deg,#8a6f1e,#f0c948);"></i></div><b>${v}%</b></div>`).join("")}
     </div>
-    <div class="dfoot">생존점수는 100점 만점 기준으로 산출됩니다.</div>
   </div>`;
   const rebal = [];
-  if (highPct >= 40) rebal.push("고위험 종목 비중이 높아 리스크 축소가 필요합니다.");
-  if (maxMkt && maxMkt[1]/n >= 0.7) rebal.push(`${maxMkt[0]} 외 시장으로 분산을 고려해보세요.`);
+  if (highPct >= 40) rebal.push("고위험 비중 축소 필요");
+  if (maxMkt && maxMkt[1]/n >= 0.7) rebal.push(`${maxMkt[0]} 쏠림 — 시장 분산 고려`);
   const lowVal = items.filter(x=>x.e[4]>50).length;
-  if (lowVal) rebal.push(`고PER 종목 ${lowVal}개 — 밸류 부담 점검 권장.`);
-  if (downN) rebal.push(`하락 추세 종목 ${downN}개에 대한 점검이 필요합니다.`);
-  if (!rebal.length) rebal.push("현재 구성 유지가 무난해 보입니다.");
-  const sideRebal = `<div class="card"><h3>리밸런싱 제안</h3><ul class="cmts">${rebal.map(r=>`<li>${r}</li>`).join("")}</ul></div>`;
+  if (lowVal) rebal.push(`고PER 종목 ${lowVal}개 밸류 점검`);
+  if (downN) rebal.push(`하락 추세 ${downN}개 종목 점검`);
+  if (!rebal.length) rebal.push("현재 구성 유지 무난");
+  const sideRebal = `<div class="card"><h3>리밸런싱 제안</h3><ul class="cmts">${rebal.map(r=>`<li title="${r}">${r}</li>`).join("")}</ul></div>`;
 
   box.innerHTML = `
   <div class="layout">

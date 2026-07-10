@@ -55,7 +55,11 @@
   /* 주가 흐름 (풀폭, 인터랙티브) */
   .chartbox { position:relative; }
   .chartbox svg { width:100%; height:230px; display:block; }
-  .charttip { position:absolute; background:#021b27; border:1px solid var(--gold-dim); color:var(--text); font-size:11.5px; font-weight:700; padding:4px 9px; border-radius:6px; pointer-events:none; white-space:nowrap; transform:translate(-50%,-130%); z-index:5; font-variant-numeric:tabular-nums; }
+  .charttip { position:absolute; background:#021b27; border:1px solid var(--gold-dim); color:var(--text); font-size:11.5px; font-weight:600; padding:8px 11px; border-radius:8px; pointer-events:none; white-space:nowrap; transform:translate(-50%,-104%); z-index:5; font-variant-numeric:tabular-nums; text-align:left; line-height:1.75; }
+  .charttip .tth { font-weight:800; margin-top:3px; }
+  .rangesel { display:flex; gap:4px; align-items:center; margin-left:auto; font-size:11px; color:var(--dim); flex-wrap:wrap; }
+  .rangesel select { background:#021b27; border:1px solid var(--border); color:var(--text); border-radius:7px; padding:4px 5px; font-size:11.5px; outline:none; }
+  .rangesel select:focus { border-color:var(--gold-dim); }
   .legend { display:flex; gap:14px; font-size:11.5px; color:var(--muted); margin-bottom:6px; font-weight:700; flex-wrap:wrap; align-items:center; }
   .legend i { display:inline-block; width:16px; height:3px; border-radius:2px; vertical-align:middle; margin-right:5px; }
   .chartnote { font-size:10.5px; color:var(--dim); margin-top:6px; }
@@ -309,18 +313,17 @@ function render() {
     ${txtRow("기관 순매수", `<b class="num">${usA?"-":buyStr(ea[18],ea)}</b>`, `<b class="num">${usB?"-":buyStr(eb[18],eb)}</b>`, win(usA?null:ea[18],usB?null:eb[18],true))}
   </div>`;
 
-  // 주가 흐름 (기간 선택 + 축 + 십자 툴팁)
+  // 주가 흐름 (기간 버튼 + 시작/종료 날짜 선택 + 시가총액 축 + 툴팁)
   const chartCard = `
   <div class="card" style="margin-top:14px;">
     <h3>주가 흐름 비교
       <span style="margin-left:14px;display:flex;gap:6px;" class="chips" id="perchips"></span>
-      <span class="more" style="cursor:default;">시작일 종가를 100으로 환산한 상대 수익률</span></h3>
+      <span class="rangesel" id="rangesel"></span></h3>
     <div class="legend">
-      <span><i style="background:#f0c948;"></i>${na} (${ea[0]})</span>
-      <span><i style="background:#4cd7a5;"></i>${nb} (${eb[0]})</span>
+      <span><i style="background:#f0c948;"></i>${na} (${ea[0]}) — 좌측 축</span>
+      <span><i style="background:#4cd7a5;"></i>${nb} (${eb[0]}) — 우측 축</span>
     </div>
     <div class="chartbox"><svg id="cmpchart" viewBox="0 0 1000 230" preserveAspectRatio="none"></svg><div class="charttip hidden" id="cmptip"></div></div>
-    <div class="chartnote" id="cmpnote"></div>
   </div>`;
 
   // 상세 지표 (왕관: A는 좌측값 왼쪽 / B는 우측값 오른쪽)
@@ -455,13 +458,149 @@ function render() {
     </div>
   </div>`;
 
-  // 기간 칩 + 차트
+  // 기간 칩 + 날짜 선택 + 차트
+  LAST = { ea, eb, na, nb, usA, usB };
+  buildChartControls();
+  drawCmp2();
+}
+let LAST = null;
+let MODE = { type:"per", n:20 };
+const NPT = 100, DPP = 1250/100*1.45;   // 총 포인트 수, 포인트당 달력일수(근사)
+function chartEnd(){
+  const m = window.STOCK_META && window.STOCK_META.date;
+  return m ? new Date(+m.slice(0,4), +m.slice(4,6)-1, +m.slice(6,8)) : new Date();
+}
+const dateOfIdx = k => { const d = new Date(chartEnd()); d.setDate(d.getDate() - Math.round((NPT-1-k)*DPP)); return d; };
+const idxOfDate = d => Math.max(0, Math.min(NPT-1, Math.round(NPT-1 - (chartEnd()-d)/(864e5*DPP))));
+const fmtD = d => `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`;
+
+function buildChartControls(){
   const PERS = [["6개월",10],["1년",20],["3년",60],["5년",100]];
   document.getElementById("perchips").innerHTML = PERS.map(([t,v])=>
-    `<span class="chip ${v===PER?"on":""}" data-v="${v}" onclick="setPer(${v})">${t}</span>`).join("");
-  drawCmp(ea, eb, na, nb, usA, usB);
+    `<span class="chip ${MODE.type==="per"&&MODE.n===v?"on":""}" data-v="${v}" onclick="setPer(${v})">${t}</span>`).join("");
+  const endY = chartEnd().getFullYear();
+  const yopt = s => { let h=""; for(let y=endY-5;y<=endY;y++) h+=`<option value="${y}" ${y===s.getFullYear()?"selected":""}>${y}</option>`; return h; };
+  const mopt = s => { let h=""; for(let m=1;m<=12;m++) h+=`<option value="${m}" ${m===s.getMonth()+1?"selected":""}>${m}월</option>`; return h; };
+  const dopt = s => { let h=""; for(let d=1;d<=31;d++) h+=`<option value="${d}" ${d===s.getDate()?"selected":""}>${d}일</option>`; return h; };
+  const [g0,g1] = curWindow();
+  const sD = dateOfIdx(g0), eD = dateOfIdx(g1);
+  document.getElementById("rangesel").innerHTML = `
+    <select id="sy">${yopt(sD)}</select><select id="sm">${mopt(sD)}</select><select id="sd">${dopt(sD)}</select>
+    <span>~</span>
+    <select id="ey">${yopt(eD)}</select><select id="em">${mopt(eD)}</select><select id="ed">${dopt(eD)}</select>`;
+  ["sy","sm","sd","ey","em","ed"].forEach(id =>
+    document.getElementById(id).addEventListener("change", onRangeChange));
 }
-window.setPer = v => { PER = v; render(); };
+function curWindow(){
+  if (MODE.type === "custom") return [MODE.i0, MODE.i1];
+  return [Math.max(0, NPT - MODE.n), NPT - 1];
+}
+function onRangeChange(){
+  const v = id => +document.getElementById(id).value;
+  const s = new Date(v("sy"), v("sm")-1, v("sd"));
+  const e = new Date(v("ey"), v("em")-1, v("ed"));
+  let i0 = idxOfDate(s), i1 = idxOfDate(e);
+  if (i1 <= i0) i1 = Math.min(NPT-1, i0+1);
+  MODE = { type:"custom", i0, i1 };
+  document.querySelectorAll("#perchips .chip").forEach(c=>c.classList.remove("on"));
+  drawCmp2();
+}
+window.setPer = n => {
+  MODE = { type:"per", n };
+  buildChartControls();
+  drawCmp2();
+};
+
+function drawCmp2(){
+  if (!LAST) return;
+  const { ea, eb, na, nb, usA, usB } = LAST;
+  const svg = document.getElementById("cmpchart"), tip = document.getElementById("cmptip");
+  const ra = relSeries(ea, usA), rb = relSeries(eb, usB);
+  if (!ra || !rb) {
+    svg.innerHTML = `<text x="500" y="115" text-anchor="middle" fill="#5a737d" font-size="14">장기 시세 데이터가 아직 없습니다 — 새 수집 워크플로 실행 후 표시됩니다</text>`;
+    return;
+  }
+  const [g0, g1] = curWindow();
+  const W=1000, H=230, padL=78, padR=150, padT=12, padB=26;
+  // 시리즈 → 시가총액 값 (전역 인덱스 기준, 창 범위 내)
+  const build = (arr, capNow) => {
+    const off = NPT - arr.length;
+    const pts = [];
+    for (let g = Math.max(g0, off); g <= g1; g++) pts.push([g, capNow * arr[g-off] / 1000]);
+    return pts;
+  };
+  const pa = build(ra, ea[8]), pb = build(rb, eb[8]);
+  if (pa.length < 2 || pb.length < 2) {
+    svg.innerHTML = `<text x="500" y="115" text-anchor="middle" fill="#5a737d" font-size="14">선택한 기간의 데이터가 부족합니다</text>`;
+    return;
+  }
+  const X = g => padL + (g-g0)/((g1-g0)||1)*(W-padL-padR);
+  const axis = pts => { const vs = pts.map(p=>p[1]); const mn=Math.min(...vs), mx=Math.max(...vs); const rg=(mx-mn)||1;
+    return { mn, rg, Y: v => padT + (1-(v-mn)/rg)*(H-padT-padB) }; };
+  const axA = axis(pa), axB = axis(pb);
+  const line = (pts,ax,col)=>`<polyline points="${pts.map(p=>`${X(p[0]).toFixed(1)},${ax.Y(p[1]).toFixed(1)}`).join(" ")}" fill="none" stroke="${col}" stroke-width="2"/>`;
+  // 좌(A)·우(B) 시가총액 축
+  let grid = "";
+  for (let g2=0; g2<=3; g2++) {
+    const y = padT + (H-padT-padB)*g2/3;
+    const vA = axA.mn + axA.rg*(1-g2/3), vB = axB.mn + axB.rg*(1-g2/3);
+    grid += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#0d3a52" stroke-width="1"/>
+      <text x="${padL-6}" y="${y+4}" text-anchor="end" fill="#c9a832" font-size="10.5">${ST.capStr(Math.round(vA), usA)}</text>
+      <text x="${W-padR+6}" y="${y+4}" fill="#3aa87f" font-size="10.5">${ST.capStr(Math.round(vB), usB)}</text>`;
+  }
+  let xlab = "";
+  for (const fr of [0, 1/3, 2/3, 1]) {
+    const g = Math.round(g0 + fr*(g1-g0));
+    const anchor = fr===0?"start":fr===1?"end":"middle";
+    const d = dateOfIdx(g);
+    xlab += `<text x="${X(g).toFixed(1)}" y="${H-8}" text-anchor="${anchor}" fill="#5a737d" font-size="10.5">${String(d.getFullYear()).slice(2)}/${String(d.getMonth()+1).padStart(2,"0")}</text>`;
+  }
+  // 기간 수익률 뱃지 (창 시작 대비)
+  const retOf = pts => (pts[pts.length-1][1]/pts[0][1]-1)*100;
+  const badge = (pts,ax,col,yoff)=>{ const r = retOf(pts); const y = ax.Y(pts[pts.length-1][1]);
+    const txt = (r>=0?"+":"")+r.toFixed(1)+"%";
+    return `<g><rect x="${W-padR+64}" y="${(y-9+yoff).toFixed(1)}" width="66" height="18" rx="5" fill="${col}"/>
+      <text x="${W-padR+97}" y="${(y+4+yoff).toFixed(1)}" text-anchor="middle" fill="#032433" font-size="11" font-weight="800">${txt}</text></g>`; };
+  const yA = axA.Y(pa[pa.length-1][1]), yB = axB.Y(pb[pb.length-1][1]);
+  const overlap = Math.abs(yA-yB) < 20 ? (yA<=yB ? [-11,11] : [11,-11]) : [0,0];
+  svg.innerHTML = grid + xlab + line(pa,axA,"#f0c948") + line(pb,axB,"#4cd7a5") +
+    badge(pa,axA,"#f0c948",overlap[0]) + badge(pb,axB,"#4cd7a5",overlap[1]) +
+    `<g id="cross" style="display:none;">
+      <line id="cxv" y1="${padT}" y2="${H-padB}" stroke="#8da4ac" stroke-width="1" stroke-dasharray="4,4"/>
+      <line id="cxh" x1="${padL}" x2="${W-padR}" stroke="#8da4ac" stroke-width="1" stroke-dasharray="4,4"/>
+      <circle id="cpa" r="4" fill="#f0c948" stroke="#032433" stroke-width="1.5"/>
+      <circle id="cpb" r="4" fill="#4cd7a5" stroke="#032433" stroke-width="1.5"/></g>`;
+  const cross = document.getElementById("cross");
+  svg.onmousemove = ev => {
+    const r = svg.getBoundingClientRect();
+    const vx = (ev.clientX - r.left)/r.width*W;
+    let g = Math.round(g0 + (vx-padL)/(W-padL-padR)*(g1-g0));
+    g = Math.max(g0, Math.min(g1, g));
+    const x = X(g);
+    const fA = pa.find(p=>p[0]===g), fB = pb.find(p=>p[0]===g);
+    document.getElementById("cxv").setAttribute("x1",x);
+    document.getElementById("cxv").setAttribute("x2",x);
+    const yRef = fA ? axA.Y(fA[1]) : (fB ? axB.Y(fB[1]) : H/2);
+    document.getElementById("cxh").setAttribute("y1",yRef);
+    document.getElementById("cxh").setAttribute("y2",yRef);
+    if (fA) { document.getElementById("cpa").setAttribute("cx",x); document.getElementById("cpa").setAttribute("cy",axA.Y(fA[1])); document.getElementById("cpa").style.display=""; }
+    else document.getElementById("cpa").style.display="none";
+    if (fB) { document.getElementById("cpb").setAttribute("cx",x); document.getElementById("cpb").setAttribute("cy",axB.Y(fB[1])); document.getElementById("cpb").style.display=""; }
+    else document.getElementById("cpb").style.display="none";
+    cross.style.display = "";
+    const block = (nm, e, f, us, col) => !f ? "" : `
+      <div class="tth" style="color:${col};">${nm}</div>
+      <div>시가총액: ${ST.capStr(Math.round(f[1]), us)}</div>
+      <div>주가: ${ST.priceStr(us ? +(e[2]*f[1]/e[8]).toFixed(2) : Math.round(e[2]*f[1]/e[8]), us)}</div>`;
+    tip.innerHTML = `<div>날짜: ${fmtD(dateOfIdx(g))}</div>` +
+      block(na, ea, fA, usA, "#f0c948") + block(nb, eb, fB, usB, "#4cd7a5");
+    tip.style.left = (x/W*100)+"%";
+    tip.style.top = (yRef/H*100)+"%";
+    tip.style.transform = yRef < H*0.45 ? "translate(-50%, 14px)" : "translate(-50%,-104%)";
+    tip.classList.remove("hidden");
+  };
+  svg.onmouseleave = () => { cross.style.display="none"; tip.classList.add("hidden"); };
+}
 
 function drawCmp(ea, eb, na, nb, usA, usB) {
   const svg = document.getElementById("cmpchart"), tip = document.getElementById("cmptip"), note = document.getElementById("cmpnote");
