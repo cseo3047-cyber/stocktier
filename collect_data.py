@@ -101,8 +101,8 @@ def detail(code):
     return per, pbr, div, roe, forn, prevs, vol_prev, fbuy, obuy
 
 
-def history(code, count=750):
-    """일별 시세 약 3년치 (앞 65개는 지표 계산용, 전체는 장기 차트용)"""
+def history(code, count=1250):
+    """일별 시세 약 5년치 (최근 65개는 지표 계산용, 전체는 장기 차트용)"""
     try:
         r = S.get(f"https://fchart.stock.naver.com/sise.nhn?symbol={code}&timeframe=day&count={count}&requestType=0",
                   timeout=15)
@@ -282,13 +282,12 @@ def main():
                     return round((rc[-1] - rc[-n]) / rc[-n] * 100, 1)
                 return None
             r1w, r1m, r3m = ret(6), ret(21), ret(len(rc))
-            # 장기 차트: 3년치를 36개 점으로 압축 (0~99 정규화)
-            if len(closes) >= 8:
-                step = max(1, len(closes) // 36)
-                pts = closes[::step][-36:]
-                mn, mx = min(pts), max(pts)
-                rg = (mx - mn) or 1
-                spk = [int((p - mn) / rg * 99) for p in pts]
+            # 장기 차트: 5년치를 100개 점으로 압축 (현재가=1000 기준 상대값)
+            if len(closes) >= 10:
+                step = max(1, len(closes) // 100)
+                pts = closes[::step][-100:]
+                last = pts[-1] or 1
+                spk = [int(round(p / last * 1000)) for p in pts]
         else:
             vol3m = int((st["volToday"] + (vol_prev or st["volToday"])) / 2)
             r1w = r1m = r3m = None
