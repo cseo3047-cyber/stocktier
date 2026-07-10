@@ -324,8 +324,8 @@ function render() {
       <span style="margin-left:14px;display:flex;gap:6px;" class="chips" id="perchips"></span>
       <span class="rangesel" id="rangesel"></span></h3>
     <div class="legend">
-      <span><i style="background:#f0c948;"></i>${na} (${ea[0]}) — 좌측 축</span>
-      <span><i style="background:#4cd7a5;"></i>${nb} (${eb[0]}) — 우측 축</span>
+      <span><i style="background:#f0c948;"></i>${na} (${ea[0]})</span>
+      <span><i style="background:#4cd7a5;"></i>${nb} (${eb[0]})</span>
     </div>
     <div class="chartbox"><svg id="cmpchart" viewBox="0 0 1000 230" preserveAspectRatio="none"></svg><div class="charttip hidden" id="cmptip"></div></div>
   </div>`;
@@ -379,7 +379,17 @@ function render() {
         <div style="display:flex;gap:7px;"><span style="color:var(--gold);flex-shrink:0;">▸</span><span>${s2}</span></div>
       </div></div>`;
   };
-  const judgeCard = `<div class="card"><h3>오늘의 판정</h3>${judge(na, ma, ea, usA)}${judge(nb, mb, eb, usB)}</div>`;
+  const stableN = ma.rk<=mb.rk ? na : nb;
+  const shortN = ma.momentum>=mb.momentum ? na : nb;
+  const verdict = `
+  <div class="verdict">
+    <div class="vic" style="background:#13322a;border:1.5px solid #2e5c47;">${shieldCheckIcon}</div>
+    <div><div class="t">안정성 우세</div><div class="n">${stableN}</div></div>
+    <div style="color:var(--gold);font-weight:800;font-size:14px;">VS</div>
+    <div><div class="t">단기 우세 👑</div><div class="n gold">${shortN}</div></div>
+    <div class="vic" style="background:#3d3313;border:1.5px solid #c9a832;">⚡</div>
+  </div>`;
+  const judgeCard = `<div class="card" style="display:flex;flex-direction:column;"><h3>오늘의 판정</h3>${judge(na, ma, ea, usA)}${judge(nb, mb, eb, usB)}${verdict}</div>`;
 
   // 사이드
   const Wn = ma.sc>=mb.sc ? {n:na,m:ma} : {n:nb,m:mb};
@@ -448,17 +458,6 @@ function render() {
       ${specRow("위험도", ma.rk, mb.rk)}
     </table>
   </div>`;
-  const stableN = ma.rk<=mb.rk ? na : nb;
-  const shortN = ma.momentum>=mb.momentum ? na : nb;
-  const verdict = `
-  <div class="verdict">
-    <div class="vic" style="background:#13322a;border:1.5px solid #2e5c47;">${shieldCheckIcon}</div>
-    <div><div class="t">안정성 우세</div><div class="n">${stableN}</div></div>
-    <div style="color:var(--gold);font-weight:800;font-size:14px;">VS</div>
-    <div><div class="t">단기 우세 👑</div><div class="n gold">${shortN}</div></div>
-    <div class="vic" style="background:#3d3313;border:1.5px solid #c9a832;">⚡</div>
-  </div>`;
-
   box.innerHTML = `
   <div class="layout">
     <div>
@@ -468,7 +467,7 @@ function render() {
       <div class="row2">${detail}${judgeCard}</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;height:100%;">
-      ${sideSummary}${sideWins}${sideCmt}${sideRec}${sideSpec}${verdict}
+      ${sideSummary}${sideWins}${sideCmt}${sideRec}${sideSpec.replace('<div class="card">','<div class="card" style="flex:1;">')}
     </div>
   </div>`;
 

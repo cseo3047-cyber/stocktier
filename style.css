@@ -16,7 +16,7 @@ a { color:inherit; text-decoration:none; }
 .nav .brand .mark { display:flex; align-items:flex-end; gap:2px; height:20px; }
 .nav .brand .mark i { display:block; width:5px; border-radius:2px; background:var(--gold); }
 .nav .brand .mark i:nth-child(1){height:10px;background:var(--up);} .nav .brand .mark i:nth-child(2){height:16px;} .nav .brand .mark i:nth-child(3){height:13px;background:var(--up);}
-.nav .menu { display:flex; gap:4px; flex-wrap:wrap; }
+.nav .menu { display:flex; gap:4px; flex-wrap:wrap; align-items:center; }
 .nav .menu a { padding:8px 13px; font-size:14px; color:var(--muted); border-radius:8px; font-weight:600; }
 .nav .menu a:hover { color:var(--text); background:var(--panel); }
 .nav .menu a.on { color:var(--gold); border-bottom:2px solid var(--gold); border-radius:8px 8px 0 0; }
@@ -30,7 +30,8 @@ a { color:inherit; text-decoration:none; }
 .nav .bell:hover { opacity:1; }
 .nav .loginbtn { background:transparent; border:1.5px solid var(--muted); color:var(--text); border-radius:9px; padding:8px 18px; font-size:13px; font-weight:800; cursor:pointer; }
 .nav .loginbtn:hover { border-color:var(--gold); color:var(--gold); }
-.navdrop { position:relative; display:inline-block; }
+.navdrop { position:relative; display:inline-flex; align-items:center; }
+.navdrop > a { display:inline-block; }
 .navdrop .dmenu { display:none; position:absolute; top:100%; left:0; background:var(--panel); border:1px solid var(--border); border-radius:11px; min-width:130px; padding:6px; z-index:80; box-shadow:0 10px 26px rgba(0,0,0,.45); }
 .navdrop:hover .dmenu { display:block; }
 .navdrop .dmenu a { display:block; padding:9px 13px; border-radius:8px; font-size:13px; color:var(--muted); font-weight:600; border-bottom:none !important; }

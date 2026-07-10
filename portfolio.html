@@ -7,20 +7,39 @@
 <link rel="stylesheet" href="style.css">
 <style>
   .wrap { max-width:1460px; }
-  .layout { display:grid; grid-template-columns:1fr 310px; gap:14px; align-items:start; }
+  .layout { display:grid; grid-template-columns:1fr 310px; gap:14px; align-items:stretch; }
   @media (max-width:1080px){ .layout { grid-template-columns:1fr; } }
   .cards4 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
   @media (max-width:900px){ .cards4 { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-  .scard { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:14px 15px; display:flex; gap:11px; align-items:center; min-width:0; }
-  .scard .ic { width:38px; height:38px; border-radius:50%; background:#c9a83222; border:1px solid #c9a83244; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
-  .scard .lb { font-size:11px; color:var(--muted); font-weight:700; margin-bottom:3px; white-space:nowrap; }
-  .scard .vl { font-size:18px; font-weight:800; }
-  .scard .sub { font-size:10px; color:var(--dim); margin-top:2px; white-space:nowrap; }
+  .scard { background:linear-gradient(135deg,#0d2e3b,#123f4b); border:1px solid var(--border); border-radius:14px; padding:15px 15px; display:flex; gap:11px; align-items:center; min-width:0; }
+  .scard .ic { width:46px; height:46px; border-radius:12px; background:#4cd7a51a; border:1px solid #4cd7a544; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .scard .l { flex:1; min-width:0; }
+  .scard .lb { font-size:11.5px; color:var(--muted); font-weight:700; margin-bottom:3px; white-space:nowrap; }
+  .scard .vl { font-size:23px; font-weight:800; line-height:1.1; }
+  .scard .vl small { font-size:12px; color:var(--dim); font-weight:600; }
+  .scard .sub { font-size:10.5px; color:var(--dim); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .scard svg.mini { flex-shrink:0; }
+  .icgauge { width:46px; height:46px; border-radius:50%; flex-shrink:0; position:relative; }
+  .icgauge .ih { position:absolute; inset:6px; background:#0f333e; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; color:#4cd7a5; }
+  .avat { display:inline-flex; width:21px; height:21px; border-radius:6px; align-items:center; justify-content:center; font-size:10.5px; font-weight:800; color:#052018; margin-right:7px; vertical-align:-5px; flex-shrink:0; }
+  /* 세부내역 팝업 */
+  .modal { position:fixed; inset:0; background:#000000aa; display:flex; align-items:center; justify-content:center; z-index:120; }
+  .modal.hidden { display:none; }
+  .mbox { background:var(--panel); border:1px solid var(--border); border-radius:16px; width:min(440px,92vw); max-height:78vh; overflow:auto; padding:18px 20px; }
+  .mhead { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .mhead b { font-size:15px; }
+  .mclose { cursor:pointer; color:var(--muted); font-size:16px; padding:2px 6px; }
+  .mclose:hover { color:var(--text); }
+  .mgrp { font-size:12px; font-weight:800; color:var(--gold); margin:13px 0 4px; }
+  .mrow { display:flex; align-items:center; gap:9px; font-size:12.5px; padding:6.5px 2px; border-bottom:1px solid #ffffff0d; color:var(--muted); }
+  .mrow:last-child { border-bottom:none; }
+  .mrow b { color:var(--text); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; }
+  .mrow .num { font-variant-numeric:tabular-nums; }
   /* 테이블: 헤더 가운데, 본문 종목명만 좌측 */
   .ptbl { width:100%; border-collapse:collapse; font-size:12.5px; }
   .ptbl th { text-align:center; color:var(--muted); font-size:11.5px; font-weight:700; padding:8px 6px; border-bottom:1px solid var(--border); white-space:nowrap; }
   .ptbl td { padding:9px 6px; border-bottom:1px solid var(--border); text-align:center; font-variant-numeric:tabular-nums; white-space:nowrap; }
-  .ptbl td.nm { text-align:left; font-weight:700; }
+  .ptbl td.nm { text-align:left; font-weight:700; max-width:165px; overflow:hidden; text-overflow:ellipsis; }
   .ptbl tr:hover td { background:var(--panel2); }
   .ptbl a.stock:hover { color:var(--gold); }
   /* 도넛 (우측 범례) */
@@ -64,6 +83,12 @@
   <div id="body"></div>
   <div class="footer">Stocktier는 재미용 사이트입니다. 지표는 오락 목적의 가공 수치이며 투자 권유·조언이 아닙니다.</div>
 </div>
+<div class="modal hidden" id="dmodal" onclick="if(event.target===this)this.classList.add('hidden')">
+  <div class="mbox">
+    <div class="mhead"><b id="mtitle"></b><span class="mclose" onclick="document.getElementById('dmodal').classList.add('hidden')">✕</span></div>
+    <div id="mbody"></div>
+  </div>
+</div>
 
 <script src="data.js"></script>
 <script src="data_us.js"></script>
@@ -102,44 +127,76 @@ if (!list.length) {
   const downN = items.filter(x=>(x.e[15]||0)<0).length;
   const gcol = surv>=65?"#4cd7a5":surv>=45?"#f0c948":"#f0645a";
 
+  // 실적 일정 (분기 공시 기한 기반 예상치 — 종목 코드별 고정)
+  const hashOf = s => { let h=7; for (const c of String(s)) h=(h*31+c.charCodeAt(0))>>>0; return h; };
+  const today0 = new Date(); today0.setHours(0,0,0,0);
+  function earnDate(x){
+    const dl = x.us ? [[2,15],[5,15],[8,14],[11,14]] : [[3,31],[5,15],[8,14],[11,16]];
+    const h = hashOf(x.e[0]);
+    for (let k=0;k<9;k++){
+      const d = new Date(today0.getFullYear()+Math.floor(k/4), dl[k%4][0]-1, dl[k%4][1]);
+      d.setDate(d.getDate()-(h%16));
+      if (d>=today0) return d;
+    }
+    return null;
+  }
+  const dday = d => Math.round((d-today0)/864e5);
+  const earnSoon = items.filter(x=>{ const d=earnDate(x); return d && dday(d)<=7; }).length;
+
+  // 카드 아이콘 + 미니 그래프
+  const listIcon = `<svg width="24" height="22" viewBox="0 0 22 20"><g stroke="#4cd7a5" stroke-width="2" stroke-linecap="round"><circle cx="2.5" cy="3" r="1.6" fill="#4cd7a5" stroke="none"/><line x1="7" y1="3" x2="20" y2="3"/><circle cx="2.5" cy="10" r="1.6" fill="#4cd7a5" stroke="none"/><line x1="7" y1="10" x2="20" y2="10"/><circle cx="2.5" cy="17" r="1.6" fill="#4cd7a5" stroke="none"/><line x1="7" y1="17" x2="20" y2="17"/></g></svg>`;
+  const warnIcon = `<svg width="26" height="24" viewBox="0 0 24 22" fill="none" stroke="#f0645a" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2L22 20H2z"/><line x1="12" y1="9" x2="12" y2="14" stroke-linecap="round"/><circle cx="12" cy="17" r="1.2" fill="#f0645a" stroke="none"/></svg>`;
+  const calIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4cd7a5" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/><path d="M8 15.5l2.5 2.5 5.5-5.5" stroke-width="2"/></svg>`;
+  const miniLine = (id,c1,c2,seed) => { const pts=[]; let v=15;
+    for (let i=0;i<12;i++){ v=Math.max(4,Math.min(26,v+((seed>>(i%9))%7)-3)); pts.push(`${i*6},${30-v}`); }
+    return `<svg class="mini" width="68" height="30" viewBox="0 0 68 30"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs><polyline points="${pts.join(" ")}" fill="none" stroke="url(#${id})" stroke-width="2"/></svg>`; };
+  const miniBars = (id,c1,c2,seed) => { let b="";
+    for (let i=0;i<7;i++){ const h=7+((seed*(i+3))%19); b+=`<rect x="${i*9}" y="${30-h}" width="6" height="${h}" rx="2" fill="url(#${id})"/>`; }
+    return `<svg class="mini" width="63" height="30" viewBox="0 0 63 30"><defs><linearGradient id="${id}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>${b}</svg>`; };
+
   const cards = `
   <div class="cards4">
-    <div class="scard"><span class="ic">📋</span><div><div class="lb">전체 보유 종목</div><div class="vl num">${n}<small style="font-size:12px;color:var(--dim);"> 개</small></div><div class="sub">관심종목 기준</div></div></div>
-    <div class="scard"><span class="ic">💯</span><div><div class="lb">포트폴리오 생존점수</div><div class="vl num">${surv}<small style="font-size:12px;color:var(--dim);"> 점</small></div><div class="sub"><span class="tierb tier-${g.g}" style="font-size:9px;padding:1px 6px;">${g.g}</span> 티어 · ${surv>=65?"양호":surv>=45?"보통":"주의"}</div></div></div>
-    <div class="scard"><span class="ic" style="background:#f0645a22;border-color:#f0645a44;">⚠️</span><div><div class="lb">고위험 종목 비중</div><div class="vl num" style="color:${highPct>=40?"var(--down)":"var(--text)"};">${highPct}<small style="font-size:12px;color:var(--dim);"> %</small></div><div class="sub">${highRisk.length}개 종목</div></div></div>
-    <div class="scard"><span class="ic" style="background:#f0645a22;border-color:#f0645a44;">🔥</span><div><div class="lb">거래 과열 종목</div><div class="vl num">${hotN}<small style="font-size:12px;color:var(--dim);"> 개</small></div><div class="sub">거래량 2배 이상</div></div></div>
+    <div class="scard"><span class="ic">${listIcon}</span><div class="l"><div class="lb">전체 보유 종목</div><div class="vl num">${n}<small> 개</small></div><div class="sub">보유 종목 수</div></div>${miniLine("mg1","#1d9e75","#4cd7a5",n*17+5)}</div>
+    <div class="scard"><span class="icgauge" style="background:conic-gradient(${gcol} 0% ${surv}%, #ffffff14 ${surv}% 100%);"><span class="ih" style="color:${gcol};">${g.g}</span></span><div class="l"><div class="lb">포트폴리오 생존점수</div><div class="vl num">${surv}<small> 점</small></div><div class="sub"><span class="tierb tier-${g.g}" style="font-size:9px;padding:1px 6px;">${g.g}</span> 티어 · ${surv>=65?"양호":surv>=45?"보통":"주의"}</div></div>${miniBars("mg2","#0f7a56","#4cd7a5",surv+13)}</div>
+    <div class="scard"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${warnIcon}</span><div class="l"><div class="lb">고위험 종목 비중</div><div class="vl num" style="color:${highPct>=40?"#f0708a":"var(--text)"};">${highPct}<small> %</small></div><div class="sub">${highRisk.length}개 종목</div></div>${miniBars("mg3","#7a2822","#f0645a",highPct+7)}</div>
+    <div class="scard"><span class="ic">${calIcon}</span><div class="l"><div class="lb">실적 임박 종목</div><div class="vl num">${earnSoon}<small> 개</small></div><div class="sub">D-7 이내 · 예상 기준</div></div>${miniBars("mg4","#1d9e75","#8fd6b8",earnSoon*9+21)}</div>
   </div>`;
 
   // 구성 테이블
+  const AVCOL = ["#4cd7a5","#f0c948","#8fd6b8","#c9c94e","#1d9e75","#e0a63e","#66c6e8","#d6866a"];
   const rows = items.map((x,i)=>{
     const gg = ST.gradeOf(x.sc);
     const rb = x.rk<40?["Low","r-low"]:x.rk<70?["Medium","r-med"]:["High","r-high"];
-    const ind = (!x.us && x.e.length>20 && x.e[20]) ? x.e[20] : "-";
-    const thm = (!x.us && x.e.length>21 && x.e[21]) ? x.e[21] : "-";
+    const ind = (x.e.length>20 && x.e[20]) ? x.e[20] : `<span style="color:var(--dim);">수집 중</span>`;
+    const thm = (x.e.length>21 && x.e[21]) ? x.e[21] : `<span style="color:var(--dim);">수집 중</span>`;
     const w1 = x.e[14];
     const chg = w1==null ? "-" : `<span class="${ST.cls(w1)}">${w1>0?"↗":w1<0?"↘":"→"} ${ST.pct(w1)}</span>`;
+    const nm = ST.displayName(x.src,x.key);
+    const av = `<span class="avat" style="background:${AVCOL[hashOf(x.key)%AVCOL.length]};">${nm.charAt(0).toUpperCase()}</span>`;
+    const ed = earnDate(x);
+    const eds = ed ? `${String(ed.getMonth()+1).padStart(2,"0")}/${String(ed.getDate()).padStart(2,"0")} <span style="color:var(--dim);">예상</span>${dday(ed)<=7?` <span style="color:#f0c948;font-weight:800;">D-${dday(ed)}</span>`:""}` : "-";
     return `<tr>
       <td class="num" style="color:var(--muted);">${i+1}</td>
-      <td class="nm"><a class="stock" href="${ST.stockUrl(x.src,x.key)}">${ST.displayName(x.src,x.key)} <span style="color:var(--dim);font-weight:500;">(${x.e[0]})</span></a></td>
+      <td class="nm">${av}<a class="stock" href="${ST.stockUrl(x.src,x.key)}">${nm} <span style="color:var(--dim);font-weight:500;">(${x.e[0]})</span></a></td>
       <td style="color:var(--muted);font-size:11.5px;">${x.e[1]}</td>
       <td class="num">${weight.toFixed(1)}%</td>
       <td><span class="tierb tier-${gg.g}">${gg.g}</span></td>
       <td class="num" style="font-weight:800;">${x.sc}</td>
-      <td style="color:var(--muted);font-size:11.5px;max-width:110px;overflow:hidden;text-overflow:ellipsis;">${ind}</td>
-      <td style="color:var(--muted);font-size:11.5px;max-width:110px;overflow:hidden;text-overflow:ellipsis;">${thm}</td>
+      <td style="color:var(--muted);font-size:11.5px;max-width:100px;overflow:hidden;text-overflow:ellipsis;">${ind}</td>
+      <td style="color:var(--muted);font-size:11.5px;max-width:100px;overflow:hidden;text-overflow:ellipsis;">${thm}</td>
       <td><span class="riskb ${rb[1]}">${rb[0]}</span></td>
       <td class="num" style="font-size:11.5px;font-weight:700;">${chg}</td>
-      <td style="color:var(--dim);font-size:11.5px;">-</td></tr>`;
+      <td class="num" style="font-size:11.5px;">${eds}</td></tr>`;
   }).join("");
   const table = `
   <div class="card"><h3>내 포트폴리오 구성 <span class="more" style="cursor:default;">균등 비중 가정 · 종합점수 순</span></h3>
     <table class="ptbl"><thead><tr><th>순위</th><th>종목명</th><th>시장</th><th>비중</th><th>현재 티어</th><th>종합점수</th><th>업종</th><th>테마</th><th>리스크</th><th>최근 변화</th><th>실적 일정</th></tr></thead>
     <tbody>${rows}</tbody></table>
-    <div class="dfoot">업종·테마는 데이터 수집 후 표시 · 실적 일정은 실적 캘린더 페이지와 함께 제공 예정</div></div>`;
+    <div class="dfoot">실적 일정은 분기 공시 기한 기반 예상치입니다 · 업종·테마는 일일 데이터 수집 후 표시됩니다</div></div>`;
 
   // 도넛 3종 (우측 범례, 녹색 계열)
   const GREENS = ["#1d9e75","#4cd7a5","#2c6a4e","#8fd6b8","#476b58","#33413a"];
-  function donutCard(title, counts, colors, foot) {
+  function donutCard(id, title, counts, colors) {
     const total = Object.values(counts).reduce((a,b)=>a+b,0) || 1;
     let acc = 0; const segs = [];
     const legend = Object.keys(counts).filter(k=>counts[k]>0).map((k,i)=>{
@@ -148,12 +205,11 @@ if (!list.length) {
       acc += p;
       return `<div class="r"><span class="dot" style="background:${colors[i%colors.length]};"></span><span class="lb">${k}</span><b>${Math.round(p)}%</b><span style="color:var(--dim);font-size:11px;">(${counts[k]})</span></div>`;
     }).join("");
-    return `<div class="card"><h3>${title}</h3>
+    return `<div class="card"><h3>${title} <span class="more" onclick="showDetail('${id}')">더보기 ›</span></h3>
       <div class="dwrap">
         <div class="donut" style="background:conic-gradient(${segs.join(",")});"><div class="hole"></div></div>
         <div class="dlegend">${legend}</div>
-      </div>
-      ${foot?`<div class="dfoot">${foot}</div>`:""}</div>`;
+      </div></div>`;
   }
   const mktCnt = {};
   for (const x of items) mktCnt[x.e[1]] = (mktCnt[x.e[1]]||0)+1;
@@ -162,11 +218,31 @@ if (!list.length) {
   const riskCnt = {"안정":0,"주의":0,"고위험":0};
   for (const x of items) riskCnt[x.rk<40?"안정":x.rk<70?"주의":"고위험"]++;
   const maxMkt = Object.entries(mktCnt).sort((a,b)=>b[1]-a[1])[0];
+  // 세부내역 팝업 데이터
+  const DET = { mkt:{t:"시장 쏠림 세부 내역",g:{}}, tier:{t:"티어 구성 세부 내역",g:{}}, risk:{t:"리스크 구성 세부 내역",g:{}} };
+  for (const x of items) {
+    (DET.mkt.g[x.e[1]] = DET.mkt.g[x.e[1]] || []).push(x);
+    const t = ST.gradeOf(x.sc).g+"급";
+    (DET.tier.g[t] = DET.tier.g[t] || []).push(x);
+    const rl = x.rk<40?"안정":x.rk<70?"주의":"고위험";
+    (DET.risk.g[rl] = DET.risk.g[rl] || []).push(x);
+  }
+  window.showDetail = id => {
+    const d = DET[id];
+    document.getElementById("mtitle").textContent = d.t;
+    document.getElementById("mbody").innerHTML = Object.entries(d.g).map(([k,arr]) =>
+      `<div class="mgrp">${k} · ${arr.length}개 (${Math.round(arr.length/n*100)}%)</div>` +
+      arr.map(x => `<div class="mrow"><b>${ST.displayName(x.src,x.key)}</b>
+        <span class="num">점수 ${x.sc}</span><span class="num">위험도 ${x.rk}</span>
+        <span class="tierb tier-${ST.gradeOf(x.sc).g}" style="font-size:10px;">${ST.gradeOf(x.sc).g}</span></div>`).join("")
+    ).join("");
+    document.getElementById("dmodal").classList.remove("hidden");
+  };
   const donuts = `
   <div class="drow3">
-    ${donutCard("시장 쏠림", mktCnt, GREENS, "시장 분산이 잘 될수록 변동성이 낮아집니다.")}
-    ${donutCard("티어 구성", tierCnt, GREENS, `S·A티어 비중 ${Math.round(items.filter(x=>x.sc>=65).length/n*100)}%`)}
-    ${donutCard("리스크 구성", riskCnt, ["#1d9e75","#c9c94e","#d6564a"], `고위험 ${riskCnt["고위험"]}개 · 주의 ${riskCnt["주의"]}개 · 안정 ${riskCnt["안정"]}개`)}
+    ${donutCard("mkt", "시장 쏠림", mktCnt, GREENS)}
+    ${donutCard("tier", "티어 구성", tierCnt, GREENS)}
+    ${donutCard("risk", "리스크 구성", riskCnt, ["#1d9e75","#c9c94e","#d6564a"])}
   </div>`;
 
   // 사이드
@@ -202,12 +278,12 @@ if (!list.length) {
   if (lowVal) rebal.push(`고PER 종목 ${lowVal}개 밸류 점검`);
   if (downN) rebal.push(`하락 추세 ${downN}개 종목 점검`);
   if (!rebal.length) rebal.push("현재 구성 유지 무난");
-  const sideRebal = `<div class="card"><h3>리밸런싱 제안</h3><ul class="cmts">${rebal.map(r=>`<li title="${r}">${r}</li>`).join("")}</ul></div>`;
+  const sideRebal = `<div class="card" style="flex:1;"><h3>리밸런싱 제안</h3><ul class="cmts">${rebal.map(r=>`<li title="${r}">${r}</li>`).join("")}</ul></div>`;
 
   box.innerHTML = `
   <div class="layout">
     <div>${cards}${table}${donuts}</div>
-    <div style="display:flex;flex-direction:column;gap:14px;">${sideSurv}${sideWarn}${sideCrit}${sideRebal}</div>
+    <div style="display:flex;flex-direction:column;gap:14px;height:100%;">${sideSurv}${sideWarn}${sideCrit}${sideRebal}</div>
   </div>`;
 }
 </script>
