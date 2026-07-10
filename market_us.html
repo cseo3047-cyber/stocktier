@@ -89,7 +89,7 @@
     <div class="card"><h3>💰 거래대금 상위 <span class="more" style="cursor:default;">당일 기준</span></h3>
       <div class="dhead"><span style="width:20px;"></span><span style="flex:1;">종목명</span><span style="width:64px;text-align:right;">등락률</span><span style="width:90px;text-align:right;">거래대금</span></div>
       <div class="rowlist" id="flow"></div></div>
-    <div class="card"><h3>📅 주요 일정 <span class="more" style="cursor:default;">한국시간 기준</span></h3><div id="events"></div>
+    <div class="card"><h3>📅 주요 일정 <span class="more" onclick="openEvt()">더보기 ›</span></h3><div id="events"></div>
       <div id="newshead" class="hidden" style="font-size:13.5px;font-weight:800;margin:12px 0 4px;border-top:1px solid var(--border);padding-top:12px;">📰 주요 뉴스</div>
       <div id="newslist"></div></div>
   </div>
@@ -110,6 +110,18 @@
   </div>
 
   <div class="footer">Stocktier는 재미용 사이트입니다. 지표는 오락 목적의 가공 수치이며 투자 권유·조언이 아닙니다.<br>데이터 출처: 네이버 증권 공개 데이터</div>
+</div>
+
+<div id="evtmodal" style="position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;z-index:200;" onclick="if(event.target===this)closeEvt()">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;width:min(540px,92vw);max-height:80vh;overflow:auto;padding:20px 22px;">
+    <div style="display:flex;align-items:center;margin-bottom:12px;">
+      <b style="font-size:16px;">📅 2026년 전체 일정</b>
+      <span style="margin-left:10px;font-size:11px;color:var(--dim);">한국시간 기준</span>
+      <span onclick="closeEvt()" style="margin-left:auto;cursor:pointer;font-size:20px;color:var(--muted);line-height:1;">✕</span>
+    </div>
+    <div id="evtall"></div>
+    <div style="font-size:10.5px;color:var(--dim);margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">확정 발표된 일정만 표시됩니다 · 연초에 새해 일정으로 갱신</div>
+  </div>
 </div>
 
 <script src="data.js"></script>
@@ -357,25 +369,33 @@ drawChart();
       <span class="num" style="width:90px;text-align:right;font-weight:800;">${usAmt(c.v)}</span></div>`).join("");
 })();
 
-// ── 주요 일정 (D-day)
+// ── 주요 일정 (D-day, 5개 + 더보기 팝업)
+const evtTypeStyle = t => t==="금리" ? "background:#3d3313;color:#f0c948;" : t==="만기" ? "background:#3a1a22;color:#f0708a;" : "background:#13303d;color:#4cc3d7;";
+function evtRow(x, now){
+  const dd = Math.round((x.d - now)/864e5);
+  const past = dd < 0;
+  const dstr = past ? "지남" : dd===0 ? "D-DAY" : "D-"+dd;
+  const dcol = past ? "background:var(--panel2);color:var(--dim);border:1px solid var(--border);"
+    : dd<=1 ? "background:linear-gradient(135deg,#ef6a5a,#b23a32);color:#fff;"
+    : dd<=7 ? "background:#3d3313;color:#f0c948;"
+    : "background:var(--panel2);color:var(--muted);border:1px solid var(--border);";
+  return `<div style="display:flex;align-items:center;gap:9px;padding:8px 2px;border-bottom:1px solid #ffffff0d;font-size:12.5px;${past?"opacity:.45;":""}">
+    <span style="min-width:52px;text-align:center;border-radius:7px;padding:3px 6px;font-size:11px;font-weight:800;flex-shrink:0;${dcol}">${dstr}</span>
+    <span style="color:var(--dim);font-size:11px;min-width:38px;flex-shrink:0;" class="num">${String(x.d.getMonth()+1).padStart(2,"0")}/${String(x.d.getDate()).padStart(2,"0")}</span>
+    <span style="flex-shrink:0;">${x.flag}</span>
+    <span style="flex:1;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;">${x.title}</span>
+    <span style="border-radius:6px;padding:2px 8px;font-size:10px;font-weight:800;flex-shrink:0;${evtTypeStyle(x.type)}">${x.type}</span></div>`;
+}
 (function(){
   const now = new Date(); now.setHours(0,0,0,0);
-  const list = (ST.EVENTS || [])
-    .map(e => ({ d:new Date(e[0]+"T00:00:00"), flag:e[1], type:e[2], title:e[3] }))
-    .filter(x => x.d >= now).slice(0, 6);
-  const typeStyle = t => t==="금리" ? "background:#3d3313;color:#f0c948;" : t==="만기" ? "background:#3a1a22;color:#f0708a;" : "background:#13303d;color:#4cc3d7;";
-  document.getElementById("events").innerHTML = list.length ? list.map(x=>{
-    const dd = Math.round((x.d - now)/864e5);
-    const dstr = dd===0 ? "D-DAY" : "D-"+dd;
-    const dcol = dd<=1 ? "background:linear-gradient(135deg,#ef6a5a,#b23a32);color:#fff;" : dd<=7 ? "background:#3d3313;color:#f0c948;" : "background:var(--panel2);color:var(--muted);border:1px solid var(--border);";
-    return `<div style="display:flex;align-items:center;gap:9px;padding:8px 2px;border-bottom:1px solid #ffffff0d;font-size:12.5px;">
-      <span style="min-width:52px;text-align:center;border-radius:7px;padding:3px 6px;font-size:11px;font-weight:800;${dcol}">${dstr}</span>
-      <span style="color:var(--dim);font-size:11px;min-width:38px;" class="num">${String(x.d.getMonth()+1).padStart(2,"0")}/${String(x.d.getDate()).padStart(2,"0")}</span>
-      <span>${x.flag}</span>
-      <span style="flex:1;font-weight:700;">${x.title}</span>
-      <span style="border-radius:6px;padding:2px 8px;font-size:10px;font-weight:800;${typeStyle(x.type)}">${x.type}</span></div>`;
-  }).join("") : `<div style="font-size:12px;color:var(--dim);padding:10px 0;">예정된 일정이 없습니다. 연초에 새해 일정이 갱신됩니다.</div>`;
+  const all = (ST.EVENTS || []).map(e => ({ d:new Date(e[0]+"T00:00:00"), flag:e[1], type:e[2], title:e[3] }));
+  const list = all.filter(x => x.d >= now).slice(0, 5);
+  document.getElementById("events").innerHTML = list.length ? list.map(x=>evtRow(x, now)).join("")
+    : `<div style="font-size:12px;color:var(--dim);padding:10px 0;">예정된 일정이 없습니다. 연초에 새해 일정이 갱신됩니다.</div>`;
+  document.getElementById("evtall").innerHTML = all.map(x=>evtRow(x, now)).join("");
 })();
+window.openEvt = () => document.getElementById("evtmodal").style.display = "flex";
+window.closeEvt = () => document.getElementById("evtmodal").style.display = "none";
 
 // ── 주요 뉴스 (클릭 시 네이버 뉴스 원문)
 (function(){

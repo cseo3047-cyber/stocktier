@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stocktier — 투자 시뮬레이터</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap { max-width:1460px; }
+  .layout { display:grid; grid-template-columns:1fr 300px; gap:14px; align-items:start; }
+  @media (max-width:1080px){ .layout { grid-template-columns:1fr; } }
+  .cards4 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
+  @media (max-width:900px){ .cards4 { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .scard { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:14px 15px; display:flex; gap:11px; align-items:center; min-width:0; }
+  .scard .ic { width:38px; height:38px; border-radius:50%; background:#c9a83222; border:1px solid #c9a83244; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
+  .scard .lb { font-size:11px; color:var(--muted); font-weight:700; margin-bottom:3px; white-space:nowrap; }
+  .scard .vl { font-size:17px; font-weight:800; }
+  .scard .sub { font-size:10px; color:var(--dim); margin-top:2px; white-space:nowrap; }
+  .simrow { display:grid; grid-template-columns:1.15fr 1fr; gap:14px; }
+  @media (max-width:1000px){ .simrow { grid-template-columns:1fr; } }
+  .simtbl tr { cursor:pointer; }
+  .simtbl tr.sel td { background:#3d331322; }
+  /* 물타기 계산기 */
+  .calc { display:grid; grid-template-columns:1fr 150px; gap:10px; }
+  @media (max-width:600px){ .calc { grid-template-columns:1fr; } }
+  .cin { display:flex; align-items:center; gap:9px; margin-bottom:9px; }
+  .cin label { width:88px; font-size:12px; color:var(--muted); font-weight:700; flex-shrink:0; }
+  .cin input { flex:1; min-width:0; padding:9px 11px; font-size:13px; background:var(--panel2); border:1.5px solid var(--border); border-radius:9px; color:var(--text); outline:none; text-align:right; font-variant-numeric:tabular-nums; }
+  .cin input:focus { border-color:var(--gold-dim); }
+  .cin .unit { font-size:11px; color:var(--dim); width:22px; }
+  .cout { background:linear-gradient(135deg,#16302799,#1b3a2f99); border:1px solid #2e5c47; border-radius:11px; padding:11px 12px; margin-bottom:9px; }
+  .cout .lb { font-size:10.5px; color:#8fb3a0; font-weight:700; margin-bottom:3px; }
+  .cout .vl { font-size:16px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .cout .sub { font-size:10px; margin-top:2px; font-weight:700; }
+  /* 차트 */
+  .simchart svg { width:100%; height:230px; display:block; }
+  .simfoot { text-align:center; background:var(--panel2); border:1px solid var(--border); border-radius:9px; padding:9px; font-size:13px; font-weight:700; margin-top:8px; }
+  /* 사이드 */
+  .gauge { width:150px; height:80px; position:relative; overflow:hidden; margin:2px auto 6px; }
+  .gauge .arc { width:150px; height:150px; border-radius:50%; }
+  .gauge .hole { position:absolute; left:21px; top:21px; width:108px; height:108px; background:var(--panel); border-radius:50%; text-align:center; }
+  .gauge .hole b { font-size:25px; display:block; margin-top:20px; }
+  .gauge .hole small { font-size:12px; color:var(--dim); font-weight:500; }
+  .gsub { text-align:center; font-size:11px; color:var(--muted); font-weight:700; margin-bottom:8px; }
+  .cmts { font-size:12.5px; color:var(--muted); line-height:2.0; }
+  .cmts li { list-style:none; padding-left:16px; position:relative; }
+  .cmts li:before { content:"•"; position:absolute; left:2px; color:var(--gold); }
+  .recrow { display:flex; align-items:center; gap:9px; padding:9px 4px; border-bottom:1px solid var(--border); font-size:12.5px; cursor:pointer; font-weight:700; }
+  .recrow:last-child { border-bottom:none; }
+  .recrow:hover { color:var(--gold); }
+  .bullets2 { font-size:13px; color:var(--muted); line-height:2.3; }
+  .bullets2 li { list-style:none; padding-left:20px; position:relative; }
+  .bullets2 li:before { content:"✓"; position:absolute; left:0; color:var(--up); font-weight:800; }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<div class="wrap">
+  <span class="asof" id="asof"></span>
+  <div class="page-title">투자 시뮬레이터</div>
+  <div class="page-sub">과거 매수 시뮬레이션과 물타기 계산을 통해 투자 판단을 도와드립니다. (재미용)</div>
+
+  <div class="layout">
+    <div>
+      <div class="cards4" id="cards"></div>
+      <div class="simrow">
+        <div class="card"><h3>만약 그때 샀다면? <span class="more" style="cursor:default;">3개월 전 100만원 기준 · 행 클릭 시 선택</span></h3>
+          <table class="tbl simtbl"><thead><tr><th>순위</th><th>종목명</th><th>티어</th><th class="r">기준 시점</th><th class="r">수익률</th><th class="r">현재 평가금액</th></tr></thead>
+          <tbody id="simtop"></tbody></table></div>
+        <div class="card"><h3>물타기 계산기 <span class="more" style="cursor:default;" id="calcstock"></span></h3>
+          <div class="calc">
+            <div>
+              <div class="cin"><label>현재 보유 수량</label><input id="c_qty" type="number" value="100"><span class="unit">주</span></div>
+              <div class="cin"><label>기존 평균단가</label><input id="c_avg" type="number" value="0"><span class="unit">원</span></div>
+              <div class="cin"><label>현재 주가</label><input id="c_now" type="number" value="0"><span class="unit">원</span></div>
+              <div class="cin"><label>추가 매수 가격</label><input id="c_price" type="number" value="0"><span class="unit">원</span></div>
+              <div class="cin"><label>추가 매수 수량</label><input id="c_add" type="number" value="100"><span class="unit">주</span></div>
+              <div style="font-size:10.5px;color:var(--dim);line-height:1.7;margin-top:8px;">ⓘ 기존 평균단가보다 낮은 가격으로 추가 매수 시, 새 평균단가가 낮아져 손익분기 주가가 하락합니다.</div>
+            </div>
+            <div id="calcout"></div>
+          </div>
+        </div>
+      </div>
+      <div class="simrow" style="margin-top:14px;">
+        <div class="card simchart"><h3>주가 흐름 시뮬레이션 <span class="more" style="cursor:default;">최근 3년 형태 · <b id="chartnm"></b></span></h3>
+          <svg id="simchart" viewBox="0 0 640 230" preserveAspectRatio="none"></svg>
+          <div class="simfoot" id="simfoot"></div></div>
+        <div class="card"><h3>오늘의 한줄 판정</h3><ul class="bullets2" id="judge"></ul></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card"><h3>시뮬레이션 요약</h3><div id="sidesum"></div></div>
+      <div class="card"><h3>오늘의 자극 포인트</h3><ul class="cmts" id="points"></ul></div>
+      <div class="card"><h3>관련 비교 추천</h3><div id="recs"></div></div>
+    </div>
+  </div>
+
+  <div class="footer">Stocktier는 재미용 사이트입니다. 시뮬레이션은 과거 데이터 기반의 가정 계산이며 미래 수익을 보장하지 않습니다.</div>
+</div>
+
+<script src="data.js"></script>
+<script src="data_us.js"></script>
+<script src="common.js"></script>
+<script>
+ST.nav("simulator.html");
+document.getElementById("asof").textContent = "업데이트: " + ST.asofText();
+
+const A = ST.all().filter(x=>x.src==="kr" && x.e[16]!=null && x.e[8]>500);
+for (const x of A) { x.sc = ST.score(x.e,false); x.rk = ST.risk(x.e); }
+const clip = v => Math.max(0, Math.min(100, Math.round(v)));
+const won = v => Math.round(v).toLocaleString("ko-KR") + "원";
+const baseDate = (function(){ const d = new Date(); d.setDate(d.getDate()-91);
+  return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`; })();
+
+// 3개월 수익률 상위 (시가총액 500억 이상)
+const top = A.slice().sort((a,b)=>(b.e[16]||0)-(a.e[16]||0)).slice(0,5);
+let SEL = top[0] || A[0];
+
+// 상단 카드
+(function(){
+  const sUp = A.filter(x=>x.sc>=80 && x.e[3]>0).length;
+  const avgR = top.length ? top.reduce((a,x)=>a+(x.e[16]||0),0)/top.length : 0;
+  const dipN = A.filter(x=>(x.e[15]||0)<=-10).length;
+  document.getElementById("cards").innerHTML = `
+    <div class="scard"><span class="ic">📈</span><div><div class="lb">오늘 S티어 상승 종목</div><div class="vl num">${sUp}개</div><div class="sub">S티어 & 당일 상승</div></div></div>
+    <div class="scard"><span class="ic">💰</span><div><div class="lb">시뮬레이션 평균 수익률</div><div class="vl num up">+${avgR.toFixed(1)}%</div><div class="sub">TOP 5 · 3개월 기준</div></div></div>
+    <div class="scard"><span class="ic" style="background:#f0645a22;border-color:#f0645a44;">⚠️</span><div><div class="lb">물타기 대상 후보</div><div class="vl num">${ST.num(dipN)}개</div><div class="sub">1개월 -10% 이하</div></div></div>
+    <div class="scard"><span class="ic">🔄</span><div><div class="lb">손익분기 단축 효과</div><div class="vl num" id="cardBE">-</div><div class="sub">물타기 계산기 연동</div></div></div>`;
+})();
+
+// 만약 그때 샀다면 (3개월 전 100만원)
+(function(){
+  document.getElementById("simtop").innerHTML = top.map((x,i)=>{
+    const g = ST.gradeOf(x.sc);
+    const val = 1000000*(1+(x.e[16]||0)/100);
+    return `<tr data-k="${encodeURIComponent(x.key)}" class="${x===SEL?"sel":""}">
+      <td class="num" style="color:var(--muted);">${i+1}</td>
+      <td><b>${x.key}</b></td>
+      <td><span class="tierb tier-${g.g}">${g.g}</span></td>
+      <td class="r num" style="color:var(--muted);">${baseDate} (약 3개월 전)</td>
+      <td class="r num up" style="font-weight:800;">+${(x.e[16]||0).toFixed(1)}%</td>
+      <td class="r num" style="font-weight:800;">${won(val)}</td></tr>`;
+  }).join("");
+  document.querySelectorAll("#simtop tr[data-k]").forEach(tr => tr.addEventListener("click", () => {
+    const k = decodeURIComponent(tr.dataset.k);
+    SEL = A.find(x=>x.key===k) || SEL;
+    document.querySelectorAll("#simtop tr").forEach(t=>t.classList.toggle("sel", t===tr));
+    drawSel(); fillCalc(); runCalc(); side();
+  }));
+})();
+
+// 차트
+function drawSel(){
+  const e = SEL.e;
+  document.getElementById("chartnm").textContent = SEL.key;
+  const pts = (e.length>19 && e[19] && e[19].length>3) ? e[19] : [0,20,40,60,80,99];
+  const W=640,H=230,pad=14,padB=34;
+  const mn=Math.min(...pts),mx=Math.max(...pts),rg=(mx-mn)||1;
+  const X=i=>pad+i/(pts.length-1)*(W-pad*2), Y=v=>12+(1-(v-mn)/rg)*(H-12-padB);
+  const xy = pts.map((p,i)=>`${X(i).toFixed(1)},${Y(p).toFixed(1)}`);
+  // 3개월 전 지점 ≈ 뒤에서 3번째 포인트 (36pt/3년 → 1pt≈1개월)
+  const bi = Math.max(0, pts.length-4);
+  const col = "#4cd7a5";
+  document.getElementById("simchart").innerHTML = `
+    <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${col}" stop-opacity="0.3"/><stop offset="100%" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+    <polygon points="${pad},${H-padB} ${xy.join(" ")} ${W-pad},${H-padB}" fill="url(#sg)"/>
+    <polyline points="${xy.join(" ")}" fill="none" stroke="${col}" stroke-width="2"/>
+    <line x1="${X(bi)}" y1="12" x2="${X(bi)}" y2="${H-padB}" stroke="#f0c948" stroke-width="1.2" stroke-dasharray="5,4"/>
+    <circle cx="${X(bi)}" cy="${Y(pts[bi])}" r="4.5" fill="#f0c948" stroke="#10231c" stroke-width="1.5"/>
+    <g><rect x="${Math.max(4,X(bi)-52)}" y="${H-30}" width="104" height="20" rx="6" fill="#3d3313"/>
+      <text x="${Math.max(56,X(bi))}" y="${H-16}" text-anchor="middle" fill="#f0c948" font-size="11" font-weight="800">가정 매수 시점</text></g>
+    <g><rect x="${W-86}" y="${(Y(pts[pts.length-1])-24).toFixed(1)}" width="52" height="18" rx="5" fill="#f0c948"/>
+      <text x="${W-60}" y="${(Y(pts[pts.length-1])-11).toFixed(1)}" text-anchor="middle" fill="#10231c" font-size="10.5" font-weight="800">현재</text></g>`;
+  const r = e[16]||0;
+  const val = 1000000*(1+r/100);
+  document.getElementById("simfoot").innerHTML =
+    `${baseDate}에 100만원 매수했다면 현재 <b style="color:${r>=0?"var(--up)":"var(--down)"};">${won(val)} (${r>=0?"+":""}${r.toFixed(1)}%)</b>`;
+  // 판정
+  const j = [];
+  j.push(`과거 시뮬레이션 결과, 3개월 전 매수 시 <b>${r>=0?"+":""}${r.toFixed(1)}%</b>의 ${r>=0?"수익":"손실"} 구간이었습니다.`);
+  if ((e[14]||0) > 3) j.push("최근 1주 상승 탄력이 이어지고 있습니다.");
+  else if ((e[14]||0) < -3) j.push("최근 1주는 조정 구간입니다.");
+  if (SEL.rk >= 70) j.push("변동성이 큰 종목으로 분할 접근이 유효합니다.");
+  else j.push("변동성은 관리 가능한 수준입니다.");
+  j.push("과거 수익률은 미래 수익을 보장하지 않습니다.");
+  document.getElementById("judge").innerHTML = j.map(t=>`<li>${t}</li>`).join("");
+}
+
+// 물타기 계산기
+function fillCalc(){
+  const now = SEL.e[2];
+  document.getElementById("calcstock").textContent = SEL.key;
+  document.getElementById("c_now").value = now;
+  document.getElementById("c_price").value = now;
+  if (+document.getElementById("c_avg").value <= 0)
+    document.getElementById("c_avg").value = Math.round(now*1.15);
+}
+function runCalc(){
+  const qty = +document.getElementById("c_qty").value || 0;
+  const avg = +document.getElementById("c_avg").value || 0;
+  const now = +document.getElementById("c_now").value || 0;
+  const price = +document.getElementById("c_price").value || 0;
+  const add = +document.getElementById("c_add").value || 0;
+  const out = document.getElementById("calcout");
+  if (qty<=0 || avg<=0 || now<=0 || price<=0 || add<0) { out.innerHTML = `<div style="font-size:12px;color:var(--dim);">값을 입력해주세요</div>`; return; }
+  const newAvg = (qty*avg + add*price) / (qty+add);
+  const dAvg = (newAvg-avg)/avg*100;
+  const needOld = (avg-now)/now*100;
+  const needNew = (newAvg-now)/now*100;
+  const total = qty*avg + add*price;
+  const evalNow = (qty+add)*now;
+  const pnl = evalNow - total;
+  const beCut = needNew - needOld;
+  document.getElementById("cardBE").textContent = (beCut<=0?"":"+")+beCut.toFixed(1)+"%p";
+  document.getElementById("cardBE").className = "vl num " + (beCut<0?"up":"down");
+  const box = (lb,vl,sub,subCol) => `<div class="cout"><div class="lb">${lb}</div><div class="vl">${vl}</div>${sub?`<div class="sub" style="color:${subCol||"#8fb3a0"};">${sub}</div>`:""}</div>`;
+  out.innerHTML =
+    box("새 평균단가", won(newAvg), `${dAvg>=0?"▲":"▼"}${Math.abs(dAvg).toFixed(1)}%`, dAvg<0?"#4cd7a5":"#f0708a") +
+    box("필요 반등률 (손익분기)", (needNew>=0?"+":"")+needNew.toFixed(1)+"%", `기존 ${(needOld>=0?"+":"")+needOld.toFixed(1)}% → ${Math.abs(beCut).toFixed(1)}%p ${beCut<0?"단축":"증가"}`, beCut<0?"#4cd7a5":"#f0708a") +
+    box("총 투자금액", won(total)) +
+    box("현재 평가손익", (pnl>=0?"+":"")+won(pnl), ((pnl/total*100)>=0?"+":"")+(pnl/total*100).toFixed(1)+"%", pnl>=0?"#4cd7a5":"#f0708a");
+}
+["c_qty","c_avg","c_now","c_price","c_add"].forEach(id =>
+  document.getElementById(id).addEventListener("input", runCalc));
+
+// 사이드
+function side(){
+  const m = {
+    수급: SEL.e.length>18 && SEL.e[17]!=null ? ((SEL.e[17]>0?1:0)+(SEL.e[18]>0?1:0))*27+40 : 50,
+    모멘텀: 50+(SEL.e[14]||0)*4,
+    밸류: SEL.e[4]>0?100-SEL.e[4]*2:30,
+    리스크: 100-SEL.rk,
+    기대수익: 50+(SEL.e[16]||0)*0.4,
+  };
+  const gcol = SEL.sc>=65?"#4cd7a5":SEL.sc>=45?"#f0c948":"#f0645a";
+  document.getElementById("sidesum").innerHTML = `
+    <div class="gauge"><div class="arc" style="background:conic-gradient(from 270deg, ${gcol} 0% ${SEL.sc/2}%, #ffffff14 ${SEL.sc/2}% 50%, transparent 50%);"></div>
+      <div class="hole"><b>${SEL.sc}<small>/100</small></b></div></div>
+    <div class="gsub">종합점수 · ${SEL.key}</div>
+    <div class="sbars" style="font-size:11.5px;">
+      ${Object.entries(m).map(([lb,v])=>`<div style="display:flex;align-items:center;gap:8px;padding:3px 0;color:var(--muted);">
+        <span style="width:60px;">${lb}</span>
+        <div style="flex:1;height:6px;background:var(--panel2);border:1px solid var(--border);border-radius:4px;overflow:hidden;"><i style="display:block;height:100%;width:${clip(v)}%;background:linear-gradient(90deg,#0f7a56,#4cd7a5);border-radius:4px;"></i></div>
+        <b style="width:26px;text-align:right;color:var(--text);">${clip(v)}</b></div>`).join("")}
+    </div>`;
+  const pts = [];
+  if (top[0]) pts.push(`${top[0].key}, 3개월 수익률 +${(top[0].e[16]||0).toFixed(1)}% 1위`);
+  const upT = A.filter(x=>x.sc>=80 && x.e[3]>0).length;
+  if (upT) pts.push(`S티어 상승 종목 ${upT}개 — 티어 랭킹 확인`);
+  if ((SEL.e[15]||0)<0) pts.push(`${SEL.key}, 1개월 ${ST.pct(SEL.e[15])} — 물타기 시뮬 참고`);
+  pts.push("실적·수급 모멘텀 지속 종목 중심 전략 유지");
+  document.getElementById("points").innerHTML = pts.map(p=>`<li>${p}</li>`).join("");
+  const others = A.filter(x=>x!==SEL).sort((a,b)=>Math.abs(a.e[8]-SEL.e[8])-Math.abs(b.e[8]-SEL.e[8])).slice(0,4);
+  document.getElementById("recs").innerHTML = others.map((o,i)=>`
+    <div class="recrow" onclick="location.href='compare.html?a=kr:${encodeURIComponent(SEL.key)}&b=kr:${encodeURIComponent(o.key)}'">
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${SEL.key} vs ${o.key}</span><span style="color:var(--dim);">›</span></div>`).join("");
+}
+
+drawSel(); fillCalc(); runCalc(); side();
+</script>
+</body>
+</html>
