@@ -19,8 +19,8 @@ S.headers.update(HEADERS)
 
 EXCHANGES = ["NASDAQ", "NYSE", "AMEX"]
 TODAY = datetime.date.today()
-START = (TODAY - datetime.timedelta(days=130)).strftime("%Y%m%d") + "000000"
-IDX_START = (TODAY - datetime.timedelta(days=1850)).strftime("%Y%m%d") + "000000"
+START = (TODAY - datetime.timedelta(days=1850)).strftime("%Y%m%d") + "000000"   # 5년치
+IDX_START = START
 END = TODAY.strftime("%Y%m%d") + "235959"
 
 
@@ -124,11 +124,21 @@ def fetch_one(st):
     vols = [int(r.get("accumulatedTradingVolume") or 0) for r in chart if r.get("closePrice")]
     if len(closes) < 6 or closes[-1] <= 0:
         return None
+    rc = closes[-65:]          # 최근 3개월 (지표 계산용)
+    rv = vols[-65:]
 
     days = []
     for i in range(1, 6):
         prev, cur = closes[-i - 1], closes[-i]
         days.append(round((cur - prev) / prev * 100, 2) if prev else 0.0)
+
+    # 장기 차트: 5년치를 100개 점으로 압축 (현재가=1000 기준 상대값)
+    spk = None
+    if len(closes) >= 10:
+        step = max(1, len(closes) // 100)
+        pts = closes[::step][-100:]
+        last = pts[-1] or 1
+        spk = [int(round(p / last * 1000)) for p in pts]
 
     per = pbr = 0.0
     roe = 0.0
@@ -146,17 +156,17 @@ def fetch_one(st):
             roe = round(eps / bps * 100, 1)
 
     def ret(n):
-        if len(closes) >= n and closes[-n] > 0:
-            return round((closes[-1] - closes[-n]) / closes[-n] * 100, 1)
+        if len(rc) >= n and rc[-n] > 0:
+            return round((rc[-1] - rc[-n]) / rc[-n] * 100, 1)
         return None
 
     last_date = str(chart[-1].get("localDate") or "")
     entry = [
         st["sym"], st["ex"], round(closes[-1], 2), days[0], per, pbr,
         round(div, 1), roe, st["cap"],
-        int(sum(vols) / len(vols)), vols[-2], vols[-1],
-        days, None, ret(6), ret(21), ret(len(closes)),
-        st["en"],
+        int(sum(rv) / len(rv)), vols[-2], vols[-1],
+        days, None, ret(6), ret(21), ret(len(rc)),
+        st["en"], spk,
     ]
     return st, entry, last_date
 
