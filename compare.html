@@ -456,6 +456,7 @@ function render() {
       ${specRow("거래대금", amtStrOf(ea,usA), amtStrOf(eb,usB))}
       ${specRow("종합점수", ma.sc, mb.sc)}
       ${specRow("위험도", ma.rk, mb.rk)}
+      ${specRow("티어", tierBadge(ga), tierBadge(gb))}
     </table>
   </div>`;
   box.innerHTML = `

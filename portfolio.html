@@ -172,12 +172,13 @@ if (!list.length) {
     const w1 = x.e[14];
     const chg = w1==null ? "-" : `<span class="${ST.cls(w1)}">${w1>0?"↗":w1<0?"↘":"→"} ${ST.pct(w1)}</span>`;
     const nm = ST.displayName(x.src,x.key);
-    const av = `<span class="avat" style="background:${AVCOL[hashOf(x.key)%AVCOL.length]};">${nm.charAt(0).toUpperCase()}</span>`;
+    const rcode = x.us ? (x.key + (x.e[1]==="NASDAQ"?".O":x.e[1]==="NYSE"?".N":".A")) : x.e[0];
+    const av = `<img src="https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock${rcode}.svg" style="width:24px;height:24px;border-radius:50%;flex-shrink:0;background:#fff;" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex';"><span class="avat" style="display:none;margin-right:0;background:${AVCOL[hashOf(x.key)%AVCOL.length]};">${nm.charAt(0).toUpperCase()}</span>`;
     const ed = earnDate(x);
     const eds = ed ? `${String(ed.getMonth()+1).padStart(2,"0")}/${String(ed.getDate()).padStart(2,"0")} <span style="color:var(--dim);">예상</span>${dday(ed)<=7?` <span style="color:#f0c948;font-weight:800;">D-${dday(ed)}</span>`:""}` : "-";
     return `<tr>
       <td class="num" style="color:var(--muted);">${i+1}</td>
-      <td class="nm">${av}<a class="stock" href="${ST.stockUrl(x.src,x.key)}">${nm} <span style="color:var(--dim);font-weight:500;">(${x.e[0]})</span></a></td>
+      <td class="nm"><div style="display:flex;align-items:center;gap:8px;min-width:0;">${av}<a class="stock" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" href="${ST.stockUrl(x.src,x.key)}">${nm} <span style="color:var(--dim);font-weight:500;">(${x.e[0]})</span></a></div></td>
       <td style="color:var(--muted);font-size:11.5px;">${x.e[1]}</td>
       <td class="num">${weight.toFixed(1)}%</td>
       <td><span class="tierb tier-${gg.g}">${gg.g}</span></td>
@@ -263,7 +264,7 @@ if (!list.length) {
   const worst = items[items.length-1];
   if (worst && worst.sc < 40) warns.push(`🕳 최저 점수: ${ST.displayName(worst.src,worst.key)} (${worst.sc}점)`);
   if (!warns.length) warns.push("✅ 특이 경고 없음 — 안정적인 구성입니다");
-  const sideWarn = `<div class="card"><h3>포트폴리오 경고</h3>${warns.map(w=>`<div class="warnrow">${w}</div>`).join("")}</div>`;
+  const sideWarn = `<div class="card" style="min-height:228px;"><h3>포트폴리오 경고</h3>${warns.map(w=>`<div class="warnrow">${w}</div>`).join("")}</div>`;
   const sideCrit = `
   <div class="card"><h3>평가 기준</h3>
     <div class="sbars">
@@ -278,7 +279,7 @@ if (!list.length) {
   if (lowVal) rebal.push(`고PER 종목 ${lowVal}개 밸류 점검`);
   if (downN) rebal.push(`하락 추세 ${downN}개 종목 점검`);
   if (!rebal.length) rebal.push("현재 구성 유지 무난");
-  const sideRebal = `<div class="card" style="flex:1;"><h3>리밸런싱 제안</h3><ul class="cmts">${rebal.map(r=>`<li title="${r}">${r}</li>`).join("")}</ul></div>`;
+  const sideRebal = `<div class="card" style="flex:1;min-height:178px;"><h3>리밸런싱 제안</h3><ul class="cmts">${rebal.map(r=>`<li title="${r}">${r}</li>`).join("")}</ul></div>`;
 
   box.innerHTML = `
   <div class="layout">
