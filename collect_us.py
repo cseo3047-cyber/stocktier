@@ -175,6 +175,39 @@ def main():
             market[key] = d
     print("미국 지수:", list(market.keys()), flush=True)
 
+    # 미국 뉴스 (후보 주소 순차 시도, 실패 시 생략)
+    def news_us():
+        import html as _h
+        for url in ("https://api.stock.naver.com/news/worldStock/mainnews?page=1&pageSize=12",
+                    "https://m.stock.naver.com/api/news/worldMainnews?page=1&pageSize=12"):
+            j = get_json(url)
+            if not j:
+                continue
+            groups = j if isinstance(j, list) else ([j] if isinstance(j, dict) else [])
+            out = []
+            try:
+                for grp in groups:
+                    for it in (grp.get("items", []) if isinstance(grp, dict) else []):
+                        t = _h.unescape(str(it.get("titleFull") or it.get("title") or "")).strip()
+                        u = str(it.get("mobileNewsUrl") or it.get("linkUrl") or "")
+                        dt = str(it.get("datetime") or "")
+                        tm = f"{dt[4:6]}/{dt[6:8]} {dt[8:10]}:{dt[10:12]}" if len(dt) >= 12 else ""
+                        if t and u:
+                            out.append([t, str(it.get("officeName") or ""), tm, u])
+                        if len(out) >= 8:
+                            break
+                    if len(out) >= 8:
+                        break
+            except Exception as e:
+                print("[진단] 미국 뉴스 파싱 실패:", str(e)[:120], flush=True)
+            if out:
+                print("미국 뉴스:", len(out), "건", flush=True)
+                return out
+        print("[진단] 미국 뉴스 수집 실패 (주소 미확인)", flush=True)
+        return []
+
+    market["news"] = news_us()
+
     out, alias, ind = {}, {}, {}
     base_date = ""
     done = 0

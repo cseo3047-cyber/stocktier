@@ -95,7 +95,9 @@
     <div class="card"><h3>💰 오늘의 자금 흐름 <span class="more" style="cursor:default;">외인+기관 순매수 상위</span></h3>
       <div class="dhead"><span style="width:20px;"></span><span style="flex:1;">종목명</span><span style="width:64px;text-align:right;">등락률</span><span style="width:90px;text-align:right;">순매수</span></div>
       <div class="rowlist" id="flow"></div></div>
-    <div class="card"><h3>📋 오늘의 시장 한줄 요약</h3><ul class="bullets" id="checkpts"></ul></div>
+    <div class="card"><h3>📅 주요 일정 <span class="more" style="cursor:default;">한국시간 기준</span></h3><div id="events"></div>
+      <div id="newshead" class="hidden" style="font-size:13.5px;font-weight:800;margin:12px 0 4px;border-top:1px solid var(--border);padding-top:12px;">📰 주요 뉴스</div>
+      <div id="newslist"></div></div>
   </div>
 
   <div class="row4">
@@ -380,16 +382,35 @@ drawChart();
     : `<div style="font-size:12px;color:var(--dim);padding:10px 0;">수급 데이터 수집 대기 중</div>`;
 })();
 
-// ── 한줄 요약 (데이터 기반 자동 생성)
+// ── 주요 일정 (D-day)
 (function(){
-  const b = [];
-  if (MK && MK.kospi) b.push(`코스피 ${fmt2(MK.kospi.price)} (${ST.pct2(MK.kospi.ratio)})${MK.kosdaq?`, 코스닥 ${ST.pct2(MK.kosdaq.ratio)}`:""} 마감`);
-  b.push(`전체 ${ST.num(A.length)}종목 중 상승 ${ST.num(upN)} · 하락 ${ST.num(dnN)}`);
-  if (MK && MK.upjong && MK.upjong.length) b.push(`강세 업종: ${MK.upjong.slice(0,3).map(u=>u[0]).join(", ")}`);
-  if (MK && MK.theme && MK.theme.length) b.push(`주도 테마: ${MK.theme[0][0]} (${ST.pct2(MK.theme[0][1])})`);
-  const hotN = A.filter(x=>x.rk>=70).length;
-  b.push(`과열·위험 신호 종목 ${ST.num(hotN)}개 — 리스크 워치 확인`);
-  document.getElementById("checkpts").innerHTML = b.map(t=>`<li>${t}</li>`).join("");
+  const now = new Date(); now.setHours(0,0,0,0);
+  const list = (ST.EVENTS || [])
+    .map(e => ({ d:new Date(e[0]+"T00:00:00"), flag:e[1], type:e[2], title:e[3] }))
+    .filter(x => x.d >= now).slice(0, 6);
+  const typeStyle = t => t==="금리" ? "background:#3d3313;color:#f0c948;" : t==="만기" ? "background:#3a1a22;color:#f0708a;" : "background:#13303d;color:#4cc3d7;";
+  document.getElementById("events").innerHTML = list.length ? list.map(x=>{
+    const dd = Math.round((x.d - now)/864e5);
+    const dstr = dd===0 ? "D-DAY" : "D-"+dd;
+    const dcol = dd<=1 ? "background:linear-gradient(135deg,#ef6a5a,#b23a32);color:#fff;" : dd<=7 ? "background:#3d3313;color:#f0c948;" : "background:var(--panel2);color:var(--muted);border:1px solid var(--border);";
+    return `<div style="display:flex;align-items:center;gap:9px;padding:8px 2px;border-bottom:1px solid #ffffff0d;font-size:12.5px;">
+      <span style="min-width:52px;text-align:center;border-radius:7px;padding:3px 6px;font-size:11px;font-weight:800;${dcol}">${dstr}</span>
+      <span style="color:var(--dim);font-size:11px;min-width:38px;" class="num">${String(x.d.getMonth()+1).padStart(2,"0")}/${String(x.d.getDate()).padStart(2,"0")}</span>
+      <span>${x.flag}</span>
+      <span style="flex:1;font-weight:700;">${x.title}</span>
+      <span style="border-radius:6px;padding:2px 8px;font-size:10px;font-weight:800;${typeStyle(x.type)}">${x.type}</span></div>`;
+  }).join("") : `<div style="font-size:12px;color:var(--dim);padding:10px 0;">예정된 일정이 없습니다. 연초에 새해 일정이 갱신됩니다.</div>`;
+})();
+
+// ── 주요 뉴스 (클릭 시 네이버 뉴스 원문)
+(function(){
+  const list = (MK && MK.news) || [];
+  if (!list.length) return;
+  document.getElementById("newshead").classList.remove("hidden");
+  document.getElementById("newslist").innerHTML = list.slice(0,4).map(n=>`
+    <a href="${n[3]}" target="_blank" rel="noopener" style="display:block;padding:7px 0;border-bottom:1px solid #ffffff0d;font-size:12.5px;color:var(--text);font-weight:600;line-height:1.4;">
+      <span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${n[0]}</span>
+      <span style="font-size:10.5px;color:var(--dim);font-weight:500;">${n[1]}${n[2]?" · "+n[2]:""}</span></a>`).join("");
 })();
 
 // ── 상승/하락 업종 TOP 5, 테마

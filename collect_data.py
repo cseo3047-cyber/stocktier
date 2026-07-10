@@ -224,8 +224,31 @@ def market_extra():
                 print("[진단] upjong 스크래핑 실패:", str(e)[:150], flush=True)
         return []
 
+    def news_kr():
+        import html as _h
+        j = get_json("https://m.stock.naver.com/api/news/mainnews?page=1&pageSize=12")
+        out = []
+        try:
+            for grp in (j or []):
+                for it in grp.get("items", []):
+                    t = _h.unescape(str(it.get("titleFull") or it.get("title") or "")).strip()
+                    u = str(it.get("mobileNewsUrl") or "")
+                    dt = str(it.get("datetime") or "")
+                    tm = f"{dt[4:6]}/{dt[6:8]} {dt[8:10]}:{dt[10:12]}" if len(dt) >= 12 else ""
+                    if t and u:
+                        out.append([t, str(it.get("officeName") or ""), tm, u])
+                    if len(out) >= 8:
+                        break
+                if len(out) >= 8:
+                    break
+        except Exception as e:
+            print("[진단] 뉴스 파싱 실패:", str(e)[:120], flush=True)
+        print("뉴스:", len(out), "건", flush=True)
+        return out
+
     mk["upjong"] = groups("upjong", 100) or upjong_scrape()
     mk["theme"] = groups("theme", 30)
+    mk["news"] = news_kr()
     print("지수:", [k for k in mk if k not in ("upjong", "theme")],
           "/ 업종", len(mk.get("upjong", [])), "/ 테마", len(mk.get("theme", [])), flush=True)
     return mk

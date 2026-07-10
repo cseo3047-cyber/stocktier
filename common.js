@@ -194,7 +194,23 @@ window.ST = (function () {
 
   const qp = k => new URLSearchParams(location.search).get(k);
 
-  return { KR, US, ALIAS, isReal, GRADES, score, risk, gradeOf, pct, pct2, num, cls, capStr, priceStr,
+  // 2026년 주요 일정 (확정 일정만, 연 1회 갱신)
+  // [날짜, 지역, 구분, 제목]
+  const EVENTS = [
+    ["2026-07-14","🇺🇸","경제","미국 6월 CPI 발표"],
+    ["2026-07-16","🇰🇷","금리","한국은행 금통위 기준금리 결정"],
+    ["2026-07-29","🇺🇸","금리","FOMC 결과 발표 (한국시간 30일 새벽)"],
+    ["2026-08-27","🇰🇷","금리","한국은행 금통위 기준금리 결정"],
+    ["2026-09-10","🇰🇷","만기","선물·옵션 동시만기일"],
+    ["2026-09-16","🇺🇸","금리","FOMC 결과 발표 · 점도표 (한국시간 17일 새벽)"],
+    ["2026-10-22","🇰🇷","금리","한국은행 금통위 기준금리 결정"],
+    ["2026-10-28","🇺🇸","금리","FOMC 결과 발표 (한국시간 29일 새벽)"],
+    ["2026-11-26","🇰🇷","금리","한국은행 금통위 기준금리 결정"],
+    ["2026-12-09","🇺🇸","금리","FOMC 결과 발표 · 점도표 (한국시간 10일 새벽)"],
+    ["2026-12-10","🇰🇷","만기","선물·옵션 동시만기일"],
+  ];
+
+  return { KR, US, ALIAS, isReal, GRADES, EVENTS, score, risk, gradeOf, pct, pct2, num, cls, capStr, priceStr,
            displayName, get, all, stockUrl, findStock, suggestions,
            watchGet, watchSet, watchHas, watchToggle, nav, asofText, sampleNotice, spark, qp };
 })();
