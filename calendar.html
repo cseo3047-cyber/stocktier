@@ -59,6 +59,7 @@
   .gbar .m { flex:1; height:7px; background:var(--panel2); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
   .gbar .m i { display:block; height:100%; background:linear-gradient(90deg,#0f7a56,#4cd7a5); border-radius:4px; }
   .gbar b { width:34px; text-align:right; color:var(--text); }
+  .mag { position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:15px; font-weight:700; pointer-events:none; }
 </style>
 </head>
 <body>
@@ -71,12 +72,11 @@
   <div class="layout">
     <div>
       <div class="cards4" id="cards"></div>
-      <div class="card"><h3>실적 캘린더</h3>
-        <div class="fbar" style="margin-bottom:8px;">
-          <input id="calq" placeholder="종목명 또는 코드 검색 (예: 삼성전자, AAPL)" autocomplete="off"
-            style="flex:1;max-width:320px;padding:8px 12px;font-size:12.5px;background:var(--panel2);border:1.5px solid var(--border);border-radius:9px;color:var(--text);outline:none;">
-          <span id="calqinfo" style="font-size:11px;color:var(--dim);"></span>
-        </div>
+      <div class="card"><h3>실적 캘린더
+        <span style="margin-left:auto;position:relative;flex-shrink:0;">
+          <input id="calq" placeholder="종목명 또는 코드 검색" autocomplete="off"
+            style="width:250px;padding:8px 32px 8px 12px;font-size:12px;background:var(--panel2);border:1.5px solid var(--border);border-radius:9px;color:var(--text);outline:none;font-weight:500;">
+          <span class="mag">⌕</span></span></h3>
         <div class="fbar" id="catbar"></div>
         <table class="stbl"><thead><tr><th>순위</th><th>발표일</th><th style="text-align:left;">종목명</th><th>코드</th><th>시장</th><th>구분</th><th>시가총액</th><th>티어</th><th>중요도</th><th>최근 변화</th></tr></thead>
         <tbody id="tbody"></tbody></table>
@@ -190,10 +190,7 @@ function pool(){
   if (SORT==="cap") p = p.slice().sort((a,b)=>b.e[8]*(b.us?13.5:1)-a.e[8]*(a.us?13.5:1));
   return p;
 }
-document.getElementById("calq").addEventListener("input", e => {
-  Q = e.target.value.trim(); SHOW = 15; drawTbl();
-  document.getElementById("calqinfo").textContent = Q ? "검색 중에는 기간·시장 필터 없이 전체(45일 이내)에서 찾습니다" : "";
-});
+document.getElementById("calq").addEventListener("input", e => { Q = e.target.value.trim(); SHOW = 15; drawTbl(); });
 function drawBar(){
   document.getElementById("catbar").innerHTML =
     PERS.map(([k,t])=>`<span class="fchip ${PER===k?"on":""}" onclick="setPer('${k}')">${t}</span>`).join("") +
