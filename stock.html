@@ -133,14 +133,23 @@ if (!s) {
   if (spk) { const w = spk.slice(-20).concat([1000]);
     hi52 = Math.max(...w)*price/1000; lo52 = Math.min(...w)*price/1000; }
 
-  // 실적 일정 (수집 데이터가 있을 때만)
+  // 실적 일정: 수집된 공시 데이터 우선, 국내는 없으면 분기 공시 기한 기반 예상치(예상 표기)
   const EARN = us ? (window.STOCK_MARKET_US && window.STOCK_MARKET_US.earn) : (window.STOCK_MARKET && window.STOCK_MARKET.earn);
   const today0 = new Date(); today0.setHours(0,0,0,0);
-  let earnD = null;
+  let earnD = null, earnEst = false;
   { const v = EARN && EARN[us ? key : code];
     if (v) { const t = String(v);
       const d = t.length>=8 ? new Date(+t.slice(0,4), +t.slice(4,6)-1, +t.slice(6,8)) : new Date(today0.getFullYear(), +t.slice(0,2)-1, +t.slice(2,4));
-      if (d >= today0) earnD = d; } }
+      if (d >= today0) earnD = d; }
+    if (!earnD && !us) {
+      let h = 7; for (const c of String(code)) h = (h*31 + c.charCodeAt(0)) >>> 0;
+      const dl = [[3,31],[5,15],[8,14],[11,16]];
+      for (let k2=0; k2<9 && !earnD; k2++){
+        const d = new Date(today0.getFullYear()+Math.floor(k2/4), dl[k2%4][0]-1, dl[k2%4][1]);
+        d.setDate(d.getDate()-(h%16));
+        if (d >= today0) { earnD = d; earnEst = true; }
+      }
+    } }
   const dd = d => Math.round((d-today0)/864e5);
   const fmtMD = d => `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`;
 
@@ -205,7 +214,7 @@ if (!s) {
     <div class="scard">
       <div class="hd"><span class="hic">${calIcon}</span>실적 임박</div>
       ${earnD ? `<div style="font-size:26px;font-weight:800;color:${dd(earnD)<=3?"#f0c948":"var(--text)"};">D-${dd(earnD)}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:6px;">${earnD.getFullYear()}.${fmtMD(earnD).replace("/",".")} 실적 발표</div>`
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;">${earnD.getFullYear()}.${fmtMD(earnD).replace("/",".")} 실적 발표${earnEst?" (예상)":""}</div>`
       : `<div style="font-size:26px;font-weight:800;color:var(--dim);">-</div>
         <div style="font-size:11px;color:var(--dim);margin-top:6px;">공시 데이터 수집 대기</div>`}
     </div>
@@ -343,7 +352,7 @@ if (!s) {
 
   // 하단: 실적/이벤트 체크
   const evs = [];
-  if (earnD) evs.push([earnD, "실적 발표 (예정)", true]);
+  if (earnD) evs.push([earnD, earnEst ? "실적 발표 (예상)" : "실적 발표 (예정)", true]);
   for (const e of (ST.EVENTS||[])) {
     const d = new Date(e[0]+"T00:00:00");
     if (d >= today0) evs.push([d, e[1]+" "+e[3], false]);
