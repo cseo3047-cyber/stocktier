@@ -6,26 +6,86 @@
 <title>Stocktier — 종목 비교</title>
 <link rel="stylesheet" href="style.css">
 <style>
-  .pick { display:grid; grid-template-columns:1fr auto 1fr; gap:14px; align-items:center; margin-bottom:16px; }
+  .wrap { max-width:1460px; }
+  .pick { display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:center; margin-bottom:14px; max-width:760px; }
   .pick .sbox { position:relative; }
-  .pick input { width:100%; padding:13px 15px; font-size:14px; background:var(--panel); border:2px solid var(--border); border-radius:12px; color:var(--text); outline:none; }
+  .pick input { width:100%; padding:12px 15px; font-size:14px; background:var(--panel); border:1.5px solid var(--border); border-radius:11px; color:var(--text); outline:none; }
   .pick input:focus { border-color:var(--gold-dim); }
-  .pick .vs { font-size:16px; font-weight:800; color:var(--gold); }
-  .cmp { width:100%; border-collapse:collapse; font-size:13px; }
-  .cmp td, .cmp th { padding:11px 10px; border-bottom:1px solid var(--border); }
-  .cmp .lbl { text-align:center; color:var(--muted); font-size:12px; width:130px; }
-  .cmp .a { text-align:right; } .cmp .b { text-align:left; }
-  .crown { color:var(--gold); }
-  .headrow { font-size:16px; font-weight:800; }
-  .mbar { display:inline-block; height:7px; border-radius:4px; background:#3f8f74; vertical-align:middle; }
+  .pick .vs { font-size:15px; font-weight:800; color:var(--gold); }
   @media (max-width:700px){ .pick { grid-template-columns:1fr; } .pick .vs { text-align:center; } }
+
+  .row4 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
+  @media (max-width:1080px){ .row4 { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .scard { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:15px 17px; display:flex; gap:12px; align-items:center; }
+  .scard .ic { width:40px; height:40px; border-radius:50%; background:#c9a83222; border:1px solid #c9a83244; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+  .scard .lb { font-size:11.5px; color:var(--muted); font-weight:700; margin-bottom:3px; }
+  .scard .vl { font-size:17px; font-weight:800; }
+  .scard .sub { font-size:10.5px; color:var(--dim); margin-top:2px; }
+
+  .layout { display:grid; grid-template-columns:1fr 320px; gap:14px; }
+  @media (max-width:1080px){ .layout { grid-template-columns:1fr; } }
+
+  /* VS 테이블 */
+  .vshead { display:grid; grid-template-columns:1fr 60px 1fr; align-items:center; padding:4px 6px 12px; border-bottom:1px solid var(--border); margin-bottom:4px; }
+  .vshead .nm { font-size:17px; font-weight:800; }
+  .vshead .nm small { font-size:11px; color:var(--dim); font-weight:500; margin-left:6px; }
+  .vshead .tag { font-size:10px; font-weight:800; border-radius:6px; padding:2px 8px; margin-left:8px; }
+  .vshead .vs { text-align:center; color:var(--gold); font-weight:800; font-size:13px; }
+  .vsrow { display:grid; grid-template-columns:1fr 128px 1fr; align-items:center; padding:7px 6px; border-bottom:1px solid #16283000; font-size:12.5px; }
+  .vsrow:nth-child(even) { background:#ffffff05; border-radius:8px; }
+  .vsrow .mid { text-align:center; color:var(--muted); font-size:11.5px; font-weight:700; }
+  .cellL { display:flex; align-items:center; gap:8px; justify-content:flex-start; }
+  .cellR { display:flex; align-items:center; gap:8px; justify-content:flex-end; }
+  .mbar { flex:1; max-width:150px; height:7px; background:var(--panel2); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+  .mbar i { display:block; height:100%; border-radius:4px; }
+  .mbar.gold i { background:linear-gradient(90deg,#8a6f1e,#f0c948); }
+  .mbar.grn i { background:linear-gradient(90deg,#0f7a56,#4cd7a5); }
+  .vnum { font-variant-numeric:tabular-nums; font-weight:800; min-width:56px; }
+  .crown { font-size:12px; }
+  .vbadge { display:inline-flex; padding:2px 10px; border-radius:7px; font-size:11px; font-weight:800; }
+  .b-pos { background:#13322a; color:#4cd7a5; } .b-sta { background:#22303c; color:#9db9d4; } .b-neg { background:#3a1a22; color:#f0708a; }
+  .b-low { background:#13322a; color:#4cd7a5; } .b-med { background:#3d3313; color:#f0c948; } .b-high { background:#3a1a22; color:#f0708a; }
+
+  /* 차트 */
+  .dualchart svg { width:100%; height:210px; display:block; }
+  .legend { display:flex; gap:16px; font-size:11.5px; color:var(--muted); margin-bottom:6px; font-weight:700; }
+  .legend i { display:inline-block; width:16px; height:3px; border-radius:2px; vertical-align:middle; margin-right:5px; }
+
+  /* 사이드 */
+  .gaugebox { text-align:center; }
+  .gauge { width:150px; height:80px; position:relative; overflow:hidden; margin:4px auto 2px; }
+  .gauge .arc { width:150px; height:150px; border-radius:50%; }
+  .gauge .hole { position:absolute; left:21px; top:21px; width:108px; height:108px; background:var(--panel); border-radius:50%; text-align:center; }
+  .gauge .hole b { font-size:24px; display:block; margin-top:16px; }
+  .gauge .hole span { font-size:10px; color:var(--dim); }
+  .sbars .r { display:flex; align-items:center; gap:8px; font-size:11.5px; padding:3px 0; color:var(--muted); }
+  .sbars .r .lb { width:62px; flex-shrink:0; white-space:nowrap; }
+  .sbars .m { flex:1; height:6px; background:var(--panel2); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+  .sbars .m i { display:block; height:100%; background:linear-gradient(90deg,#0f7a56,#4cd7a5); border-radius:4px; }
+  .sbars .r b { width:26px; text-align:right; color:var(--text); }
+  .winrow { display:flex; align-items:center; gap:8px; padding:8px 4px; border-bottom:1px solid var(--border); font-size:12.5px; }
+  .winrow:last-child { border-bottom:none; }
+  .winrow .lb { color:var(--muted); flex:1; }
+  .winrow b { font-weight:800; }
+  .cmts { font-size:12.5px; color:var(--muted); line-height:2.0; }
+  .cmts li { list-style:none; padding-left:16px; position:relative; }
+  .cmts li:before { content:"•"; position:absolute; left:2px; color:var(--gold); }
+  .recrow { display:flex; align-items:center; gap:9px; padding:9px 4px; border-bottom:1px solid var(--border); font-size:12.5px; cursor:pointer; font-weight:700; }
+  .recrow:last-child { border-bottom:none; }
+  .recrow:hover { color:var(--gold); }
+  .recrow .rank { width:20px; height:20px; border-radius:6px; background:var(--panel2); border:1px solid var(--border); color:var(--muted); font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .verdict { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; text-align:center; background:linear-gradient(130deg,#12242c,#16303a); border:1px solid var(--border); border-radius:14px; padding:18px 12px; }
+  .verdict .t { font-size:11px; color:var(--muted); font-weight:700; margin-bottom:4px; }
+  .verdict .n { font-size:16px; font-weight:800; }
+  .verdict .n.gold { color:var(--gold); }
 </style>
 </head>
 <body>
 <nav class="nav" id="nav"></nav>
-<div class="wrap" style="max-width:980px;">
+<div class="wrap">
+  <span class="asof" id="asof"></span>
   <div class="page-title">종목 비교</div>
-  <div class="page-sub">두 종목의 티어와 핵심 지표를 나란히 비교하세요. 우세한 쪽에 👑가 붙습니다.</div>
+  <div class="page-sub">두 종목의 티어와 핵심 지표를 한눈에 비교하세요. 우세한 쪽에 👑가 붙습니다.</div>
 
   <div class="pick">
     <div class="sbox"><input id="qa" placeholder="종목 A 검색 (예: 삼성전자)" autocomplete="off"><div class="suggest" id="suga"></div></div>
@@ -43,7 +103,9 @@
 <script src="common.js"></script>
 <script>
 ST.nav("compare.html");
-let A = null, B = null;   // {src,key}
+document.getElementById("asof").textContent = "업데이트: " + ST.asofText();
+
+let A = null, B = null;
 
 function parseParam(p) {
   if (!p) return null;
@@ -54,6 +116,11 @@ function parseParam(p) {
 }
 A = parseParam(ST.qp("a"));
 B = parseParam(ST.qp("b"));
+// 기본값: 국내 시총 1·2위
+if (!A && !B) {
+  const kr = ST.all().filter(x=>x.src==="kr").sort((a,b)=>b.e[8]-a.e[8]);
+  if (kr.length >= 2) { A = {src:"kr", key:kr[0].key}; B = {src:"kr", key:kr[1].key}; }
+}
 
 function bindSearch(inputId, sugId, setter) {
   const input = document.getElementById(inputId), sug = document.getElementById(sugId);
@@ -83,70 +150,222 @@ bindSearch("qa","suga", v=>A=v);
 bindSearch("qb","sugb", v=>B=v);
 document.addEventListener("click", e => { if (!e.target.closest(".sbox")) { document.getElementById("suga").style.display="none"; document.getElementById("sugb").style.display="none"; } });
 
+const clip = v => Math.max(0, Math.min(100, Math.round(v)));
+function metrics(s, us, e) {
+  const sc = ST.score(e, us), rk = ST.risk(e);
+  const supply = (!us && e.length>18 && e[17]!=null) ? ((e[17]>0?1:0)+(e[18]>0?1:0))*27+40 : 50;
+  const momentum = clip(50 + (e[14]||0)*3 + (e[15]||0)*1.2);
+  const value = e[4]>0 ? clip(100 - e[4]*(us?1.2:2)) : 30;
+  const funda = clip(50 + e[7]*2.2);
+  const wins = e[12].filter(d=>d>0).length;
+  const outlook = (wins>=4 || (e[14]||0)>5) ? ["Positive","b-pos"] : (wins<=1 ? ["Negative","b-neg"] : ["Stable","b-sta"]);
+  const riskB = rk<40 ? ["Low","b-low"] : rk<70 ? ["Medium","b-med"] : ["High","b-high"];
+  return { sc, rk, supply:clip(supply), momentum, value, funda, outlook, riskB, wins };
+}
+const amtStr = (e, us) => {
+  const v = e[2]*e[11];
+  return us ? (v>=1e9?"$"+(v/1e9).toFixed(1)+"B":"$"+(v/1e6).toFixed(0)+"M")
+            : (v>=1e12?(v/1e12).toFixed(1)+"조":Math.round(v/1e8).toLocaleString("ko-KR")+"억");
+};
+const buyStr = (q, e) => q==null ? "-" : (q>=0?"+":"-")+Math.round(Math.abs(q)*e[2]/1e8).toLocaleString("ko-KR")+"억";
+const vol5 = e => e[12].reduce((a,b)=>a+Math.abs(b),0)/5;
+
 function render() {
   const box = document.getElementById("result");
   if (!A || !B) {
-    box.innerHTML = `<div class="card" style="text-align:center;padding:44px;color:var(--muted);font-size:14px;">
-      ${A||B ? "나머지 한 종목을 검색해주세요." : "비교할 두 종목을 위에서 검색해주세요."}</div>`;
-    if (A) document.getElementById("qa").value = ST.displayName(A.src,A.key);
-    if (B) document.getElementById("qb").value = ST.displayName(B.src,B.key);
+    box.innerHTML = `<div class="card" style="text-align:center;padding:44px;color:var(--muted);font-size:14px;">비교할 두 종목을 위에서 검색해주세요.</div>`;
     return;
   }
   const ea = ST.get(A.src,A.key), eb = ST.get(B.src,B.key);
   const usA = A.src==="us", usB = B.src==="us";
-  const sa = ST.score(ea,usA), sb = ST.score(eb,usB);
-  const ga = ST.gradeOf(sa), gb = ST.gradeOf(sb);
-  const ra = ST.risk(ea), rb = ST.risk(eb);
   const na = ST.displayName(A.src,A.key), nb = ST.displayName(B.src,B.key);
   document.getElementById("qa").value = na;
   document.getElementById("qb").value = nb;
+  const ma = metrics(A,usA,ea), mb = metrics(B,usB,eb);
+  const ga = ST.gradeOf(ma.sc), gb = ST.gradeOf(mb.sc);
 
-  // 비교 행: [라벨, 값A표시, 값B표시, 우세판정(1=A,2=B,0=무)]
-  const win = (va,vb,higherBetter) => {
-    if (va==null||vb==null||va===vb) return 0;
-    return (higherBetter ? va>vb : va<vb) ? 1 : 2;
+  // ── 상단 4카드
+  const scWin = ma.sc>=mb.sc ? na : nb;
+  const scDiff = Math.abs(ma.sc-mb.sc);
+  const moWin = ma.momentum>=mb.momentum ? na : nb;
+  const rkWin = ma.rk<=mb.rk ? na : nb;
+  const dualSpark = (function(){
+    const pa = seriesOf(ea), pb = seriesOf(eb);
+    const W=110,H=44;
+    const line = (pts,col)=>{ const mn=Math.min(...pts),mx=Math.max(...pts),rg=(mx-mn)||1;
+      return `<polyline points="${pts.map((p,i)=>`${(i/(pts.length-1)*W).toFixed(1)},${(H-3-(p-mn)/rg*(H-6)).toFixed(1)}`).join(" ")}" fill="none" stroke="${col}" stroke-width="1.6"/>`; };
+    return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="flex-shrink:0;">${line(pa,"#f0c948")}${line(pb,"#4cd7a5")}</svg>`;
+  })();
+  const cards = `
+  <div class="row4">
+    <div class="scard"><span class="ic">📋</span><div style="flex:1;"><div class="lb">비교 종목</div><div class="vl">2개</div></div>${dualSpark}</div>
+    <div class="scard"><span class="ic">👑</span><div><div class="lb">종합 우세</div><div class="vl">${scWin}</div><div class="sub">${scDiff<5?"근소 우위":"확실 우위"} (${ma.sc} : ${mb.sc})</div></div></div>
+    <div class="scard"><span class="ic">📈</span><div><div class="lb">높은 모멘텀</div><div class="vl">${moWin}</div><div class="sub">${Math.max(ma.momentum,mb.momentum)}점</div></div></div>
+    <div class="scard"><span class="ic">🛡</span><div><div class="lb">낮은 리스크</div><div class="vl">${rkWin}</div><div class="sub">위험도 ${Math.min(ma.rk,mb.rk)}</div></div></div>
+  </div>`;
+
+  // ── VS 테이블
+  const crownL = w => w===1 ? `<span class="crown">👑</span>` : "";
+  const crownR = w => w===2 ? `<span class="crown">👑</span>` : "";
+  const win = (va,vb,hi) => (va==null||vb==null||va===vb) ? 0 : ((hi?va>vb:va<vb)?1:2);
+  const barRow = (lb,va,vb) => {
+    const w = win(va,vb,true);
+    return `<div class="vsrow">
+      <div class="cellL"><span class="vnum">${va}</span><div class="mbar gold"><i style="width:${va}%"></i></div>${crownL(w)}</div>
+      <div class="mid">${lb}</div>
+      <div class="cellR">${crownR(w)}<div class="mbar grn"><i style="width:${vb}%"></i></div><span class="vnum" style="text-align:right;">${vb}</span></div></div>`;
   };
-  const rows = [
-    ["종합점수", sa+"점", sb+"점", win(sa,sb,true)],
-    ["티어", `<span class="tierb tier-${ga.g}">${ga.g}</span>`, `<span class="tierb tier-${gb.g}">${gb.g}</span>`, win(sa,sb,true)],
-    ["현재가", ST.priceStr(ea[2],usA), ST.priceStr(eb[2],usB), 0],
-    ["당일 등락", `<b class="${ST.cls(ea[3])}">${ST.pct2(ea[3])}</b>`, `<b class="${ST.cls(eb[3])}">${ST.pct2(eb[3])}</b>`, win(ea[3],eb[3],true)],
-    ["PER (체급)", ea[4]>0?ea[4].toFixed(1)+"배":"적자/없음", eb[4]>0?eb[4].toFixed(1)+"배":"적자/없음", win(ea[4]>0?ea[4]:null, eb[4]>0?eb[4]:null, false)],
-    ["PBR", ea[5]>0?ea[5].toFixed(2)+"배":"-", eb[5]>0?eb[5].toFixed(2)+"배":"-", win(ea[5]>0?ea[5]:null, eb[5]>0?eb[5]:null, false)],
-    ["ROE (딜량)", ea[7].toFixed(1)+"%", eb[7].toFixed(1)+"%", win(ea[7],eb[7],true)],
-    ["배당수익률", ea[6].toFixed(1)+"%", eb[6].toFixed(1)+"%", win(ea[6],eb[6],true)],
-    ["시가총액", ST.capStr(ea[8],usA), ST.capStr(eb[8],usB), win(ea[8],eb[8],true)],
-    ["1개월 수익률", `<b class="${ST.cls(ea[15]||0)}">${ST.pct(ea[15])}</b>`, `<b class="${ST.cls(eb[15]||0)}">${ST.pct(eb[15])}</b>`, win(ea[15],eb[15],true)],
-    ["3개월 수익률", `<b class="${ST.cls(ea[16]||0)}">${ST.pct(ea[16])}</b>`, `<b class="${ST.cls(eb[16]||0)}">${ST.pct(eb[16])}</b>`, win(ea[16],eb[16],true)],
-    ["위험도 (낮을수록 좋음)", ra, rb, win(ra,rb,false)],
-  ];
-  let winA = 0, winB = 0;
-  const body = rows.map(([lb,va,vb,w])=>{
-    if (w===1) winA++; if (w===2) winB++;
-    return `<tr>
-      <td class="a num">${w===1?'<span class="crown">👑 </span>':""}${va}</td>
-      <td class="lbl">${lb}</td>
-      <td class="b num">${vb}${w===2?' <span class="crown">👑</span>':""}</td></tr>`;
-  }).join("");
-
-  const overall = winA===winB ? "막상막하" : (winA>winB ? na : nb) + " 우세";
-  box.innerHTML = `
-    <div class="card" style="margin-bottom:14px;">
-      <table class="cmp">
-        <tr class="headrow">
-          <td class="a"><a class="stock" href="${ST.stockUrl(A.src,A.key)}">${na}</a> <span style="font-size:11px;color:var(--dim);">${ea[0]}</span></td>
-          <td class="lbl" style="color:var(--gold);font-weight:800;">VS</td>
-          <td class="b"><a class="stock" href="${ST.stockUrl(B.src,B.key)}">${nb}</a> <span style="font-size:11px;color:var(--dim);">${eb[0]}</span></td>
-        </tr>
-        ${body}
-      </table>
+  const txtRow = (lb, htmlA, htmlB, w) => `<div class="vsrow">
+    <div class="cellL">${htmlA}${crownL(w)}</div><div class="mid">${lb}</div><div class="cellR">${crownR(w)}${htmlB}</div></div>`;
+  const tierBadge = g => `<span class="tierb tier-${g.g}">${g.g} 티어</span>`;
+  const table = `
+  <div class="card" style="margin-bottom:14px;">
+    <div class="vshead">
+      <div class="nm">${na}<small>${ea[0]}</small><span class="tag" style="background:#3d3313;color:#f0c948;">종목 A</span></div>
+      <div class="vs">VS</div>
+      <div class="nm" style="text-align:right;"><span class="tag" style="background:#13322a;color:#4cd7a5;">종목 B</span> ${nb}<small>${eb[0]}</small></div>
     </div>
-    <div class="card" style="text-align:center;">
-      <div style="font-size:13px;color:var(--muted);margin-bottom:6px;">종합 판정 (${winA} : ${winB})</div>
-      <div style="font-size:22px;font-weight:800;color:var(--gold);">🏆 ${overall}</div>
-      <div style="font-size:12px;color:var(--dim);margin-top:8px;">항목별 우세 수 기준의 재미용 판정입니다.</div>
-    </div>`;
+    ${txtRow("종합 티어", tierBadge(ga), tierBadge(gb), win(ma.sc,mb.sc,true))}
+    ${barRow("종합점수", ma.sc, mb.sc)}
+    ${txtRow("전망", `<span class="vbadge ${ma.outlook[1]}">${ma.outlook[0]}</span>`, `<span class="vbadge ${mb.outlook[1]}">${mb.outlook[0]}</span>`, 0)}
+    ${barRow("수급", ma.supply, mb.supply)}
+    ${barRow("모멘텀", ma.momentum, mb.momentum)}
+    ${barRow("밸류에이션", ma.value, mb.value)}
+    ${barRow("펀더멘털", ma.funda, mb.funda)}
+    ${txtRow("리스크", `<span class="vbadge ${ma.riskB[1]}">${ma.riskB[0]}</span>`, `<span class="vbadge ${mb.riskB[1]}">${mb.riskB[0]}</span>`, win(ma.rk,mb.rk,false))}
+    ${txtRow("최근 1개월 수익률", `<b class="${ST.cls(ea[15]||0)}">${ST.pct(ea[15])}</b>`, `<b class="${ST.cls(eb[15]||0)}">${ST.pct(eb[15])}</b>`, win(ea[15],eb[15],true))}
+    ${txtRow("거래대금", `<b class="num">${amtStr(ea,usA)}</b>`, `<b class="num">${amtStr(eb,usB)}</b>`, win(ea[2]*ea[11],eb[2]*eb[11],true))}
+    ${txtRow("외국인 순매수", `<b class="num">${usA?"-":buyStr(ea[17],ea)}</b>`, `<b class="num">${usB?"-":buyStr(eb[17],eb)}</b>`, win(usA?null:ea[17],usB?null:eb[17],true))}
+    ${txtRow("기관 순매수", `<b class="num">${usA?"-":buyStr(ea[18],ea)}</b>`, `<b class="num">${usB?"-":buyStr(eb[18],eb)}</b>`, win(usA?null:ea[18],usB?null:eb[18],true))}
+  </div>`;
+
+  // ── 주가 흐름 비교 (3년 형태 비교)
+  const chart = (function(){
+    const pa = seriesOf(ea), pb = seriesOf(eb);
+    const W=560,H=210,pad=10;
+    const line = (pts,col)=>{ const mn=Math.min(...pts),mx=Math.max(...pts),rg=(mx-mn)||1;
+      return `<polyline points="${pts.map((p,i)=>`${(pad+i/(pts.length-1)*(W-pad*2)).toFixed(1)},${(H-12-(p-mn)/rg*(H-26)).toFixed(1)}`).join(" ")}" fill="none" stroke="${col}" stroke-width="2"/>`; };
+    let grid = "";
+    for (let g=1; g<=3; g++) grid += `<line x1="${pad}" y1="${H/4*g}" x2="${W-pad}" y2="${H/4*g}" stroke="#1c3440" stroke-width="1"/>`;
+    return `<div class="card dualchart" style="flex:1;min-width:280px;">
+      <h3>주가 흐름 비교 <span class="more" style="cursor:default;">최근 3년 · 각 종목 범위 정규화</span></h3>
+      <div class="legend"><span><i style="background:#f0c948;"></i>${na} <b class="${ST.cls(ea[16]||0)}">${ST.pct(ea[16])}</b></span>
+        <span><i style="background:#4cd7a5;"></i>${nb} <b class="${ST.cls(eb[16]||0)}">${ST.pct(eb[16])}</b></span>
+        <span style="margin-left:auto;color:var(--dim);">3개월 수익률 기준</span></div>
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${grid}${line(pa,"#f0c948")}${line(pb,"#4cd7a5")}</svg></div>`;
+  })();
+
+  // ── 상세 지표 비교
+  const dRow = (lb, va, vb, fmt, hi) => {
+    const w = win(va,vb,hi);
+    const mx = Math.max(Math.abs(va||0), Math.abs(vb||0)) || 1;
+    return `<div class="vsrow" style="grid-template-columns:1fr 96px 1fr;">
+      <div class="cellL"><span class="vnum">${fmt(va)}</span><div class="mbar gold"><i style="width:${Math.abs(va||0)/mx*100}%"></i></div>${crownL(w)}</div>
+      <div class="mid">${lb}</div>
+      <div class="cellR">${crownR(w)}<div class="mbar grn"><i style="width:${Math.abs(vb||0)/mx*100}%"></i></div><span class="vnum" style="text-align:right;">${fmt(vb)}</span></div></div>`;
+  };
+  const f1 = v => v==null?"-":Number(v).toFixed(1);
+  const f2 = v => v==null?"-":Number(v).toFixed(2);
+  const detail = `
+  <div class="card" style="flex:1;min-width:280px;">
+    <h3>상세 지표 비교 <span class="more" style="cursor:default;">단위: % / 배</span></h3>
+    <div class="legend"><span><i style="background:#f0c948;"></i>${na}</span><span><i style="background:#4cd7a5;"></i>${nb}</span></div>
+    ${dRow("ROE", ea[7], eb[7], f1, true)}
+    ${dRow("PER", ea[4]>0?ea[4]:null, eb[4]>0?eb[4]:null, f1, false)}
+    ${dRow("PBR", ea[5]>0?ea[5]:null, eb[5]>0?eb[5]:null, f2, false)}
+    ${dRow("배당수익률", ea[6], eb[6], f1, true)}
+    ${dRow("변동성(5일)", vol5(ea), vol5(eb), f2, false)}
+    ${dRow("외국인 지분율", usA?null:ea[13], usB?null:eb[13], f1, true)}
+  </div>`;
+
+  // ── 오늘의 한줄 판정
+  const judge = (nm, m, e) => {
+    const parts = [];
+    if (m.value>=60 && m.rk<50) parts.push("안정성과 밸류 매력이 우수");
+    else if (m.momentum>=65) parts.push("단기 모멘텀과 수급이 강함");
+    else if (m.funda>=65) parts.push("펀더멘털 체력이 탄탄");
+    else parts.push("지표 균형형");
+    if (m.rk>=70) parts.push("변동성은 큰 편");
+    else if (m.momentum<45) parts.push("단기 탄력은 보통");
+    return `<div style="margin-bottom:12px;"><div style="font-size:12.5px;font-weight:800;margin-bottom:3px;">● ${nm} <span style="color:var(--dim);font-weight:500;">${e[0]}</span></div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.7;">${parts.join("하나, ")}</div></div>`;
+  };
+  const judgeCard = `
+  <div class="card" style="width:220px;flex-shrink:0;">
+    <h3>오늘의 한줄 판정</h3>
+    ${judge(na, ma, ea)}${judge(nb, mb, eb)}
+  </div>`;
+
+  // ── 사이드바
+  const W = ma.sc>=mb.sc ? {n:na,m:ma} : {n:nb,m:mb};
+  const gcol = W.m.sc>=65?"#4cd7a5":W.m.sc>=45?"#f0c948":"#f0645a";
+  const sideSummary = `
+  <div class="card gaugebox">
+    <h3 style="justify-content:flex-start;">비교 요약</h3>
+    <div class="gauge"><div class="arc" style="background:conic-gradient(from 270deg, ${gcol} 0% ${W.m.sc/2}%, #ffffff14 ${W.m.sc/2}% 50%, transparent 50%);"></div>
+      <div class="hole"><b>${W.m.sc}<span style="font-size:11px;color:var(--dim);">/100</span></b><span>종합점수 · ${W.n}</span></div></div>
+    <div class="sbars" style="text-align:left;">
+      ${[["수급",W.m.supply],["모멘텀",W.m.momentum],["밸류",W.m.value],["펀더멘털",W.m.funda],["안정성",100-W.m.rk]].map(([lb,v])=>
+        `<div class="r"><span class="lb">${lb}</span><div class="m"><i style="width:${clip(v)}%"></i></div><b>${clip(v)}</b></div>`).join("")}
+    </div>
+  </div>`;
+  const supRows = [
+    ["수급", win(ma.supply,mb.supply,true)],["모멘텀", win(ma.momentum,mb.momentum,true)],
+    ["밸류에이션", win(ma.value,mb.value,true)],["펀더멘털", win(ma.funda,mb.funda,true)],
+    ["리스크", win(ma.rk,mb.rk,false)],["수익률(1M)", win(ea[15],eb[15],true)],
+  ];
+  const sideWins = `
+  <div class="card"><h3>항목별 우위</h3>
+    ${supRows.map(([lb,w])=>`<div class="winrow"><span class="lb">${lb}</span><b style="color:${w===1?"#f0c948":w===2?"#4cd7a5":"var(--dim)"};">${w===1?na:w===2?nb:"동률"} ${w?"우위":""}</b></div>`).join("")}
+  </div>`;
+  const cmts = [];
+  if (ma.momentum!==mb.momentum) cmts.push(`${moWin}이(가) 모멘텀·단기 수익률에서 우위입니다.`);
+  cmts.push(`${rkWin}은(는) 리스크 관리 측면에서 안정적입니다.`);
+  const fWin = win(ma.funda,mb.funda,true);
+  if (fWin) cmts.push(`펀더멘털은 ${fWin===1?na:nb}이(가) 소폭 우세합니다.`);
+  const vWin = win(ma.value,mb.value,true);
+  if (vWin) cmts.push(`밸류에이션 매력은 ${vWin===1?na:nb} 쪽이 높습니다.`);
+  cmts.push("투자 성향에 따라 선택 기준이 달라질 수 있습니다.");
+  const sideCmt = `<div class="card"><h3>비교 코멘트</h3><ul class="cmts">${cmts.map(c=>`<li>${c}</li>`).join("")}</ul></div>`;
+  // 관련 비교 추천 (시총 인접 쌍)
+  const pool = ST.all().filter(x=>x.src===A.src).sort((a,b)=>b.e[8]-a.e[8]).slice(2,10);
+  let recs = "";
+  for (let i=0; i+1<pool.length && i<8; i+=2) {
+    const p1=pool[i], p2=pool[i+1];
+    recs += `<div class="recrow" onclick="location.href='compare.html?a=${p1.src}:${encodeURIComponent(p1.key)}&b=${p2.src}:${encodeURIComponent(p2.key)}'">
+      <span class="rank">${i/2+1}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ST.displayName(p1.src,p1.key)} vs ${ST.displayName(p2.src,p2.key)}</span><span style="color:var(--dim);">›</span></div>`;
+  }
+  const sideRec = `<div class="card"><h3>관련 비교 추천</h3>${recs}</div>`;
+  const stableN = ma.rk<=mb.rk ? na : nb;
+  const shortN = ma.momentum>=mb.momentum ? na : nb;
+  const verdict = `
+  <div class="verdict">
+    <div><div class="t">🛡 안정성 우세</div><div class="n">${stableN}</div></div>
+    <div style="color:var(--gold);font-weight:800;font-size:13px;">VS</div>
+    <div><div class="t">⚡ 단기 우세 👑</div><div class="n gold">${shortN}</div></div>
+  </div>`;
+
+  box.innerHTML = cards + `
+  <div class="layout">
+    <div>
+      ${table}
+      <div style="display:flex;gap:14px;flex-wrap:wrap;">${chart}${detail}${judgeCard}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      ${sideSummary}${sideWins}${sideCmt}${sideRec}${verdict}
+    </div>
+  </div>`;
 }
+
+// 3년 시계열 (없으면 5일 누적)
+function seriesOf(e) {
+  if (e.length > 19 && e[19] && e[19].length > 3) return e[19];
+  const seq = e[12].slice().reverse();
+  let v = 100; const pts = [v];
+  for (const d of seq) { v = v*(1+d/100); pts.push(v); }
+  return pts;
+}
+
 render();
 </script>
 </body>
