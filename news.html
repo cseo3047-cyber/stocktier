@@ -24,7 +24,7 @@
   .fchip.on { background:#13322a; color:#4cd7a5; border-color:#2e5c47; }
   .fbar select { background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:7px; padding:5px 8px; font-size:11.5px; outline:none; }
   .ntbl { width:100%; border-collapse:collapse; font-size:12.5px; }
-  .ntbl th { text-align:left; color:var(--dim); font-size:10.5px; font-weight:700; padding:7px 4px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  .ntbl th { text-align:center; color:var(--dim); font-size:10.5px; font-weight:700; padding:7px 4px; border-bottom:1px solid var(--border); white-space:nowrap; }
   .ntbl td { padding:9.5px 4px; border-bottom:1px solid #ffffff0d; white-space:nowrap; font-variant-numeric:tabular-nums; }
   .ntbl tr:hover td { background:var(--panel2); }
   .ntbl .tt { max-width:440px; overflow:hidden; text-overflow:ellipsis; font-weight:700; }
@@ -54,6 +54,7 @@
   .brow:last-child { border-bottom:none; }
   .brow:hover { color:var(--gold); }
   .brow .tm { color:var(--dim); font-size:10.5px; font-weight:500; }
+  .mag { position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:15px; font-weight:700; pointer-events:none; }
 </style>
 </head>
 <body>
@@ -66,7 +67,11 @@
   <div class="layout">
     <div>
       <div class="cards4" id="cards"></div>
-      <div class="card"><h3>주요 뉴스</h3>
+      <div class="card"><h3>주요 뉴스
+        <span style="margin-left:auto;position:relative;flex-shrink:0;">
+          <input id="newsq" placeholder="제목 · 출처 · 종목명 검색" autocomplete="off"
+            style="width:230px;padding:8px 32px 8px 12px;font-size:12px;background:var(--panel2);border:1.5px solid var(--border);border-radius:9px;color:var(--text);outline:none;font-weight:500;">
+          <span class="mag">⌕</span></span></h3>
         <div class="fbar" id="catbar"></div>
         <table class="ntbl"><thead><tr><th style="width:74px;">시간</th><th>제목</th><th style="width:70px;">출처</th><th style="width:56px;">카테고리</th><th>영향 종목</th><th style="width:56px;">영향도</th></tr></thead>
         <tbody id="tbody"></tbody></table>
@@ -141,7 +146,7 @@ document.getElementById("cards").innerHTML = `
   <div class="scard"><span class="ic" style="background:#f0c9481a;border-color:#c9a83255;">${linkIcon}</span><div class="l"><div class="lb">종목 매칭 뉴스</div><div class="vl num">${matchN}<small> 건</small></div><div class="sub">제목 내 종목명 감지</div></div>${miniBars("ng4","#8a6f1e","#f0c948",matchN*9+21)}</div>`;
 
 // ── 뉴스 테이블 (필터)
-let CAT = "all", SORT = "time";
+let CAT = "all", SORT = "time", Q = "";
 const CATS = [["all","전체"],["시장","시장"],["기업","기업"],["정책","정책"],["산업","산업"],["해외","해외"],["match","종목 매칭"]];
 const catStyle = c => c==="시장" ? "background:#13322a;color:#4cd7a5;" : c==="기업" ? "background:#3d3313;color:#f0c948;"
   : c==="정책" ? "background:#13303d;color:#66c6e8;" : c==="산업" ? "background:#2c2440;color:#b39ddb;"
@@ -157,7 +162,8 @@ function drawBar(){
 window.setCat = k => { CAT=k; drawBar(); drawTbl(); };
 window.setSort = v => { SORT=v; drawTbl(); };
 function drawTbl(){
-  let p = NEWS.filter(n => CAT==="all" || (CAT==="match" ? n.stocks.length : n.cat===CAT));
+  let p = Q ? NEWS.filter(n => n.t.includes(Q) || n.of.includes(Q) || n.stocks.some(([nm])=>nm.includes(Q)))
+            : NEWS.filter(n => CAT==="all" || (CAT==="match" ? n.stocks.length : n.cat===CAT));
   if (SORT==="imp") p = p.slice().sort((a,b)=>({높음:0,중간:1,낮음:2}[a.imp])-({높음:0,중간:1,낮음:2}[b.imp]));
   document.getElementById("tbody").innerHTML = p.length ? p.map(n=>`
     <tr>
@@ -171,6 +177,7 @@ function drawTbl(){
   : `<tr><td colspan="6" style="color:var(--dim);padding:18px;">뉴스 수집 대기 중 — 데이터 수집 워크플로 실행 후 표시됩니다</td></tr>`;
 }
 drawBar(); drawTbl();
+document.getElementById("newsq").addEventListener("input", e => { Q = e.target.value.trim(); drawTbl(); });
 
 // ── 시장 요약 (지수 미니카드)
 (function(){

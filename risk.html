@@ -60,6 +60,7 @@
   .nrow2:hover { color:var(--gold); }
   .nrow2 .rank { width:18px; height:18px; border-radius:5px; background:#3a1a22; color:#f0708a; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   .nrow2 .tx { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mag { position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:15px; font-weight:700; pointer-events:none; }
 </style>
 </head>
 <body>
@@ -72,9 +73,13 @@
   <div class="layout">
     <div>
       <div class="cards4" id="cards"></div>
-      <div class="card"><h3>위험 종목 리스트</h3>
+      <div class="card"><h3>위험 종목 리스트
+        <span style="margin-left:auto;position:relative;flex-shrink:0;">
+          <input id="riskq" placeholder="종목명 또는 코드 검색" autocomplete="off"
+            style="width:230px;padding:8px 32px 8px 12px;font-size:12px;background:var(--panel2);border:1.5px solid var(--border);border-radius:9px;color:var(--text);outline:none;font-weight:500;">
+          <span class="mag">⌕</span></span></h3>
         <div class="fbar" id="catbar"></div>
-        <table class="stbl"><thead><tr><th>순위</th><th style="text-align:left;">종목명</th><th>종목 코드</th><th>위험 유형</th><th>위험도</th><th>최근 변화</th><th>변동성(5일)</th><th>외국인 수급</th><th>기관 수급</th><th style="text-align:left;">주요 위험 신호</th></tr></thead>
+        <table class="stbl"><thead><tr><th>순위</th><th>종목명</th><th>종목 코드</th><th>위험 유형</th><th>위험도</th><th>최근 변화</th><th>변동성(5일)</th><th>외국인 수급</th><th>기관 수급</th><th>주요 위험 신호</th></tr></thead>
         <tbody id="tbody"></tbody></table>
         <button class="morebtn" id="morebtn">더보기 ▾</button>
       </div>
@@ -172,13 +177,15 @@ const logo = x => {
 })();
 
 // ── 위험 종목 리스트
-let CAT = "all", SORT = "rk", SHOW = 10;
+let CAT = "all", SORT = "rk", SHOW = 10, Q = "";
 const CATS = [["all","전체"],["급등 과열","급등 과열"],["수급 악화","수급 악화"],["실적/공시","실적/공시"],["재무 위험","재무 위험"],["기타","기타"]];
 function pool(){
+  if (Q) return A.filter(x => x.key.includes(Q) || String(x.e[0]).includes(Q)).sort((a,b)=>b.rk-a.rk);
   let p = risky.filter(x => CAT==="all" || x.type===CAT);
   p.sort((a,b)=> SORT==="rk" ? b.rk-a.rk : SORT==="chg" ? b.e[3]-a.e[3] : b.vol5-a.vol5);
   return p;
 }
+document.getElementById("riskq").addEventListener("input", e => { Q = e.target.value.trim(); SHOW = 10; drawTbl(); });
 function drawBar(){
   document.getElementById("catbar").innerHTML =
     CATS.map(([k,t])=>`<span class="fchip ${CAT===k?"on":""}" onclick="setCat('${k}')">${t}</span>`).join("") +
