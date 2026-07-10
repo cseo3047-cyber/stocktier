@@ -126,7 +126,7 @@ window.ST = (function () {
 
   // 상단 네비게이션 렌더 + 검색
   function nav(active) {
-    const items = [["tier.html","티어 랭킹"],["risk.html","리스크 워치"],["watchlist.html","관심종목"],["compare.html","종목 비교"],["portfolio.html","포트폴리오 진단"],["simulator.html","시뮬레이터"]];
+    const items = [["tier.html","티어 랭킹"],["watchlist.html","관심종목"],["risk.html","리스크 워치"],["calendar.html","실적 캘린더"],["news.html","뉴스"],["disclosure.html","공시 충격도"],["compare.html","종목 비교"],["portfolio.html","포트폴리오 진단"],["simulator.html","시뮬레이터"]];
     const mktOn = (active==="market.html" || active==="market_us.html") ? "on" : "";
     const mktDrop = `<span class="navdrop">
       <a href="market.html" class="${mktOn}">오늘의 시장 ▾</a>
