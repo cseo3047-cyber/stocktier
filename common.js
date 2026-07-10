@@ -1,4 +1,14 @@
 // Stocktier 공용 로직 (data.js, data_us.js 이후에 로드할 것)
+
+// ===================== Firebase 로그인 설정 =====================
+// Firebase 콘솔(console.firebase.google.com) → 프로젝트 설정 ⚙ → 일반 → 내 앱(웹)에서
+// 아래 3개 값을 복사해 붙여넣으면 로그인 기능이 자동으로 켜집니다. (비워두면 로그인 버튼은 '준비 중')
+window.FIREBASE_CONFIG = {
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+};
+// ================================================================
 // 필드: 0코드 1시장 2주가 3등락 4PER 5PBR 6배당 7ROE 8시총 9평균거래량 10전일 11당일 12최근5일 13외인 14주간 15월간 16분기 [17] [18]
 window.ST = (function () {
   const SAMPLE_KR = {
@@ -114,9 +124,9 @@ window.ST = (function () {
     return hits;
   }
 
-  // 관심종목 (localStorage)
+  // 관심종목 (localStorage + 로그인 시 Firebase 클라우드 저장)
   function watchGet() { try { return JSON.parse(localStorage.getItem("st_watch")||"[]"); } catch(e){ return []; } }
-  function watchSet(list) { localStorage.setItem("st_watch", JSON.stringify(list)); }
+  function watchSet(list) { localStorage.setItem("st_watch", JSON.stringify(list)); cloudPush(list); }
   function watchHas(src,key) { return watchGet().some(w=>w[0]===src&&w[1]===key); }
   function watchToggle(src,key) {
     let l = watchGet();
@@ -124,6 +134,120 @@ window.ST = (function () {
     else l.push([src,key]);
     watchSet(l);
     return watchHas(src,key);
+  }
+
+  // ── Firebase 로그인 + 관심종목 클라우드 동기화 ──
+  let fbUser = null;
+  const fbOn = () => !!(window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey);
+  function loadScript(src) {
+    return new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = src; s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+  async function initFirebase() {
+    if (!fbOn() || window.firebase) return;
+    try {
+      await loadScript("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
+      await loadScript("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js");
+      await loadScript("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js");
+      firebase.initializeApp(window.FIREBASE_CONFIG);
+      firebase.auth().onAuthStateChanged(async u => {
+        fbUser = u;
+        updateLoginBtn();
+        if (u) await cloudSync();
+      });
+    } catch (e) { console.warn("Firebase 초기화 실패", e); }
+  }
+  async function cloudSync() {
+    try {
+      const ref = firebase.firestore().collection("watchlists").doc(fbUser.uid);
+      const snap = await ref.get();
+      const local = watchGet();
+      const cloud = snap.exists ? (snap.data().items || []) : [];
+      const seen = new Set(local.map(w => w[0] + "|" + w[1]));
+      const merged = local.concat(cloud.filter(w => !seen.has(w[0] + "|" + w[1])));
+      localStorage.setItem("st_watch", JSON.stringify(merged));
+      await ref.set({ items: merged, updated: Date.now() });
+      if (merged.length !== local.length && !sessionStorage.getItem("st_synced")) {
+        sessionStorage.setItem("st_synced", "1");
+        location.reload();   // 클라우드 목록을 화면에 반영
+      }
+    } catch (e) { console.warn("관심종목 동기화 실패", e); }
+  }
+  function cloudPush(list) {
+    if (fbUser && window.firebase) {
+      firebase.firestore().collection("watchlists").doc(fbUser.uid)
+        .set({ items: list, updated: Date.now() }).catch(() => {});
+    }
+  }
+  function updateLoginBtn() {
+    const b = document.getElementById("loginbtn");
+    if (!b) return;
+    if (fbUser) {
+      b.textContent = (fbUser.displayName || fbUser.email.split("@")[0]) + " ▾";
+      b.style.borderColor = "var(--gold-dim)"; b.style.color = "var(--gold)";
+    } else {
+      b.textContent = "로그인";
+      b.style.borderColor = ""; b.style.color = "";
+    }
+  }
+  const AUTH_ERR = {
+    "auth/invalid-credential": "이메일 또는 비밀번호가 올바르지 않습니다.",
+    "auth/invalid-email": "이메일 형식이 올바르지 않습니다.",
+    "auth/user-not-found": "등록되지 않은 계정입니다.",
+    "auth/wrong-password": "비밀번호가 올바르지 않습니다.",
+    "auth/too-many-requests": "시도가 너무 많습니다. 잠시 후 다시 해주세요.",
+    "auth/popup-closed-by-user": "로그인 창이 닫혔습니다.",
+  };
+  function setupLoginUI() {
+    const lm = document.createElement("div");
+    lm.id = "loginmodal";
+    lm.style.cssText = "position:fixed;inset:0;background:#000000aa;display:none;align-items:center;justify-content:center;z-index:300;";
+    lm.innerHTML = `<div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;width:min(340px,92vw);padding:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <b style="font-size:16px;">로그인</b><span id="lmclose" style="cursor:pointer;color:var(--muted);padding:2px 6px;">✕</span></div>
+      <button id="googlelogin" style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border);background:#fff;color:#1a1a1a;font-weight:800;font-size:13px;cursor:pointer;">Google 계정으로 로그인</button>
+      <div style="display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--dim);font-size:11px;"><span style="flex:1;height:1px;background:var(--border);"></span>또는<span style="flex:1;height:1px;background:var(--border);"></span></div>
+      <input id="lmemail" type="email" placeholder="이메일" autocomplete="username" style="width:100%;box-sizing:border-box;padding:10px 12px;margin-bottom:8px;border-radius:9px;border:1px solid var(--border);background:var(--panel2);color:var(--text);outline:none;font-size:13px;">
+      <input id="lmpw" type="password" placeholder="비밀번호" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:9px;border:1px solid var(--border);background:var(--panel2);color:var(--text);outline:none;font-size:13px;">
+      <button id="emaillogin" style="width:100%;padding:11px;border-radius:10px;border:none;background:#1d9e75;color:#fff;font-weight:800;font-size:13px;cursor:pointer;margin-top:10px;">이메일로 로그인</button>
+      <div id="lmerr" style="color:#f0708a;font-size:11.5px;margin-top:8px;min-height:15px;"></div>
+      <div style="color:var(--dim);font-size:10.5px;line-height:1.7;">이메일 계정은 운영자가 발급합니다.<br>로그인하면 관심종목이 계정에 저장되어 어느 기기에서든 이어집니다.</div>
+    </div>`;
+    document.body.appendChild(lm);
+    const err = m => document.getElementById("lmerr").textContent = m || "";
+    lm.addEventListener("click", e => { if (e.target === lm) lm.style.display = "none"; });
+    document.getElementById("lmclose").addEventListener("click", () => lm.style.display = "none");
+    document.getElementById("googlelogin").addEventListener("click", () => {
+      err("");
+      firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider())
+        .then(() => lm.style.display = "none")
+        .catch(e => err(AUTH_ERR[e.code] || "로그인에 실패했습니다."));
+    });
+    const doEmail = () => {
+      err("");
+      firebase.auth().signInWithEmailAndPassword(
+        document.getElementById("lmemail").value.trim(),
+        document.getElementById("lmpw").value)
+        .then(() => lm.style.display = "none")
+        .catch(e => err(AUTH_ERR[e.code] || "로그인에 실패했습니다."));
+    };
+    document.getElementById("emaillogin").addEventListener("click", doEmail);
+    document.getElementById("lmpw").addEventListener("keydown", e => { if (e.key === "Enter") doEmail(); });
+    document.getElementById("loginbtn").addEventListener("click", () => {
+      if (!fbOn()) { alert("로그인 기능은 준비 중입니다."); return; }
+      if (!window.firebase) { alert("로그인 모듈을 불러오는 중입니다. 잠시 후 다시 눌러주세요."); return; }
+      if (fbUser) {
+        if (confirm("로그아웃 할까요?\n(관심종목은 계정에 저장되어 있습니다)")) {
+          sessionStorage.removeItem("st_synced");
+          firebase.auth().signOut();
+        }
+      } else {
+        err(""); lm.style.display = "flex";
+      }
+    });
   }
 
   // 상단 네비게이션 렌더 + 검색
@@ -143,7 +267,7 @@ window.ST = (function () {
       <div class="spacer"></div>
       <div class="nsearch"><input id="navq" type="text" placeholder="종목명 또는 코드 검색" autocomplete="off"><span class="sicon">⌕</span><div class="suggest" id="navsug"></div></div>
       <span class="bell" title="알림 (준비 중)" onclick="alert('알림 기능은 준비 중입니다.')">🔔</span>
-      <button class="loginbtn" onclick="alert('로그인 기능은 준비 중입니다.')">로그인</button>`;
+      <button class="loginbtn" id="loginbtn">로그인</button>`;
     const input = document.getElementById("navq"), sug = document.getElementById("navsug");
     input.addEventListener("input", () => {
       const q = input.value.trim();
@@ -172,6 +296,9 @@ window.ST = (function () {
       (document.querySelector(".wrap") || document.body).appendChild(ft);
     }
     ft.textContent = notice;
+    // 로그인 UI + Firebase 초기화
+    setupLoginUI();
+    initFirebase();
   }
 
   function asofText() {
