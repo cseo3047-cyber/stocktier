@@ -113,13 +113,13 @@ const baseDate = (function(){ const d = new Date(); d.setDate(d.getDate()-91);
   return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`; })();
 
 // 3개월 수익률 상위 (시가총액 500억 이상)
-const top = A.slice().sort((a,b)=>(b.e[16]||0)-(a.e[16]||0)).slice(0,5);
-let SEL = top[0] || A[0];
+const TOP5 = A.slice().sort((a,b)=>(b.e[16]||0)-(a.e[16]||0)).slice(0,5);
+let SEL = TOP5[0] || A[0];
 
 // 상단 카드
 (function(){
   const sUp = A.filter(x=>x.sc>=80 && x.e[3]>0).length;
-  const avgR = top.length ? top.reduce((a,x)=>a+(x.e[16]||0),0)/top.length : 0;
+  const avgR = TOP5.length ? TOP5.reduce((a,x)=>a+(x.e[16]||0),0)/TOP5.length : 0;
   const dipN = A.filter(x=>(x.e[15]||0)<=-10).length;
   document.getElementById("cards").innerHTML = `
     <div class="scard"><span class="ic">📈</span><div><div class="lb">오늘 S티어 상승 종목</div><div class="vl num">${sUp}개</div><div class="sub">S티어 & 당일 상승</div></div></div>
@@ -130,7 +130,7 @@ let SEL = top[0] || A[0];
 
 // 만약 그때 샀다면 (3개월 전 100만원)
 (function(){
-  document.getElementById("simtop").innerHTML = top.map((x,i)=>{
+  document.getElementById("simtop").innerHTML = TOP5.map((x,i)=>{
     const g = ST.gradeOf(x.sc);
     const val = 1000000*(1+(x.e[16]||0)/100);
     return `<tr data-k="${encodeURIComponent(x.key)}" class="${x===SEL?"sel":""}">
@@ -245,7 +245,7 @@ function side(){
         <b style="width:26px;text-align:right;color:var(--text);">${clip(v)}</b></div>`).join("")}
     </div>`;
   const pts = [];
-  if (top[0]) pts.push(`${top[0].key}, 3개월 수익률 +${(top[0].e[16]||0).toFixed(1)}% 1위`);
+  if (TOP5[0]) pts.push(`${TOP5[0].key}, 3개월 수익률 +${(TOP5[0].e[16]||0).toFixed(1)}% 1위`);
   const upT = A.filter(x=>x.sc>=80 && x.e[3]>0).length;
   if (upT) pts.push(`S티어 상승 종목 ${upT}개 — 티어 랭킹 확인`);
   if ((SEL.e[15]||0)<0) pts.push(`${SEL.key}, 1개월 ${ST.pct(SEL.e[15])} — 물타기 시뮬 참고`);
