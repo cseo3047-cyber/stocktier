@@ -206,6 +206,84 @@ def earn_us():
     return out
 
 
+def sec_filings(symbols):
+    """SEC EDGAR 일별 공시 (무료 공개, 키 불필요) — 커버 종목만, 30일 누적 → dart_us.js"""
+    hd = {"User-Agent": "Stocktier data collector (contact: cseo3047@gmail.com)"}
+    try:
+        r = requests.get("https://www.sec.gov/files/company_tickers.json", headers=hd, timeout=20)
+        tk = {str(v["cik_str"]): str(v["ticker"]).upper() for v in r.json().values()}
+    except Exception as e:
+        print("[진단] SEC 티커맵 실패:", str(e)[:100], flush=True)
+        return
+    FORMS = {
+        "10-K": ("실적 보고", 3, 0), "10-Q": ("실적 보고", 3, 0),
+        "8-K": ("주요 사건", 3, 0), "6-K": ("주요 사건", 2, 0),
+        "S-1": ("증권 발행", 4, -1), "S-3": ("증권 발행", 4, -1), "424B5": ("증권 발행", 3, -1),
+        "SC 13D": ("지분 공시", 3, 1), "SC 13G": ("지분 공시", 2, 0),
+    }
+
+    def fetch_day(d):
+        ds = d.strftime("%Y%m%d")
+        q = (d.month - 1) // 3 + 1
+        url = f"https://www.sec.gov/Archives/edgar/daily-index/{d.year}/QTR{q}/form.{ds}.idx"
+        try:
+            r2 = requests.get(url, headers=hd, timeout=20)
+            if r2.status_code != 200:
+                return []
+            items = []
+            for line in r2.text.splitlines():
+                parts = re.split(r"\s{2,}", line.strip())
+                if len(parts) < 5:
+                    continue
+                form, comp, cik, _fd, fname = parts[0].strip().upper(), parts[1].strip(), parts[2].strip(), parts[3], parts[4].strip()
+                key = None
+                for fk in FORMS:
+                    if form == fk or form == fk + "/A":
+                        key = fk
+                        break
+                if not key:
+                    continue
+                sym = tk.get(cik)
+                if not sym or sym not in symbols:
+                    continue
+                ty, imp, tone = FORMS[key]
+                acc = fname.split("/")[-1].replace(".txt", "")
+                link = f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc.replace('-','')}/{acc}-index.htm"
+                items.append([comp[:40], sym, ty, form + " — " + comp[:60], imp, tone, link, "US"])
+            return items[:400]
+        except Exception as e:
+            print("[진단] SEC idx 실패:", ds, str(e)[:80], flush=True)
+            return []
+
+    store = {}
+    try:
+        with open("dart_us.js", encoding="utf-8") as f2:
+            m = re.search(r"window\.STOCK_DART_US=(\{.*\});", f2.read(), re.S)
+            if m:
+                store = json.loads(m.group(1))
+    except Exception:
+        store = {}
+    d0 = datetime.date.today()
+    fetched = 0
+    for back in range(30):
+        d = d0 - datetime.timedelta(days=back)
+        if d.weekday() >= 5:
+            continue
+        ds = d.strftime("%Y%m%d")
+        if ds in store and back >= 2:
+            continue
+        store[ds] = fetch_day(d)
+        fetched += 1
+        time.sleep(0.4)
+    cutoff = (d0 - datetime.timedelta(days=30)).strftime("%Y%m%d")
+    store = {k: v for k, v in store.items() if k >= cutoff}
+    with open("dart_us.js", "w", encoding="utf-8") as f2:
+        f2.write("window.STOCK_DART_US=" + json.dumps(store, ensure_ascii=False,
+                                                      separators=(",", ":")) + ";\n")
+    print("SEC 공시 누적:", sum(len(v) for v in store.values()), "건 /", len(store),
+          "일 (신규", fetched, "일) → dart_us.js", flush=True)
+
+
 def main():
     stocks = listing()
     if len(stocks) < 500:
@@ -340,6 +418,9 @@ def main():
         fp.write("window.KO_ALIAS=" + json.dumps(alias, ensure_ascii=False,
                                                  separators=(",", ":")) + ";\n")
     print("완료:", len(out), "종목 / 한글명", len(alias), "개 → data_us.js")
+
+    # SEC 공시 (커버 종목만, 30일 누적)
+    sec_filings(set(out.keys()))
 
 
 if __name__ == "__main__":

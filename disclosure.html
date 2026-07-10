@@ -81,17 +81,22 @@
 <script src="data.js"></script>
 <script src="data_us.js"></script>
 <script src="dart.js"></script>
+<script src="dart_us.js"></script>
 <script src="common.js"></script>
 <script>
 ST.nav("disclosure.html");
 document.getElementById("asof").textContent = "업데이트: " + ST.asofText();
 const box = document.getElementById("body");
 const MK = window.STOCK_MARKET || {};
-const STORE = window.STOCK_DART || null;              // 최근 30일 누적 (dart.js)
+const STORE = window.STOCK_DART || null;              // 국내 30일 누적 (dart.js)
+const STOREU = window.STOCK_DART_US || null;          // 미국 30일 누적 (dart_us.js — SEC EDGAR)
 const FALLBACK = (MK.dart && MK.dart.items) || [];    // 구버전 호환
-const DATES = STORE ? Object.keys(STORE).filter(k=>STORE[k]&&STORE[k].length).sort().reverse()
-                    : (FALLBACK.length ? [(MK.dart && MK.dart.date) || ""] : []);
-let SELD = STORE ? "all" : (DATES[0] || "");
+const dset = new Set();
+if (STORE) for (const k of Object.keys(STORE)) if (STORE[k] && STORE[k].length) dset.add(k);
+if (STOREU) for (const k of Object.keys(STOREU)) if (STOREU[k] && STOREU[k].length) dset.add(k);
+const DATES = dset.size ? [...dset].sort().reverse()
+                        : (FALLBACK.length ? [(MK.dart && MK.dart.date) || ""] : []);
+let SELD = dset.size ? "all" : (DATES[0] || "");
 
 if (!DATES.length) {
   box.innerHTML = `<div class="card" style="text-align:center;padding:56px;">
@@ -107,17 +112,28 @@ const DDATE = SELD==="all" ? (DATES[0] || "") : SELD;
 const codeMap = {};
 for (const k of Object.keys(ST.KR)) codeMap[ST.KR[k][0]] = k;
 const mapRow = r => {
-  const key = codeMap[r[1]];
-  const e = key ? ST.KR[key] : null;
-  return { corp:r[0], code:r[1], type:r[2], title:r[3], imp:r[4], tone:r[5], no:r[6], mkt:r[7]==="Y"?"KOSPI":"KOSDAQ", key, chg: e?e[3]:null };
+  const usR = r[7] === "US";
+  const key = usR ? (ST.US[r[1]] ? r[1] : null) : codeMap[r[1]];
+  const e = usR ? ST.US[r[1]] : (key ? ST.KR[key] : null);
+  return { corp: usR && key ? ST.displayName("us", r[1]) : r[0],
+           code:r[1], type:r[2], title:r[3], imp:r[4], tone:r[5], no:r[6],
+           mkt: usR ? "미국" : (r[7]==="Y"?"KOSPI":"KOSDAQ"),
+           us: usR, src: usR ? "us" : "kr", key, chg: e?e[3]:null };
 };
 // 30일 전체 (주가 반응은 최신 수집일만 유효)
 const ALLD = [];
-if (STORE) {
-  for (const dk of DATES) for (const r of (STORE[dk]||[])) {
-    const o = mapRow(r); o.date = dk;
-    if (dk !== DATES[0]) o.chg = null;
-    ALLD.push(o);
+if (dset.size) {
+  for (const dk of DATES) {
+    for (const r of ((STORE && STORE[dk]) || [])) {
+      const o = mapRow(r); o.date = dk;
+      if (dk !== DATES[0]) o.chg = null;
+      ALLD.push(o);
+    }
+    for (const r of ((STOREU && STOREU[dk]) || [])) {
+      const o = mapRow(r); o.date = dk;
+      if (dk !== DATES[0]) o.chg = null;
+      ALLD.push(o);
+    }
   }
 } else {
   for (const r of FALLBACK) { const o = mapRow(r); o.date = DDATE; ALLD.push(o); }
@@ -126,12 +142,14 @@ const ITEMS = SELD==="all" ? ALLD : ALLD.filter(x=>x.date===SELD);
 const toneLb = t => t>=2?["매우 호재","t-vgood"]:t===1?["호재","t-good"]:t===0?["중립","t-neu"]:t===-1?["악재","t-bad"]:["매우 악재","t-vbad"];
 const impCol = v => v>=5?"#f0645a":v>=4?"#e0a63e":v>=3?"#f0c948":"#8fd6b8";
 const dartUrl = no => "https://dart.fss.or.kr/dsaf001/main.do?rcpNo="+no;
-const logo = code => {
-  const nv = `https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock${code}.svg`;
-  const ts = "https://thumb.tossinvest.com/image/resized/96x0/" + encodeURIComponent("https://static.toss.im/png-icons/securities/icn-sec-fill-"+code+".png");
+const logo = x => {
+  const usFx = x.us ? (ST.US[x.code] ? (ST.US[x.code][1]==="NASDAQ"?".O":ST.US[x.code][1]==="NYSE"?".N":".A") : ".O") : "";
+  const nv = `https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock${x.code}${usFx}.svg`;
+  const ts = x.us ? nv : "https://thumb.tossinvest.com/image/resized/96x0/" + encodeURIComponent("https://static.toss.im/png-icons/securities/icn-sec-fill-"+x.code+".png");
   return `<img src="${ts}" style="width:18px;height:18px;border-radius:50%;background:#fff;flex-shrink:0;vertical-align:-4px;margin-right:5px;" loading="lazy"
     onerror="if(!this.dataset.f){this.dataset.f=1;this.src='${nv}';}else{this.style.visibility='hidden';}">`;
 };
+const linkOf = x => x.us ? x.no : dartUrl(x.no);
 
 // ── 상단 카드 5개
 const docIcon = `<svg width="23" height="24" viewBox="0 0 22 24" fill="none" stroke="#4cd7a5" stroke-width="1.8" stroke-linecap="round"><path d="M4 2h9l5 5v15H4z"/><path d="M13 2v5h5"/><line x1="7.5" y1="12" x2="14.5" y2="12"/><line x1="7.5" y1="16" x2="14.5" y2="16"/></svg>`;
@@ -166,7 +184,7 @@ const cards = `
 
 // ── 충격도 TOP 테이블
 let CAT = "all", SORT = "imp", MKT = "all", SHOW = 10, Q = "";
-const TYPES = ["유상증자","전환사채","공급계약","최대주주 변경","소송","실적·영업","감사의견","거래정지","투자주의·경고"];
+const TYPES = ["유상증자","전환사채","공급계약","최대주주 변경","소송","실적·영업","감사의견","거래정지","투자주의·경고","실적 보고","주요 사건","지분 공시","증권 발행"];
 function pool(){
   let p;
   if (Q) {
@@ -178,7 +196,7 @@ function pool(){
   }
   if (SORT==="imp") p.sort((a,b)=>b.imp-a.imp || Math.abs(b.chg||0)-Math.abs(a.chg||0));
   else if (SORT==="chg") p.sort((a,b)=>Math.abs(b.chg||0)-Math.abs(a.chg||0));
-  else if (SORT==="time") p.sort((a,b)=>b.no.localeCompare(a.no));
+  else if (SORT==="time") p.sort((a,b)=>((b.date||"")+b.no).localeCompare((a.date||"")+a.no));
   return p;
 }
 const tblCard = `
@@ -204,7 +222,8 @@ function drawBar(){
       <select onchange="setMkt(this.value)">
         <option value="all" ${MKT==="all"?"selected":""}>전체 시장</option>
         <option value="KOSPI" ${MKT==="KOSPI"?"selected":""}>코스피</option>
-        <option value="KOSDAQ" ${MKT==="KOSDAQ"?"selected":""}>코스닥</option></select>
+        <option value="KOSDAQ" ${MKT==="KOSDAQ"?"selected":""}>코스닥</option>
+        <option value="미국" ${MKT==="미국"?"selected":""}>미국</option></select>
       <select onchange="setSort(this.value)">
         <option value="imp" ${SORT==="imp"?"selected":""}>충격도 높은 순</option>
         <option value="chg" ${SORT==="chg"?"selected":""}>주가 반응 순</option>
@@ -220,9 +239,9 @@ function drawTbl(){
     const [tl,tc] = toneLb(x.tone);
     return `<tr>
       <td class="num" style="color:var(--muted);font-size:11px;">${x.date?x.date.slice(4,6)+"/"+x.date.slice(6,8):"-"}</td>
-      <td class="nm" ${x.key?`style="cursor:pointer;" onclick="location.href='${ST.stockUrl("kr",x.key)}'"`:""}>${logo(x.code)}${x.corp}</td>
-      <td><span class="tchg" style="background:#22303c;color:#9db9d4;">${x.type}</span></td>
-      <td class="tt"><a href="${dartUrl(x.no)}" target="_blank" rel="noopener" title="${x.title}">${x.title}</a></td>
+      <td class="nm" ${x.key?`style="cursor:pointer;" onclick="location.href='${ST.stockUrl(x.src,x.key)}'"`:""}>${logo(x)}${x.corp}</td>
+      <td><span class="tchg" style="${x.us?"background:#13303d;color:#66c6e8;":"background:#22303c;color:#9db9d4;"}">${x.type}</span></td>
+      <td class="tt"><a href="${linkOf(x)}" target="_blank" rel="noopener" title="${x.title}">${x.title}</a></td>
       <td><span class="impn" style="background:${impCol(x.imp)};">${x.imp}.0</span></td>
       <td><span class="vbadge ${tc}">${tl}</span></td>
       <td class="num ${x.chg!=null?ST.cls(x.chg):""}" style="font-weight:800;">${x.chg!=null?ST.pct2(x.chg):"-"}</td>
@@ -236,12 +255,12 @@ const recent = ITEMS.slice(0,5);
 const alertCard = `<div class="card"><h3>실시간 공시 알림 <span class="more" style="cursor:default;">접수 최신순</span></h3>
   ${recent.map(x=>`<div class="alrow">
     <span class="tchg" style="background:#22303c;color:#9db9d4;flex-shrink:0;">${x.type}</span>
-    <span class="tx"><b style="color:var(--text);">${x.corp}</b> <a href="${dartUrl(x.no)}" target="_blank" rel="noopener" style="color:var(--muted);">${x.title}</a></span>
+    <span class="tx"><b style="color:var(--text);">${x.corp}</b> <a href="${linkOf(x)}" target="_blank" rel="noopener" style="color:var(--muted);">${x.title}</a></span>
     <span class="impn" style="background:${impCol(x.imp)};flex-shrink:0;">${x.imp}.0</span></div>`).join("")}</div>`;
 
 const hotDisc = ITEMS.filter(x=>x.chg!=null).sort((a,b)=>Math.abs(b.chg)-Math.abs(a.chg)).slice(0,5);
 const hotCard = `<div class="card"><h3>시장 영향도 높은 공시</h3>
-  ${hotDisc.length ? hotDisc.map((x,i)=>`<div class="nrow2" ${x.key?`onclick="location.href='${ST.stockUrl("kr",x.key)}'"`:""}>
+  ${hotDisc.length ? hotDisc.map((x,i)=>`<div class="nrow2" ${x.key?`onclick="location.href='${ST.stockUrl(x.src,x.key)}'"`:""}>
     <span class="rank">${i+1}</span><span class="tx">${x.corp}</span>
     <span class="tchg" style="background:#22303c;color:#9db9d4;">${x.type}</span>
     <b class="num ${ST.cls(x.chg)}" style="font-size:11.5px;">${ST.pct2(x.chg)}</b>
