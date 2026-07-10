@@ -59,10 +59,12 @@ window.ST = (function () {
                               : (c>=10000?(c/10000).toFixed(1).replace(/\.0$/,"")+"조원":num(c)+"억원");
   const priceStr = (p,us) => us ? "$"+Number(p).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}) : num(p)+"원";
 
+  // 티커 → 한글명 역방향 맵 (1회 생성 — 매번 전체 탐색하면 검색이 멈춤)
+  const ALIAS_REV = {};
+  for (const a of Object.keys(ALIAS)) ALIAS_REV[ALIAS[a]] = a;
   function displayName(src, key) {
     if (src==="kr") return key;
-    const ko = Object.keys(ALIAS).find(a => ALIAS[a]===key);
-    return ko || (US[key] && US[key][17]) || key;
+    return ALIAS_REV[key] || (US[key] && US[key][17]) || key;
   }
   function get(src, key) { return src==="us" ? US[key] : KR[key]; }
   function all() {
