@@ -171,6 +171,40 @@ def fetch_one(st):
     return st, entry, last_date
 
 
+def earn_us():
+    """실적 발표 예정일 (나스닥 공식 캘린더 API, 향후 40일)"""
+    hd = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          "Accept": "application/json, text/plain, */*",
+          "Origin": "https://www.nasdaq.com",
+          "Referer": "https://www.nasdaq.com/"}
+    out = {}
+    ok = 0
+    for i in range(40):
+        d = TODAY + datetime.timedelta(days=i)
+        if d.weekday() >= 5:          # 주말 제외
+            continue
+        ds = d.strftime("%Y-%m-%d")
+        try:
+            r = requests.get("https://api.nasdaq.com/api/calendar/earnings?date=" + ds,
+                             headers=hd, timeout=15)
+            if r.status_code != 200:
+                if ok == 0 and i < 3:
+                    print("[진단] 나스닥 캘린더 status=", r.status_code, flush=True)
+                continue
+            rows = ((r.json().get("data") or {}).get("rows")) or []
+            for row in rows:
+                sym = str(row.get("symbol") or "").strip().upper()
+                if sym:
+                    out.setdefault(sym, d.strftime("%Y%m%d"))
+            ok += 1
+        except Exception as e:
+            if ok == 0 and i < 3:
+                print("[진단] 나스닥 캘린더 실패:", str(e)[:100], flush=True)
+        time.sleep(0.4)
+    print("실적 일정(미국):", len(out), "종목 /", ok, "일 성공", flush=True)
+    return out
+
+
 def main():
     stocks = listing()
     if len(stocks) < 500:
@@ -217,6 +251,7 @@ def main():
         return []
 
     market["news"] = news_us()
+    market["earn"] = earn_us()
 
     out, alias, ind = {}, {}, {}
     base_date = ""
