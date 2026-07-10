@@ -395,34 +395,60 @@ def market_extra():
                     return ty, imp, tone
             return "기타", 2, 0
 
-        d0 = datetime.date.today()
-        for back in range(6):   # 주말·휴일이면 직전 영업일까지 거슬러 탐색
-            ds = (d0 - datetime.timedelta(days=back)).strftime("%Y%m%d")
+        def fetch_day(ds):
             rows = []
             for page in range(1, 11):
                 j = get_json(f"https://opendart.fss.or.kr/api/list.json?crtfc_key={key}"
                              f"&bgn_de={ds}&end_de={ds}&page_no={page}&page_count=100")
                 if not j or j.get("status") != "000":
-                    if page == 1 and j:
+                    if page == 1 and j and j.get("status") != "013":   # 013 = 조회 데이터 없음(휴일)
                         print("[진단] DART 응답:", j.get("status"), str(j.get("message"))[:80], flush=True)
                     break
                 rows += j.get("list", [])
                 if page >= int(j.get("total_page", 1) or 1):
                     break
                 time.sleep(0.2)
-            rows = [r for r in rows if r.get("corp_cls") in ("Y", "K") and (r.get("stock_code") or "").strip()]
-            if rows:
-                items = []
-                for r in rows:
-                    nm = str(r.get("report_nm") or "").strip()
-                    ty, imp, tone = classify(nm)
-                    items.append([str(r.get("corp_name") or ""), str(r.get("stock_code") or "").strip(),
-                                  ty, nm, imp, tone, str(r.get("rcept_no") or ""),
-                                  "Y" if r.get("corp_cls") == "Y" else "K"])
-                items.sort(key=lambda x: x[6], reverse=True)   # 접수번호 = 최신순
-                print("공시:", len(items), "건 (", ds, ")", flush=True)
-                return {"date": ds, "items": items[:400]}
-        print("[진단] 공시 0건 (최근 6일)", flush=True)
+            items = []
+            for r in rows:
+                if r.get("corp_cls") not in ("Y", "K") or not (r.get("stock_code") or "").strip():
+                    continue
+                nm = str(r.get("report_nm") or "").strip()
+                ty, imp, tone = classify(nm)
+                items.append([str(r.get("corp_name") or ""), str(r.get("stock_code") or "").strip(),
+                              ty, nm, imp, tone, str(r.get("rcept_no") or ""),
+                              "Y" if r.get("corp_cls") == "Y" else "K"])
+            items.sort(key=lambda x: x[6], reverse=True)   # 접수번호 = 최신순
+            return items[:400]
+
+        # 기존 누적분(dart.js) 로드 → 최근 30일 중 빠진 날짜만 새로 조회 (오늘·어제는 항상 갱신)
+        store = {}
+        try:
+            with open("dart.js", encoding="utf-8") as f:
+                m = re.search(r"window\.STOCK_DART=(\{.*\});", f.read(), re.S)
+                if m:
+                    store = json.loads(m.group(1))
+        except Exception:
+            store = {}
+        d0 = datetime.date.today()
+        fetched = 0
+        for back in range(30):
+            ds = (d0 - datetime.timedelta(days=back)).strftime("%Y%m%d")
+            if ds in store and back >= 2:
+                continue
+            store[ds] = fetch_day(ds)
+            fetched += 1
+            time.sleep(0.3)
+        cutoff = (d0 - datetime.timedelta(days=30)).strftime("%Y%m%d")
+        store = {k: v for k, v in store.items() if k >= cutoff}
+        with open("dart.js", "w", encoding="utf-8") as f:
+            f.write("window.STOCK_DART=" + json.dumps(store, ensure_ascii=False,
+                                                      separators=(",", ":")) + ";\n")
+        total = sum(len(v) for v in store.values())
+        print("공시 누적:", total, "건 /", len(store), "일 (신규 조회", fetched, "일) → dart.js", flush=True)
+        for ds in sorted(store.keys(), reverse=True):
+            if store[ds]:
+                return {"date": ds, "items": store[ds]}
+        print("[진단] 공시 0건 (최근 30일)", flush=True)
         return {"date": "", "items": []}
 
     mk["upjong"] = groups("upjong", 100) or upjong_scrape()

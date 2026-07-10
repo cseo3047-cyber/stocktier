@@ -79,30 +79,47 @@
 
 <script src="data.js"></script>
 <script src="data_us.js"></script>
+<script src="dart.js"></script>
 <script src="common.js"></script>
 <script>
 ST.nav("disclosure.html");
 document.getElementById("asof").textContent = "업데이트: " + ST.asofText();
 const box = document.getElementById("body");
 const MK = window.STOCK_MARKET || {};
-const DART = (MK.dart && MK.dart.items) || [];
-const DDATE = (MK.dart && MK.dart.date) || "";
+const STORE = window.STOCK_DART || null;              // 최근 30일 누적 (dart.js)
+const FALLBACK = (MK.dart && MK.dart.items) || [];    // 구버전 호환
+const DATES = STORE ? Object.keys(STORE).filter(k=>STORE[k]&&STORE[k].length).sort().reverse()
+                    : (FALLBACK.length ? [(MK.dart && MK.dart.date) || ""] : []);
+let SELD = DATES[0] || "";
 
-if (!DART.length) {
+if (!DATES.length) {
   box.innerHTML = `<div class="card" style="text-align:center;padding:56px;">
     <div style="font-size:18px;font-weight:800;margin-bottom:8px;">공시 데이터가 아직 없어요</div>
     <div style="font-size:13px;color:var(--muted);line-height:1.9;">GitHub 저장소에 <b>DART_API_KEY</b> 시크릿을 등록하고<br>국내 수집 워크플로(Run workflow)를 실행하면 여기에 공시 분석이 표시됩니다.</div></div>`;
-} else {
+} else { renderAll(); }
+
+function renderAll() {
+const DART = STORE ? (STORE[SELD] || []) : FALLBACK;
+const DDATE = SELD;
+const CHGOK = SELD === DATES[0];   // 주가 반응(당일)은 최신 수집일만 유효
 
 // 항목: [기업명, 종목코드, 유형, 제목, 충격도(1~5), 호악재(-2~2), 접수번호, 시장(Y/K)]
 // 주가 반응: 당일 등락률 (data.js 코드 매칭)
 const codeMap = {};
 for (const k of Object.keys(ST.KR)) codeMap[ST.KR[k][0]] = k;
-const ITEMS = DART.map(r => {
+const mapRow = r => {
   const key = codeMap[r[1]];
   const e = key ? ST.KR[key] : null;
   return { corp:r[0], code:r[1], type:r[2], title:r[3], imp:r[4], tone:r[5], no:r[6], mkt:r[7]==="Y"?"KOSPI":"KOSDAQ", key, chg: e?e[3]:null };
-});
+};
+const ITEMS = DART.map(mapRow).map(o => { if (!CHGOK) o.chg = null; return o; });
+// 30일 전체 (검색용)
+const ALLD = [];
+if (STORE) for (const dk of DATES) for (const r of (STORE[dk]||[])) {
+  const o = mapRow(r); o.date = dk;
+  if (dk !== DATES[0]) o.chg = null;
+  ALLD.push(o);
+}
 const toneLb = t => t>=2?["매우 호재","t-vgood"]:t===1?["호재","t-good"]:t===0?["중립","t-neu"]:t===-1?["악재","t-bad"]:["매우 악재","t-vbad"];
 const impCol = v => v>=5?"#f0645a":v>=4?"#e0a63e":v>=3?"#f0c948":"#8fd6b8";
 const dartUrl = no => "https://dart.fss.or.kr/dsaf001/main.do?rcpNo="+no;
@@ -150,7 +167,7 @@ const TYPES = ["유상증자","전환사채","공급계약","최대주주 변경
 function pool(){
   let p;
   if (Q) {
-    p = ITEMS.filter(x => x.corp.includes(Q) || x.code.includes(Q) || x.title.includes(Q)).slice();
+    p = (STORE ? ALLD : ITEMS).filter(x => x.corp.includes(Q) || x.code.includes(Q) || x.title.includes(Q)).slice();
   } else {
     p = ITEMS.filter(x => CAT==="all" || x.type===CAT || (CAT==="기타" && !TYPES.includes(x.type)));
     if (MKT!=="all") p = p.filter(x=>x.mkt===MKT);
@@ -163,9 +180,13 @@ function pool(){
 const tblCard = `
 <div class="card"><h3>오늘의 공시 충격도 TOP</h3>
   <div class="fbar" style="margin-bottom:8px;">
-    <input id="dscq" placeholder="기업명 · 종목코드 · 공시 제목 검색" autocomplete="off"
+    <input id="dscq" placeholder="기업명 · 종목코드 · 공시 제목 검색 (최근 30일)" autocomplete="off"
       style="flex:1;max-width:320px;padding:8px 12px;font-size:12.5px;background:var(--panel2);border:1.5px solid var(--border);border-radius:9px;color:var(--text);outline:none;">
     <span id="dscqinfo" style="font-size:11px;color:var(--dim);"></span>
+    <span style="margin-left:auto;display:flex;gap:7px;align-items:center;font-size:11px;color:var(--dim);">날짜
+      <select id="datesel" style="background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 8px;font-size:11.5px;outline:none;">
+        ${DATES.map(d=>`<option value="${d}" ${d===SELD?"selected":""}>${d.slice(4,6)}/${d.slice(6,8)}</option>`).join("")}
+      </select></span>
   </div>
   <div class="fbar" id="catbar"></div>
   <table class="stbl"><thead><tr><th>순위</th><th style="text-align:left;">종목명</th><th>공시 유형</th><th style="text-align:left;">공시 제목</th><th>충격도 (1~5)</th><th>영향도</th><th>주가 반응(당일)</th></tr></thead>
@@ -197,7 +218,7 @@ function drawTbl(){
       <td class="num" style="color:var(--muted);">${i+1}</td>
       <td class="nm" ${x.key?`style="cursor:pointer;" onclick="location.href='${ST.stockUrl("kr",x.key)}'"`:""}>${logo(x.code)}${x.corp}</td>
       <td><span class="tchg" style="background:#22303c;color:#9db9d4;">${x.type}</span></td>
-      <td class="tt"><a href="${dartUrl(x.no)}" target="_blank" rel="noopener" title="${x.title}">${x.title}</a></td>
+      <td class="tt">${Q&&x.date?`<span style="color:var(--dim);font-size:10px;">[${x.date.slice(4,6)}/${x.date.slice(6,8)}]</span> `:""}<a href="${dartUrl(x.no)}" target="_blank" rel="noopener" title="${x.title}">${x.title}</a></td>
       <td><span class="impn" style="background:${impCol(x.imp)};">${x.imp}.0</span></td>
       <td><span class="vbadge ${tc}">${tl}</span></td>
       <td class="num ${x.chg!=null?ST.cls(x.chg):""}" style="font-weight:800;">${x.chg!=null?ST.pct2(x.chg):"-"}</td>
@@ -282,8 +303,9 @@ box.innerHTML = `
 drawBar(); drawTbl();
 document.getElementById("dscq").addEventListener("input", e => {
   Q = e.target.value.trim(); SHOW = 10; drawTbl();
-  document.getElementById("dscqinfo").textContent = Q ? "검색 중에는 유형·시장 필터 없이 전체 공시에서 찾습니다" : "";
+  document.getElementById("dscqinfo").textContent = Q ? `최근 ${DATES.length}일 전체 공시에서 검색 중 (필터 무시)` : "";
 });
+document.getElementById("datesel").addEventListener("change", e => { SELD = e.target.value; renderAll(); });
 }
 </script>
 </body>
