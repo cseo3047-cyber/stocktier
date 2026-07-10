@@ -295,7 +295,7 @@ window.ST = (function () {
       ft.className = "footer";
       (document.querySelector(".wrap") || document.body).appendChild(ft);
     }
-    ft.textContent = notice;
+    ft.innerHTML = notice + ` &nbsp;·&nbsp; <a href="privacy.html" style="color:var(--muted);text-decoration:underline;">개인정보 처리방침</a>`;
     // 로그인 UI + Firebase 초기화
     setupLoginUI();
     initFirebase();
