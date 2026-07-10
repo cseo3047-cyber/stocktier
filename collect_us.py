@@ -243,7 +243,7 @@ def main():
                     u = lmt.group(1).strip()
                     tm2 = f"{mon.get(dmt.group(2), '01')}/{int(dmt.group(1)):02d} {dmt.group(3)}:{dmt.group(4)}" if dmt else ""
                     if t and u.startswith("http"):
-                        out.append([t, office, tm2, u])
+                        out.append([t, office, tm2, u, "해외"])
                     if len(out) >= n:
                         break
                 if out:

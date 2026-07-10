@@ -72,6 +72,11 @@
     <div>
       <div class="cards4" id="cards"></div>
       <div class="card"><h3>실적 캘린더</h3>
+        <div class="fbar" style="margin-bottom:8px;">
+          <input id="calq" placeholder="종목명 또는 코드 검색 (예: 삼성전자, AAPL)" autocomplete="off"
+            style="flex:1;max-width:320px;padding:8px 12px;font-size:12.5px;background:var(--panel2);border:1.5px solid var(--border);border-radius:9px;color:var(--text);outline:none;">
+          <span id="calqinfo" style="font-size:11px;color:var(--dim);"></span>
+        </div>
         <div class="fbar" id="catbar"></div>
         <table class="stbl"><thead><tr><th>순위</th><th>발표일</th><th style="text-align:left;">종목명</th><th>코드</th><th>시장</th><th>구분</th><th>시가총액</th><th>티어</th><th>중요도</th><th>최근 변화</th></tr></thead>
         <tbody id="tbody"></tbody></table>
@@ -171,15 +176,24 @@ document.getElementById("cards").innerHTML = `
   <div class="scard"><span class="ic">${globeIcon}</span><div class="l"><div class="lb">경제 이벤트</div><div class="vl num">${ST.num(ecoN)}<small> 개</small></div><div class="sub">30일 이내 · FOMC 등</div></div>${miniBars("cg4","#1d9e75","#8fd6b8",ecoN*9+21)}</div>`;
 
 // ── 캘린더 테이블
-let PER = "week", MKT = "all", SORT = "date", SHOW = 15;
+let PER = "week", MKT = "all", SORT = "date", SHOW = 15, Q = "";
 const PERS = [["today","오늘"],["week","이번 주"],["month","이번 달"],["all","전체"]];
 function pool(){
+  if (Q) {
+    const qU = Q.toUpperCase();
+    return CAL.filter(x => ST.displayName(x.src,x.key).includes(Q) ||
+      String(x.key).toUpperCase().includes(qU) || String(x.e[0]).includes(Q));
+  }
   let p = CAL.filter(x => PER==="today" ? dday(x.eo.d)===0 : PER==="week" ? dday(x.eo.d)<=7 : PER==="month" ? dday(x.eo.d)<=31 : true);
   if (MKT==="kr") p = p.filter(x=>!x.us);
   else if (MKT==="us") p = p.filter(x=>x.us);
   if (SORT==="cap") p = p.slice().sort((a,b)=>b.e[8]*(b.us?13.5:1)-a.e[8]*(a.us?13.5:1));
   return p;
 }
+document.getElementById("calq").addEventListener("input", e => {
+  Q = e.target.value.trim(); SHOW = 15; drawTbl();
+  document.getElementById("calqinfo").textContent = Q ? "검색 중에는 기간·시장 필터 없이 전체(45일 이내)에서 찾습니다" : "";
+});
 function drawBar(){
   document.getElementById("catbar").innerHTML =
     PERS.map(([k,t])=>`<span class="fchip ${PER===k?"on":""}" onclick="setPer('${k}')">${t}</span>`).join("") +

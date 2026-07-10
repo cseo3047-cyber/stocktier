@@ -278,37 +278,63 @@ def market_extra():
                 print("[진단] upjong 스크래핑 실패:", str(e)[:150], flush=True)
         return []
 
-    def rss_news(feeds, n=8):
-        """언론사 공식 RSS에서 제목+링크만 수집 (네이버 API 실패 시 폴백)"""
+    def rss_feed(url, office, cat, n=5):
+        """RSS 1개에서 제목+링크 수집 → [제목, 출처, 시각, 링크, 분야]"""
         import html as _h
         mon = {"Jan": "01", "Feb": "02", "Mar": "03", "Apr": "04", "May": "05", "Jun": "06",
                "Jul": "07", "Aug": "08", "Sep": "09", "Oct": "10", "Nov": "11", "Dec": "12"}
-        for url, office in feeds:
-            try:
-                r = requests.get(url, headers=PC_HEADERS, timeout=15)
-                if r.status_code != 200:
-                    print("[진단] RSS status=", r.status_code, url[:60], flush=True)
+        try:
+            r = requests.get(url, headers=PC_HEADERS, timeout=15)
+            if r.status_code != 200:
+                print("[진단] RSS status=", r.status_code, cat, url[:60], flush=True)
+                return []
+            out = []
+            for it in re.findall(r"<item>(.*?)</item>", r.text, re.S):
+                tmt = re.search(r"<title>\s*(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?\s*</title>", it, re.S)
+                lmt = re.search(r"<link>\s*(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?\s*</link>", it, re.S)
+                dmt = re.search(r"(\d{1,2}) ([A-Za-z]{3}) \d{4} (\d{2}):(\d{2})", it)
+                if not tmt or not lmt:
                     continue
-                out = []
-                for it in re.findall(r"<item>(.*?)</item>", r.text, re.S):
-                    tmt = re.search(r"<title>\s*(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?\s*</title>", it, re.S)
-                    lmt = re.search(r"<link>\s*(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?\s*</link>", it, re.S)
-                    dmt = re.search(r"(\d{1,2}) ([A-Za-z]{3}) \d{4} (\d{2}):(\d{2})", it)
-                    if not tmt or not lmt:
-                        continue
-                    t = _h.unescape(re.sub(r"<[^>]+>", "", tmt.group(1))).strip()
-                    u = lmt.group(1).strip()
-                    tm2 = f"{mon.get(dmt.group(2), '01')}/{int(dmt.group(1)):02d} {dmt.group(3)}:{dmt.group(4)}" if dmt else ""
-                    if t and u.startswith("http"):
-                        out.append([t, office, tm2, u])
-                    if len(out) >= n:
-                        break
-                if out:
-                    print("RSS 뉴스:", len(out), "건 ←", office, flush=True)
-                    return out
-            except Exception as e:
-                print("[진단] RSS 실패:", str(e)[:100], url[:60], flush=True)
-        return []
+                t = _h.unescape(re.sub(r"<[^>]+>", "", tmt.group(1))).strip()
+                u = lmt.group(1).strip()
+                tm2 = f"{mon.get(dmt.group(2), '01')}/{int(dmt.group(1)):02d} {dmt.group(3)}:{dmt.group(4)}" if dmt else ""
+                if t and u.startswith("http"):
+                    out.append([t, office, tm2, u, cat])
+                if len(out) >= n:
+                    break
+            return out
+        except Exception as e:
+            print("[진단] RSS 실패:", str(e)[:100], url[:60], flush=True)
+            return []
+
+    def rss_news(_unused=None, n=8):
+        """분야별 여러 언론사 RSS를 합쳐 다양하게 수집 (후보 주소는 실패해도 무시)"""
+        FEEDS = [
+            # (주소, 출처, 분야) — 분야: 시장/기업/정책/산업/해외
+            ("https://www.mk.co.kr/rss/50200011/", "매일경제", "시장"),
+            ("https://www.hankyung.com/feed/finance", "한국경제", "시장"),
+            ("https://www.mk.co.kr/rss/30100041/", "매일경제", "기업"),
+            ("https://www.hankyung.com/feed/economy", "한국경제", "기업"),
+            ("https://www.yna.co.kr/rss/economy.xml", "연합뉴스", "정책"),
+            ("https://www.yna.co.kr/rss/industry.xml", "연합뉴스", "산업"),
+            ("https://www.hankyung.com/feed/industry", "한국경제", "산업"),
+            ("https://www.mk.co.kr/rss/30300018/", "매일경제", "해외"),
+            ("https://www.yna.co.kr/rss/international.xml", "연합뉴스", "해외"),
+        ]
+        out, seenT, catN = [], set(), {}
+        for url, office, cat in FEEDS:
+            if catN.get(cat, 0) >= 5:
+                continue
+            for it in rss_feed(url, office, cat, 5):
+                if it[0] in seenT:
+                    continue
+                seenT.add(it[0])
+                out.append(it)
+                catN[cat] = catN.get(cat, 0) + 1
+            time.sleep(0.2)
+        out.sort(key=lambda x: x[2] or "00/00 00:00", reverse=True)
+        print("RSS 뉴스 통합:", len(out), "건 / 분야:", dict(catN), flush=True)
+        return out[:22]
 
     def news_kr():
         import html as _h
