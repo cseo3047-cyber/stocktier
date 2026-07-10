@@ -14,59 +14,70 @@
   .pick .vs { font-size:15px; font-weight:800; color:var(--gold); }
   @media (max-width:700px){ .pick { grid-template-columns:1fr; } .pick .vs { text-align:center; } }
 
-  .row4 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
-  @media (max-width:1080px){ .row4 { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-  .scard { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:15px 17px; display:flex; gap:12px; align-items:center; }
-  .scard .ic { width:40px; height:40px; border-radius:50%; background:#c9a83222; border:1px solid #c9a83244; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
-  .scard .lb { font-size:11.5px; color:var(--muted); font-weight:700; margin-bottom:3px; }
-  .scard .vl { font-size:17px; font-weight:800; }
-  .scard .sub { font-size:10.5px; color:var(--dim); margin-top:2px; }
-
-  .layout { display:grid; grid-template-columns:1fr 320px; gap:14px; }
+  .layout { display:grid; grid-template-columns:1fr 310px; gap:14px; align-items:start; }
   @media (max-width:1080px){ .layout { grid-template-columns:1fr; } }
 
-  /* VS 테이블 */
-  .vshead { display:grid; grid-template-columns:1fr 60px 1fr; align-items:center; padding:4px 6px 12px; border-bottom:1px solid var(--border); margin-bottom:4px; }
-  .vshead .nm { font-size:17px; font-weight:800; }
-  .vshead .nm small { font-size:11px; color:var(--dim); font-weight:500; margin-left:6px; }
-  .vshead .tag { font-size:10px; font-weight:800; border-radius:6px; padding:2px 8px; margin-left:8px; }
-  .vshead .vs { text-align:center; color:var(--gold); font-weight:800; font-size:13px; }
-  .vsrow { display:grid; grid-template-columns:1fr 128px 1fr; align-items:center; padding:7px 6px; border-bottom:1px solid #16283000; font-size:12.5px; }
-  .vsrow:nth-child(even) { background:#ffffff05; border-radius:8px; }
-  .vsrow .mid { text-align:center; color:var(--muted); font-size:11.5px; font-weight:700; }
-  .cellL { display:flex; align-items:center; gap:8px; justify-content:flex-start; }
-  .cellR { display:flex; align-items:center; gap:8px; justify-content:flex-end; }
-  .mbar { flex:1; max-width:150px; height:7px; background:var(--panel2); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+  .cards4 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
+  @media (max-width:900px){ .cards4 { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .scard { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:14px 15px; display:flex; gap:11px; align-items:center; min-width:0; }
+  .scard .ic { width:38px; height:38px; border-radius:50%; background:#c9a83222; border:1px solid #c9a83244; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
+  .scard .lb { font-size:11px; color:var(--muted); font-weight:700; margin-bottom:3px; white-space:nowrap; }
+  .scard .vl { font-size:15.5px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .scard .sub { font-size:10px; color:var(--dim); margin-top:2px; white-space:nowrap; }
+  .scard .l { flex:1; min-width:0; }
+
+  /* VS 테이블 (시안형 격자) */
+  .vshead { display:grid; grid-template-columns:1fr 1fr; position:relative; border-bottom:1px solid var(--border); }
+  .vshead > div { padding:10px 12px 12px; display:flex; align-items:center; gap:8px; }
+  .vshead > div:last-child { justify-content:flex-end; border-left:1px solid var(--border); }
+  .vshead .nm { font-size:16px; font-weight:800; }
+  .vshead .nm small { font-size:11px; color:var(--dim); font-weight:500; margin-left:5px; }
+  .vshead .tag { font-size:10px; font-weight:800; border-radius:6px; padding:2px 8px; }
+  .vspill { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:var(--panel2); border:1px solid var(--border); color:var(--gold); font-weight:800; font-size:11px; border-radius:16px; padding:3px 12px; z-index:2; }
+  .trow { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #1c344066; }
+  .trow:last-child { border-bottom:none; }
+  .trow .half { display:flex; align-items:center; gap:9px; padding:8px 12px; min-width:0; }
+  .trow .half:first-child { border-right:1px solid #1c344066; }
+  .hlb { color:var(--muted); font-size:12px; width:104px; flex-shrink:0; font-weight:600; }
+  .hval { flex:1; display:flex; justify-content:flex-end; align-items:center; gap:8px; min-width:0; }
+  .mbar { flex:1; max-width:170px; height:7px; background:var(--panel2); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
   .mbar i { display:block; height:100%; border-radius:4px; }
   .mbar.gold i { background:linear-gradient(90deg,#8a6f1e,#f0c948); }
   .mbar.grn i { background:linear-gradient(90deg,#0f7a56,#4cd7a5); }
-  .vnum { font-variant-numeric:tabular-nums; font-weight:800; min-width:56px; }
+  .vnum { font-variant-numeric:tabular-nums; font-weight:800; min-width:36px; text-align:right; }
   .crown { font-size:12px; }
   .vbadge { display:inline-flex; padding:2px 10px; border-radius:7px; font-size:11px; font-weight:800; }
   .b-pos { background:#13322a; color:#4cd7a5; } .b-sta { background:#22303c; color:#9db9d4; } .b-neg { background:#3a1a22; color:#f0708a; }
   .b-low { background:#13322a; color:#4cd7a5; } .b-med { background:#3d3313; color:#f0c948; } .b-high { background:#3a1a22; color:#f0708a; }
 
-  /* 차트 */
-  .dualchart svg { width:100%; height:210px; display:block; }
-  .legend { display:flex; gap:16px; font-size:11.5px; color:var(--muted); margin-bottom:6px; font-weight:700; }
+  /* 주가 흐름 */
+  .dualchart svg { width:100%; height:200px; display:block; }
+  .legend { display:flex; gap:14px; font-size:11.5px; color:var(--muted); margin-bottom:6px; font-weight:700; flex-wrap:wrap; }
   .legend i { display:inline-block; width:16px; height:3px; border-radius:2px; vertical-align:middle; margin-right:5px; }
 
+  /* 상세 지표 (시안형: 라벨 왼쪽 + 양쪽 막대) */
+  .drow { display:flex; align-items:center; gap:8px; padding:7px 2px; border-bottom:1px solid #1c344066; font-size:12px; }
+  .drow:last-child { border-bottom:none; }
+  .drow .dlb { width:86px; flex-shrink:0; color:var(--muted); font-weight:600; }
+  .drow .dv { font-variant-numeric:tabular-nums; font-weight:800; min-width:44px; }
+  .drow .dbar { flex:1; height:7px; background:var(--panel2); border:1px solid var(--border); border-radius:4px; overflow:hidden; min-width:30px; }
+  .drow .dbar i { display:block; height:100%; border-radius:4px; }
+
   /* 사이드 */
-  .gaugebox { text-align:center; }
-  .gauge { width:150px; height:80px; position:relative; overflow:hidden; margin:4px auto 2px; }
+  .gauge { width:150px; height:80px; position:relative; overflow:hidden; margin:2px auto 6px; }
   .gauge .arc { width:150px; height:150px; border-radius:50%; }
   .gauge .hole { position:absolute; left:21px; top:21px; width:108px; height:108px; background:var(--panel); border-radius:50%; text-align:center; }
-  .gauge .hole b { font-size:24px; display:block; margin-top:16px; }
-  .gauge .hole span { font-size:10px; color:var(--dim); }
+  .gauge .hole b { font-size:25px; display:block; margin-top:20px; }
+  .gauge .hole small { font-size:12px; color:var(--dim); font-weight:500; }
+  .gsub { text-align:center; font-size:11px; color:var(--muted); font-weight:700; margin-bottom:8px; }
   .sbars .r { display:flex; align-items:center; gap:8px; font-size:11.5px; padding:3px 0; color:var(--muted); }
-  .sbars .r .lb { width:62px; flex-shrink:0; white-space:nowrap; }
+  .sbars .r .lb { width:60px; flex-shrink:0; white-space:nowrap; }
   .sbars .m { flex:1; height:6px; background:var(--panel2); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
   .sbars .m i { display:block; height:100%; background:linear-gradient(90deg,#0f7a56,#4cd7a5); border-radius:4px; }
   .sbars .r b { width:26px; text-align:right; color:var(--text); }
   .winrow { display:flex; align-items:center; gap:8px; padding:8px 4px; border-bottom:1px solid var(--border); font-size:12.5px; }
   .winrow:last-child { border-bottom:none; }
   .winrow .lb { color:var(--muted); flex:1; }
-  .winrow b { font-weight:800; }
   .cmts { font-size:12.5px; color:var(--muted); line-height:2.0; }
   .cmts li { list-style:none; padding-left:16px; position:relative; }
   .cmts li:before { content:"•"; position:absolute; left:2px; color:var(--gold); }
@@ -76,7 +87,7 @@
   .recrow .rank { width:20px; height:20px; border-radius:6px; background:var(--panel2); border:1px solid var(--border); color:var(--muted); font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   .verdict { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; text-align:center; background:linear-gradient(130deg,#12242c,#16303a); border:1px solid var(--border); border-radius:14px; padding:18px 12px; }
   .verdict .t { font-size:11px; color:var(--muted); font-weight:700; margin-bottom:4px; }
-  .verdict .n { font-size:16px; font-weight:800; }
+  .verdict .n { font-size:15px; font-weight:800; }
   .verdict .n.gold { color:var(--gold); }
 </style>
 </head>
@@ -106,7 +117,6 @@ ST.nav("compare.html");
 document.getElementById("asof").textContent = "업데이트: " + ST.asofText();
 
 let A = null, B = null;
-
 function parseParam(p) {
   if (!p) return null;
   const i = p.indexOf(":");
@@ -116,7 +126,6 @@ function parseParam(p) {
 }
 A = parseParam(ST.qp("a"));
 B = parseParam(ST.qp("b"));
-// 기본값: 국내 시총 1·2위
 if (!A && !B) {
   const kr = ST.all().filter(x=>x.src==="kr").sort((a,b)=>b.e[8]-a.e[8]);
   if (kr.length >= 2) { A = {src:"kr", key:kr[0].key}; B = {src:"kr", key:kr[1].key}; }
@@ -151,7 +160,7 @@ bindSearch("qb","sugb", v=>B=v);
 document.addEventListener("click", e => { if (!e.target.closest(".sbox")) { document.getElementById("suga").style.display="none"; document.getElementById("sugb").style.display="none"; } });
 
 const clip = v => Math.max(0, Math.min(100, Math.round(v)));
-function metrics(s, us, e) {
+function metrics(us, e) {
   const sc = ST.score(e, us), rk = ST.risk(e);
   const supply = (!us && e.length>18 && e[17]!=null) ? ((e[17]>0?1:0)+(e[18]>0?1:0))*27+40 : 50;
   const momentum = clip(50 + (e[14]||0)*3 + (e[15]||0)*1.2);
@@ -162,13 +171,25 @@ function metrics(s, us, e) {
   const riskB = rk<40 ? ["Low","b-low"] : rk<70 ? ["Medium","b-med"] : ["High","b-high"];
   return { sc, rk, supply:clip(supply), momentum, value, funda, outlook, riskB, wins };
 }
-const amtStr = (e, us) => {
+const amtStrOf = (e, us) => {
   const v = e[2]*e[11];
   return us ? (v>=1e9?"$"+(v/1e9).toFixed(1)+"B":"$"+(v/1e6).toFixed(0)+"M")
             : (v>=1e12?(v/1e12).toFixed(1)+"조":Math.round(v/1e8).toLocaleString("ko-KR")+"억");
 };
 const buyStr = (q, e) => q==null ? "-" : (q>=0?"+":"-")+Math.round(Math.abs(q)*e[2]/1e8).toLocaleString("ko-KR")+"억";
 const vol5 = e => e[12].reduce((a,b)=>a+Math.abs(b),0)/5;
+function seriesOf(e) {
+  if (e.length > 19 && e[19] && e[19].length > 3) return e[19];
+  const seq = e[12].slice().reverse();
+  let v = 100; const pts = [v];
+  for (const d of seq) { v = v*(1+d/100); pts.push(v); }
+  return pts;
+}
+function decoBars(col){
+  let b = "";
+  for (let i=0;i<7;i++){ const h = 8+i*4+(i%2?3:0); b += `<rect x="${i*9}" y="${34-h}" width="6" height="${h}" rx="1.5" fill="${col}" opacity="${0.4+i*0.08}"/>`; }
+  return `<svg width="64" height="34" viewBox="0 0 64 34" style="flex-shrink:0;">${b}</svg>`;
+}
 
 function render() {
   const box = document.getElementById("result");
@@ -181,8 +202,10 @@ function render() {
   const na = ST.displayName(A.src,A.key), nb = ST.displayName(B.src,B.key);
   document.getElementById("qa").value = na;
   document.getElementById("qb").value = nb;
-  const ma = metrics(A,usA,ea), mb = metrics(B,usB,eb);
+  const ma = metrics(usA,ea), mb = metrics(usB,eb);
   const ga = ST.gradeOf(ma.sc), gb = ST.gradeOf(mb.sc);
+  const win = (va,vb,hi) => (va==null||vb==null||va===vb) ? 0 : ((hi?va>vb:va<vb)?1:2);
+  const cw = (w,side) => w===side ? `<span class="crown">👑</span>` : "";
 
   // ── 상단 4카드
   const scWin = ma.sc>=mb.sc ? na : nb;
@@ -191,83 +214,89 @@ function render() {
   const rkWin = ma.rk<=mb.rk ? na : nb;
   const dualSpark = (function(){
     const pa = seriesOf(ea), pb = seriesOf(eb);
-    const W=110,H=44;
+    const W=76,H=34;
     const line = (pts,col)=>{ const mn=Math.min(...pts),mx=Math.max(...pts),rg=(mx-mn)||1;
-      return `<polyline points="${pts.map((p,i)=>`${(i/(pts.length-1)*W).toFixed(1)},${(H-3-(p-mn)/rg*(H-6)).toFixed(1)}`).join(" ")}" fill="none" stroke="${col}" stroke-width="1.6"/>`; };
+      return `<polyline points="${pts.map((p,i)=>`${(i/(pts.length-1)*W).toFixed(1)},${(H-2-(p-mn)/rg*(H-4)).toFixed(1)}`).join(" ")}" fill="none" stroke="${col}" stroke-width="1.5"/>`; };
     return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="flex-shrink:0;">${line(pa,"#f0c948")}${line(pb,"#4cd7a5")}</svg>`;
   })();
   const cards = `
-  <div class="row4">
-    <div class="scard"><span class="ic">📋</span><div style="flex:1;"><div class="lb">비교 종목</div><div class="vl">2개</div></div>${dualSpark}</div>
-    <div class="scard"><span class="ic">👑</span><div><div class="lb">종합 우세</div><div class="vl">${scWin}</div><div class="sub">${scDiff<5?"근소 우위":"확실 우위"} (${ma.sc} : ${mb.sc})</div></div></div>
-    <div class="scard"><span class="ic">📈</span><div><div class="lb">높은 모멘텀</div><div class="vl">${moWin}</div><div class="sub">${Math.max(ma.momentum,mb.momentum)}점</div></div></div>
-    <div class="scard"><span class="ic">🛡</span><div><div class="lb">낮은 리스크</div><div class="vl">${rkWin}</div><div class="sub">위험도 ${Math.min(ma.rk,mb.rk)}</div></div></div>
+  <div class="cards4">
+    <div class="scard"><span class="ic">📋</span><div class="l"><div class="lb">비교 종목</div><div class="vl">2개</div></div>${dualSpark}</div>
+    <div class="scard"><span class="ic">👑</span><div class="l"><div class="lb">종합 우세</div><div class="vl">${scWin}</div><div class="sub">${scDiff<5?"근소 우위":"확실 우위"} (${ma.sc} : ${mb.sc})</div></div></div>
+    <div class="scard"><span class="ic">📈</span><div class="l"><div class="lb">높은 모멘텀</div><div class="vl">${moWin}</div><div class="sub">${Math.max(ma.momentum,mb.momentum)}점</div></div>${decoBars("#4cd7a5")}</div>
+    <div class="scard"><span class="ic">🛡</span><div class="l"><div class="lb">낮은 리스크</div><div class="vl">${rkWin}</div><div class="sub">위험도 ${Math.min(ma.rk,mb.rk)}</div></div>${decoBars("#4cd7a5")}</div>
   </div>`;
 
-  // ── VS 테이블
-  const crownL = w => w===1 ? `<span class="crown">👑</span>` : "";
-  const crownR = w => w===2 ? `<span class="crown">👑</span>` : "";
-  const win = (va,vb,hi) => (va==null||vb==null||va===vb) ? 0 : ((hi?va>vb:va<vb)?1:2);
-  const barRow = (lb,va,vb) => {
+  // ── VS 격자 테이블
+  const half = (lb, html, bar, side, w) => `
+    <div class="half"><span class="hlb">${lb}</span>
+      <div class="hval">${bar||""}${html}${cw(w,side)}</div></div>`;
+  const trow = (lb, hA, hB, w, barA, barB) => `<div class="trow">${half(lb,hA,barA,1,w)}${half(lb,hB,barB,2,w)}</div>`;
+  const scoreRow = (lb, va, vb) => {
     const w = win(va,vb,true);
-    return `<div class="vsrow">
-      <div class="cellL"><span class="vnum">${va}</span><div class="mbar gold"><i style="width:${va}%"></i></div>${crownL(w)}</div>
-      <div class="mid">${lb}</div>
-      <div class="cellR">${crownR(w)}<div class="mbar grn"><i style="width:${vb}%"></i></div><span class="vnum" style="text-align:right;">${vb}</span></div></div>`;
+    return trow(lb,
+      `<span class="vnum">${va}</span>`, `<span class="vnum">${vb}</span>`, w,
+      `<div class="mbar gold"><i style="width:${va}%"></i></div>`,
+      `<div class="mbar grn"><i style="width:${vb}%"></i></div>`);
   };
-  const txtRow = (lb, htmlA, htmlB, w) => `<div class="vsrow">
-    <div class="cellL">${htmlA}${crownL(w)}</div><div class="mid">${lb}</div><div class="cellR">${crownR(w)}${htmlB}</div></div>`;
   const tierBadge = g => `<span class="tierb tier-${g.g}">${g.g} 티어</span>`;
   const table = `
-  <div class="card" style="margin-bottom:14px;">
+  <div class="card" style="margin-bottom:14px;padding-top:12px;">
     <div class="vshead">
-      <div class="nm">${na}<small>${ea[0]}</small><span class="tag" style="background:#3d3313;color:#f0c948;">종목 A</span></div>
-      <div class="vs">VS</div>
-      <div class="nm" style="text-align:right;"><span class="tag" style="background:#13322a;color:#4cd7a5;">종목 B</span> ${nb}<small>${eb[0]}</small></div>
+      <div><span class="nm">${na}<small>${ea[0]}</small></span><span class="tag" style="background:#3d3313;color:#f0c948;">종목 A</span></div>
+      <div><span class="tag" style="background:#13322a;color:#4cd7a5;">종목 B</span><span class="nm">${nb}<small>${eb[0]}</small></span></div>
+      <span class="vspill">VS</span>
     </div>
-    ${txtRow("종합 티어", tierBadge(ga), tierBadge(gb), win(ma.sc,mb.sc,true))}
-    ${barRow("종합점수", ma.sc, mb.sc)}
-    ${txtRow("전망", `<span class="vbadge ${ma.outlook[1]}">${ma.outlook[0]}</span>`, `<span class="vbadge ${mb.outlook[1]}">${mb.outlook[0]}</span>`, 0)}
-    ${barRow("수급", ma.supply, mb.supply)}
-    ${barRow("모멘텀", ma.momentum, mb.momentum)}
-    ${barRow("밸류에이션", ma.value, mb.value)}
-    ${barRow("펀더멘털", ma.funda, mb.funda)}
-    ${txtRow("리스크", `<span class="vbadge ${ma.riskB[1]}">${ma.riskB[0]}</span>`, `<span class="vbadge ${mb.riskB[1]}">${mb.riskB[0]}</span>`, win(ma.rk,mb.rk,false))}
-    ${txtRow("최근 1개월 수익률", `<b class="${ST.cls(ea[15]||0)}">${ST.pct(ea[15])}</b>`, `<b class="${ST.cls(eb[15]||0)}">${ST.pct(eb[15])}</b>`, win(ea[15],eb[15],true))}
-    ${txtRow("거래대금", `<b class="num">${amtStr(ea,usA)}</b>`, `<b class="num">${amtStr(eb,usB)}</b>`, win(ea[2]*ea[11],eb[2]*eb[11],true))}
-    ${txtRow("외국인 순매수", `<b class="num">${usA?"-":buyStr(ea[17],ea)}</b>`, `<b class="num">${usB?"-":buyStr(eb[17],eb)}</b>`, win(usA?null:ea[17],usB?null:eb[17],true))}
-    ${txtRow("기관 순매수", `<b class="num">${usA?"-":buyStr(ea[18],ea)}</b>`, `<b class="num">${usB?"-":buyStr(eb[18],eb)}</b>`, win(usA?null:ea[18],usB?null:eb[18],true))}
+    ${trow("종합 티어", tierBadge(ga), tierBadge(gb), win(ma.sc,mb.sc,true))}
+    ${scoreRow("종합점수", ma.sc, mb.sc)}
+    ${trow("전망", `<span class="vbadge ${ma.outlook[1]}">${ma.outlook[0]}</span>`, `<span class="vbadge ${mb.outlook[1]}">${mb.outlook[0]}</span>`, 0)}
+    ${scoreRow("수급", ma.supply, mb.supply)}
+    ${scoreRow("모멘텀", ma.momentum, mb.momentum)}
+    ${scoreRow("밸류에이션", ma.value, mb.value)}
+    ${scoreRow("펀더멘털", ma.funda, mb.funda)}
+    ${trow("리스크", `<span class="vbadge ${ma.riskB[1]}">${ma.riskB[0]}</span>`, `<span class="vbadge ${mb.riskB[1]}">${mb.riskB[0]}</span>`, win(ma.rk,mb.rk,false))}
+    ${trow("최근 1개월 수익률", `<b class="${ST.cls(ea[15]||0)} vnum" style="min-width:52px;">${ST.pct(ea[15])}</b>`, `<b class="${ST.cls(eb[15]||0)} vnum" style="min-width:52px;">${ST.pct(eb[15])}</b>`, win(ea[15],eb[15],true))}
+    ${trow("거래대금", `<b class="num">${amtStrOf(ea,usA)}</b>`, `<b class="num">${amtStrOf(eb,usB)}</b>`, win(ea[2]*ea[11],eb[2]*eb[11],true))}
+    ${trow("외국인 순매수", `<b class="num">${usA?"-":buyStr(ea[17],ea)}</b>`, `<b class="num">${usB?"-":buyStr(eb[17],eb)}</b>`, win(usA?null:ea[17],usB?null:eb[17],true))}
+    ${trow("기관 순매수", `<b class="num">${usA?"-":buyStr(ea[18],ea)}</b>`, `<b class="num">${usB?"-":buyStr(eb[18],eb)}</b>`, win(usA?null:ea[18],usB?null:eb[18],true))}
   </div>`;
 
-  // ── 주가 흐름 비교 (3년 형태 비교)
+  // ── 주가 흐름 비교 (끝점 수익률 뱃지)
   const chart = (function(){
     const pa = seriesOf(ea), pb = seriesOf(eb);
-    const W=560,H=210,pad=10;
-    const line = (pts,col)=>{ const mn=Math.min(...pts),mx=Math.max(...pts),rg=(mx-mn)||1;
-      return `<polyline points="${pts.map((p,i)=>`${(pad+i/(pts.length-1)*(W-pad*2)).toFixed(1)},${(H-12-(p-mn)/rg*(H-26)).toFixed(1)}`).join(" ")}" fill="none" stroke="${col}" stroke-width="2"/>`; };
+    const W=560,H=200,pad=10,padR=64;
+    const norm = pts => { const mn=Math.min(...pts),mx=Math.max(...pts),rg=(mx-mn)||1;
+      return pts.map((p,i)=>[pad+i/(pts.length-1)*(W-pad-padR), H-14-(p-mn)/rg*(H-30)]); };
+    const xa = norm(pa), xb = norm(pb);
+    const line = (xy,col)=>`<polyline points="${xy.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ")}" fill="none" stroke="${col}" stroke-width="2"/>`;
+    const badge = (xy,col,txt)=>{ const last=xy[xy.length-1];
+      return `<g><rect x="${W-padR+4}" y="${(last[1]-9).toFixed(1)}" width="56" height="18" rx="5" fill="${col}"/>
+        <text x="${W-padR+32}" y="${(last[1]+4).toFixed(1)}" text-anchor="middle" fill="#10231c" font-size="10.5" font-weight="800">${txt}</text></g>`; };
     let grid = "";
-    for (let g=1; g<=3; g++) grid += `<line x1="${pad}" y1="${H/4*g}" x2="${W-pad}" y2="${H/4*g}" stroke="#1c3440" stroke-width="1"/>`;
-    return `<div class="card dualchart" style="flex:1;min-width:280px;">
+    for (let g=1; g<=3; g++) grid += `<line x1="${pad}" y1="${H/4*g}" x2="${W-padR}" y2="${H/4*g}" stroke="#1c3440" stroke-width="1"/>`;
+    return `<div class="card dualchart" style="flex:1;min-width:300px;">
       <h3>주가 흐름 비교 <span class="more" style="cursor:default;">최근 3년 · 각 종목 범위 정규화</span></h3>
-      <div class="legend"><span><i style="background:#f0c948;"></i>${na} <b class="${ST.cls(ea[16]||0)}">${ST.pct(ea[16])}</b></span>
-        <span><i style="background:#4cd7a5;"></i>${nb} <b class="${ST.cls(eb[16]||0)}">${ST.pct(eb[16])}</b></span>
-        <span style="margin-left:auto;color:var(--dim);">3개월 수익률 기준</span></div>
-      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${grid}${line(pa,"#f0c948")}${line(pb,"#4cd7a5")}</svg></div>`;
+      <div class="legend"><span><i style="background:#f0c948;"></i>${na}</span><span><i style="background:#4cd7a5;"></i>${nb}</span>
+        <span style="margin-left:auto;color:var(--dim);">뱃지: 3개월 수익률</span></div>
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${grid}${line(xa,"#f0c948")}${line(xb,"#4cd7a5")}
+        ${badge(xa,"#f0c948",ST.pct(ea[16]))}${badge(xb,"#4cd7a5",ST.pct(eb[16]))}</svg></div>`;
   })();
 
-  // ── 상세 지표 비교
+  // ── 상세 지표 비교 (시안형: 라벨 왼쪽)
   const dRow = (lb, va, vb, fmt, hi) => {
     const w = win(va,vb,hi);
     const mx = Math.max(Math.abs(va||0), Math.abs(vb||0)) || 1;
-    return `<div class="vsrow" style="grid-template-columns:1fr 96px 1fr;">
-      <div class="cellL"><span class="vnum">${fmt(va)}</span><div class="mbar gold"><i style="width:${Math.abs(va||0)/mx*100}%"></i></div>${crownL(w)}</div>
-      <div class="mid">${lb}</div>
-      <div class="cellR">${crownR(w)}<div class="mbar grn"><i style="width:${Math.abs(vb||0)/mx*100}%"></i></div><span class="vnum" style="text-align:right;">${fmt(vb)}</span></div></div>`;
+    return `<div class="drow">
+      <span class="dlb">${lb}</span>
+      <span class="dv" style="text-align:right;">${fmt(va)}</span>
+      <div class="dbar"><i style="width:${Math.abs(va||0)/mx*100}%;background:linear-gradient(90deg,#8a6f1e,#f0c948);"></i></div>${cw(w,1)}
+      <div class="dbar"><i style="width:${Math.abs(vb||0)/mx*100}%;background:linear-gradient(90deg,#0f7a56,#4cd7a5);"></i></div>
+      <span class="dv">${fmt(vb)}</span>${cw(w,2)}</div>`;
   };
   const f1 = v => v==null?"-":Number(v).toFixed(1);
   const f2 = v => v==null?"-":Number(v).toFixed(2);
   const detail = `
-  <div class="card" style="flex:1;min-width:280px;">
+  <div class="card" style="flex:1;min-width:300px;">
     <h3>상세 지표 비교 <span class="more" style="cursor:default;">단위: % / 배</span></h3>
     <div class="legend"><span><i style="background:#f0c948;"></i>${na}</span><span><i style="background:#4cd7a5;"></i>${nb}</span></div>
     ${dRow("ROE", ea[7], eb[7], f1, true)}
@@ -290,22 +319,19 @@ function render() {
     return `<div style="margin-bottom:12px;"><div style="font-size:12.5px;font-weight:800;margin-bottom:3px;">● ${nm} <span style="color:var(--dim);font-weight:500;">${e[0]}</span></div>
       <div style="font-size:12px;color:var(--muted);line-height:1.7;">${parts.join("하나, ")}</div></div>`;
   };
-  const judgeCard = `
-  <div class="card" style="width:220px;flex-shrink:0;">
-    <h3>오늘의 한줄 판정</h3>
-    ${judge(na, ma, ea)}${judge(nb, mb, eb)}
-  </div>`;
+  const judgeCard = `<div class="card" style="width:210px;flex-shrink:0;"><h3>오늘의 한줄 판정</h3>${judge(na, ma, ea)}${judge(nb, mb, eb)}</div>`;
 
-  // ── 사이드바
-  const W = ma.sc>=mb.sc ? {n:na,m:ma} : {n:nb,m:mb};
-  const gcol = W.m.sc>=65?"#4cd7a5":W.m.sc>=45?"#f0c948":"#f0645a";
+  // ── 사이드
+  const Wn = ma.sc>=mb.sc ? {n:na,m:ma} : {n:nb,m:mb};
+  const gcol = Wn.m.sc>=65?"#4cd7a5":Wn.m.sc>=45?"#f0c948":"#f0645a";
   const sideSummary = `
-  <div class="card gaugebox">
-    <h3 style="justify-content:flex-start;">비교 요약</h3>
-    <div class="gauge"><div class="arc" style="background:conic-gradient(from 270deg, ${gcol} 0% ${W.m.sc/2}%, #ffffff14 ${W.m.sc/2}% 50%, transparent 50%);"></div>
-      <div class="hole"><b>${W.m.sc}<span style="font-size:11px;color:var(--dim);">/100</span></b><span>종합점수 · ${W.n}</span></div></div>
-    <div class="sbars" style="text-align:left;">
-      ${[["수급",W.m.supply],["모멘텀",W.m.momentum],["밸류",W.m.value],["펀더멘털",W.m.funda],["안정성",100-W.m.rk]].map(([lb,v])=>
+  <div class="card">
+    <h3>비교 요약</h3>
+    <div class="gauge"><div class="arc" style="background:conic-gradient(from 270deg, ${gcol} 0% ${Wn.m.sc/2}%, #ffffff14 ${Wn.m.sc/2}% 50%, transparent 50%);"></div>
+      <div class="hole"><b>${Wn.m.sc}<small>/100</small></b></div></div>
+    <div class="gsub">종합점수 · ${Wn.n}</div>
+    <div class="sbars">
+      ${[["수급",Wn.m.supply],["모멘텀",Wn.m.momentum],["밸류",Wn.m.value],["펀더멘털",Wn.m.funda],["안정성",100-Wn.m.rk]].map(([lb,v])=>
         `<div class="r"><span class="lb">${lb}</span><div class="m"><i style="width:${clip(v)}%"></i></div><b>${clip(v)}</b></div>`).join("")}
     </div>
   </div>`;
@@ -314,10 +340,8 @@ function render() {
     ["밸류에이션", win(ma.value,mb.value,true)],["펀더멘털", win(ma.funda,mb.funda,true)],
     ["리스크", win(ma.rk,mb.rk,false)],["수익률(1M)", win(ea[15],eb[15],true)],
   ];
-  const sideWins = `
-  <div class="card"><h3>항목별 우위</h3>
-    ${supRows.map(([lb,w])=>`<div class="winrow"><span class="lb">${lb}</span><b style="color:${w===1?"#f0c948":w===2?"#4cd7a5":"var(--dim)"};">${w===1?na:w===2?nb:"동률"} ${w?"우위":""}</b></div>`).join("")}
-  </div>`;
+  const sideWins = `<div class="card"><h3>항목별 우위</h3>
+    ${supRows.map(([lb,w])=>`<div class="winrow"><span class="lb">${lb}</span><b style="color:${w===1?"#f0c948":w===2?"#4cd7a5":"var(--dim)"};">${w===1?na:w===2?nb:"동률"} ${w?"우위":""}</b></div>`).join("")}</div>`;
   const cmts = [];
   if (ma.momentum!==mb.momentum) cmts.push(`${moWin}이(가) 모멘텀·단기 수익률에서 우위입니다.`);
   cmts.push(`${rkWin}은(는) 리스크 관리 측면에서 안정적입니다.`);
@@ -327,7 +351,6 @@ function render() {
   if (vWin) cmts.push(`밸류에이션 매력은 ${vWin===1?na:nb} 쪽이 높습니다.`);
   cmts.push("투자 성향에 따라 선택 기준이 달라질 수 있습니다.");
   const sideCmt = `<div class="card"><h3>비교 코멘트</h3><ul class="cmts">${cmts.map(c=>`<li>${c}</li>`).join("")}</ul></div>`;
-  // 관련 비교 추천 (시총 인접 쌍)
   const pool = ST.all().filter(x=>x.src===A.src).sort((a,b)=>b.e[8]-a.e[8]).slice(2,10);
   let recs = "";
   for (let i=0; i+1<pool.length && i<8; i+=2) {
@@ -345,9 +368,10 @@ function render() {
     <div><div class="t">⚡ 단기 우세 👑</div><div class="n gold">${shortN}</div></div>
   </div>`;
 
-  box.innerHTML = cards + `
+  box.innerHTML = `
   <div class="layout">
     <div>
+      ${cards}
       ${table}
       <div style="display:flex;gap:14px;flex-wrap:wrap;">${chart}${detail}${judgeCard}</div>
     </div>
@@ -355,15 +379,6 @@ function render() {
       ${sideSummary}${sideWins}${sideCmt}${sideRec}${verdict}
     </div>
   </div>`;
-}
-
-// 3년 시계열 (없으면 5일 누적)
-function seriesOf(e) {
-  if (e.length > 19 && e[19] && e[19].length > 3) return e[19];
-  const seq = e[12].slice().reverse();
-  let v = 100; const pts = [v];
-  for (const d of seq) { v = v*(1+d/100); pts.push(v); }
-  return pts;
 }
 
 render();
