@@ -30,6 +30,12 @@ a { color:inherit; text-decoration:none; }
 .nav .bell:hover { opacity:1; }
 .nav .loginbtn { background:transparent; border:1.5px solid var(--muted); color:var(--text); border-radius:9px; padding:8px 18px; font-size:13px; font-weight:800; cursor:pointer; }
 .nav .loginbtn:hover { border-color:var(--gold); color:var(--gold); }
+.navdrop { position:relative; display:inline-block; }
+.navdrop .dmenu { display:none; position:absolute; top:100%; left:0; background:var(--panel); border:1px solid var(--border); border-radius:11px; min-width:130px; padding:6px; z-index:80; box-shadow:0 10px 26px rgba(0,0,0,.45); }
+.navdrop:hover .dmenu { display:block; }
+.navdrop .dmenu a { display:block; padding:9px 13px; border-radius:8px; font-size:13px; color:var(--muted); font-weight:600; border-bottom:none !important; }
+.navdrop .dmenu a:hover { background:var(--panel2); color:var(--text); }
+.navdrop .dmenu a.cur { color:var(--gold); }
 
 .wrap { max-width:1200px; margin:0 auto; padding:26px 20px 70px; }
 .page-title { font-size:26px; font-weight:800; margin-bottom:4px; }

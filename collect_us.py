@@ -20,7 +20,37 @@ S.headers.update(HEADERS)
 EXCHANGES = ["NASDAQ", "NYSE", "AMEX"]
 TODAY = datetime.date.today()
 START = (TODAY - datetime.timedelta(days=130)).strftime("%Y%m%d") + "000000"
+IDX_START = (TODAY - datetime.timedelta(days=1850)).strftime("%Y%m%d") + "000000"
 END = TODAY.strftime("%Y%m%d") + "235959"
+
+
+def idx_us(code):
+    """미국 지수: basic + 5년 일별 차트"""
+    o = {}
+    j = get_json(f"https://api.stock.naver.com/index/{code}/basic")
+    if j:
+        o = {"price": num(j.get("closePrice")),
+             "chg": num(j.get("compareToPreviousClosePrice")),
+             "ratio": num(j.get("fluctuationsRatio"))}
+    chart = get_json(f"https://api.stock.naver.com/chart/foreign/index/{code}/day?startDateTime={IDX_START}&endDateTime={END}")
+    if chart and isinstance(chart, list) and len(chart) >= 2:
+        closes, dates, vols = [], [], []
+        for r in chart:
+            c = r.get("closePrice")
+            if not c:
+                continue
+            closes.append(round(float(c), 2))
+            dates.append(str(r.get("localDate") or "")[4:])
+            vols.append(int(r.get("accumulatedTradingVolume") or 0))
+        if closes:
+            if not o and len(closes) > 1:
+                prev, cur = closes[-2], closes[-1]
+                o = {"price": cur, "chg": round(cur - prev, 2),
+                     "ratio": round((cur - prev) / prev * 100, 2) if prev else 0.0}
+            o["hist"], o["hdates"], o["vhist"] = closes, dates, vols
+            o["high"] = round(float(chart[-1].get("highPrice") or 0), 2)
+            o["low"] = round(float(chart[-1].get("lowPrice") or 0), 2)
+    return o
 
 
 def get_json(url, tries=3):
@@ -137,7 +167,15 @@ def main():
         sys.exit("미국 종목 목록 수집 실패: " + str(len(stocks)))
     print("전체 대상:", len(stocks), flush=True)
 
-    out, alias = {}, {}
+    # 미국 지수 (다우/S&P500/나스닥)
+    market = {}
+    for code, key in ((".DJI", "dji"), (".INX", "inx"), (".IXIC", "ixic")):
+        d = idx_us(code)
+        if d:
+            market[key] = d
+    print("미국 지수:", list(market.keys()), flush=True)
+
+    out, alias, ind = {}, {}, {}
     base_date = ""
     done = 0
     with ThreadPoolExecutor(max_workers=5) as pool:
@@ -156,8 +194,19 @@ def main():
             out[st["sym"]] = entry
             if st["ko"]:
                 alias[st["ko"]] = st["sym"]
+            if st.get("industry"):
+                ind.setdefault(st["industry"], []).append(entry[3])
             if last_date > base_date:
                 base_date = last_date
+
+    # 업종별 등락 집계 (종목 3개 이상인 업종만)
+    upjong = sorted(
+        [[k, round(sum(v) / len(v), 2),
+          sum(1 for c in v if c > 0), sum(1 for c in v if c < 0), len(v)]
+         for k, v in ind.items() if k and len(v) >= 3],
+        key=lambda x: -x[1])
+    market["upjong"] = upjong
+    print("미국 업종:", len(upjong), "개", flush=True)
 
     if len(out) < 500:
         sys.exit("상세 수집 실패: " + str(len(out)))
@@ -167,6 +216,8 @@ def main():
             "generated": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}
     with open("data_us.js", "w", encoding="utf-8") as fp:
         fp.write("window.STOCK_META_US=" + json.dumps(meta, ensure_ascii=False) + ";\n")
+        fp.write("window.STOCK_MARKET_US=" + json.dumps(market, ensure_ascii=False,
+                                                        separators=(",", ":")) + ";\n")
         fp.write("window.STOCK_DB_US=" + json.dumps(out, ensure_ascii=False,
                                                     separators=(",", ":")) + ";\n")
         fp.write("window.KO_ALIAS=" + json.dumps(alias, ensure_ascii=False,

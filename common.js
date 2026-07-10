@@ -126,8 +126,15 @@ window.ST = (function () {
 
   // 상단 네비게이션 렌더 + 검색
   function nav(active) {
-    const items = [["market.html","오늘의 시장"],["tier.html","티어 랭킹"],["risk.html","리스크 워치"],["watchlist.html","관심종목"],["compare.html","종목 비교"]];
-    const menu = items.map(([h,t]) => `<a href="${h}" class="${active===h?"on":""}">${t}</a>`).join("");
+    const items = [["tier.html","티어 랭킹"],["risk.html","리스크 워치"],["watchlist.html","관심종목"],["compare.html","종목 비교"]];
+    const mktOn = (active==="market.html" || active==="market_us.html") ? "on" : "";
+    const mktDrop = `<span class="navdrop">
+      <a href="market.html" class="${mktOn}">오늘의 시장 ▾</a>
+      <span class="dmenu">
+        <a href="market.html" class="${active==="market.html"?"cur":""}">🇰🇷 국내 시장</a>
+        <a href="market_us.html" class="${active==="market_us.html"?"cur":""}">🇺🇸 미국 시장</a>
+      </span></span>`;
+    const menu = mktDrop + items.map(([h,t]) => `<a href="${h}" class="${active===h?"on":""}">${t}</a>`).join("");
     document.getElementById("nav").innerHTML = `
       <a class="brand" href="index.html"><span class="mark"><i></i><i></i><i></i></span>Stocktier</a>
       <div class="menu">${menu}</div>
