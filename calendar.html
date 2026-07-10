@@ -179,14 +179,16 @@ document.getElementById("cards").innerHTML = `
 let PER = "week", MKT = "all", SORT = "date", SHOW = 15, Q = "";
 const PERS = [["today","오늘"],["week","이번 주"],["month","이번 달"],["all","전체"]];
 function pool(){
-  if (Q) {
-    const qU = Q.toUpperCase();
-    return CAL.filter(x => ST.displayName(x.src,x.key).includes(Q) ||
-      String(x.key).toUpperCase().includes(qU) || String(x.e[0]).includes(Q));
-  }
-  let p = CAL.filter(x => PER==="today" ? dday(x.eo.d)===0 : PER==="week" ? dday(x.eo.d)<=7 : PER==="month" ? dday(x.eo.d)<=31 : true);
+  // 검색 시 기간 필터는 45일 전체로 확장, 시장 필터는 함께 적용
+  let p = Q ? CAL.slice()
+            : CAL.filter(x => PER==="today" ? dday(x.eo.d)===0 : PER==="week" ? dday(x.eo.d)<=7 : PER==="month" ? dday(x.eo.d)<=31 : true);
   if (MKT==="kr") p = p.filter(x=>!x.us);
   else if (MKT==="us") p = p.filter(x=>x.us);
+  if (Q) {
+    const qU = Q.toUpperCase();
+    p = p.filter(x => ST.displayName(x.src,x.key).includes(Q) ||
+      String(x.key).toUpperCase().includes(qU) || String(x.e[0]).includes(Q));
+  }
   if (SORT==="cap") p = p.slice().sort((a,b)=>b.e[8]*(b.us?13.5:1)-a.e[8]*(a.us?13.5:1));
   return p;
 }

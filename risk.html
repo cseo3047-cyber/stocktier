@@ -184,12 +184,16 @@ const logo = x => {
 let CAT = "all", SORT = "rk", SHOW = 10, Q = "", MKT = "all";
 const CATS = [["all","전체"],["급등 과열","급등 과열"],["수급 악화","수급 악화"],["실적/공시","실적/공시"],["재무 위험","재무 위험"],["기타","기타"]];
 function pool(){
-  const qU = Q.toUpperCase();
-  if (Q) return A.filter(x => ST.displayName(x.src,x.key).includes(Q) ||
-    String(x.key).toUpperCase().includes(qU) || String(x.e[0]).includes(Q)).sort((a,b)=>b.rk-a.rk);
-  let p = risky.filter(x => CAT==="all" || x.type===CAT);
+  // 검색 시엔 위험 목록 밖 종목도 확인 가능, 유형·시장 필터는 함께 적용
+  let p = Q ? A.slice() : risky.slice();
+  p = p.filter(x => CAT==="all" || x.type===CAT);
   if (MKT==="kr") p = p.filter(x=>!x.us);
   else if (MKT==="us") p = p.filter(x=>x.us);
+  if (Q) {
+    const qU = Q.toUpperCase();
+    p = p.filter(x => ST.displayName(x.src,x.key).includes(Q) ||
+      String(x.key).toUpperCase().includes(qU) || String(x.e[0]).includes(Q));
+  }
   p.sort((a,b)=> SORT==="rk" ? b.rk-a.rk : SORT==="chg" ? b.e[3]-a.e[3] : b.vol5-a.vol5);
   return p;
 }

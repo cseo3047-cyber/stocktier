@@ -177,15 +177,14 @@ const catFn = {
   theme: x => !!(x.e.length>21 && x.e[21]),
 };
 function pool(){
-  if (Q) {
-    const qU = Q.toUpperCase();
-    return ALL.filter(x => ST.displayName(x.src,x.key).includes(Q) ||
-      String(x.key).toUpperCase().includes(qU) || String(x.e[0]).includes(Q))
-      .sort((a,b)=>b.sc-a.sc);
-  }
   let p = ALL.filter(catFn[CAT]);
   if (MKT==="us") p = p.filter(x=>x.us);
   else if (MKT!=="all") p = p.filter(x=>x.e[1]===MKT);
+  if (Q) {
+    const qU = Q.toUpperCase();
+    p = p.filter(x => ST.displayName(x.src,x.key).includes(Q) ||
+      String(x.key).toUpperCase().includes(qU) || String(x.e[0]).includes(Q));
+  }
   p.sort((a,b)=> SORT==="sc" ? b.sc-a.sc : SORT==="chg" ? b.e[3]-a.e[3] : SORT==="cap" ? b.e[8]-a.e[8] : a.rk-b.rk);
   return p;
 }

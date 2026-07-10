@@ -186,14 +186,12 @@ const cards = `
 let CAT = "all", SORT = "imp", MKT = "all", SHOW = 10, Q = "";
 const TYPES = ["유상증자","전환사채","공급계약","최대주주 변경","소송","실적·영업","감사의견","거래정지","투자주의·경고","실적 보고","주요 사건","지분 공시","증권 발행"];
 function pool(){
-  let p;
-  if (Q) {
-    p = ALLD.filter(x => x.corp.includes(Q) || x.code.includes(Q) || x.title.includes(Q)).slice();
-  } else {
-    p = ITEMS.filter(x => CAT==="all" || x.type===CAT || (CAT==="기타" && !TYPES.includes(x.type)));
-    if (MKT!=="all") p = p.filter(x=>x.mkt===MKT);
-    p = p.slice();
-  }
+  // 검색어는 30일 전체에서 찾되, 유형·시장 필터와 함께 적용
+  let p = Q ? ALLD.filter(x => x.corp.includes(Q) || x.code.includes(Q) || x.title.includes(Q))
+            : ITEMS.slice();
+  p = p.filter(x => CAT==="all" || x.type===CAT || (CAT==="기타" && !TYPES.includes(x.type)));
+  if (MKT!=="all") p = p.filter(x=>x.mkt===MKT);
+  p = p.slice();
   if (SORT==="imp") p.sort((a,b)=>b.imp-a.imp || Math.abs(b.chg||0)-Math.abs(a.chg||0));
   else if (SORT==="chg") p.sort((a,b)=>Math.abs(b.chg||0)-Math.abs(a.chg||0));
   else if (SORT==="time") p.sort((a,b)=>((b.date||"")+b.no).localeCompare((a.date||"")+a.no));
