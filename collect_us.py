@@ -299,18 +299,20 @@ def main():
     print("미국 지수:", list(market.keys()), flush=True)
 
     # 미국 뉴스 (네이버 API 시도 → 실패 시 언론사 공식 RSS 폴백)
-    def rss_news(feeds, n=8):
+    def rss_news(feeds, per=5, total=12):
+        """여러 언론사 RSS를 합쳐서 수집 (실패한 소스는 무시)"""
         import html as _h
         mon = {"Jan": "01", "Feb": "02", "Mar": "03", "Apr": "04", "May": "05", "Jun": "06",
                "Jul": "07", "Aug": "08", "Sep": "09", "Oct": "10", "Nov": "11", "Dec": "12"}
         hd = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"}
+        out, seenT = [], set()
         for url, office in feeds:
             try:
                 r = requests.get(url, headers=hd, timeout=15)
                 if r.status_code != 200:
                     print("[진단] RSS status=", r.status_code, url[:60], flush=True)
                     continue
-                out = []
+                got = 0
                 for it in re.findall(r"<item>(.*?)</item>", r.text, re.S):
                     tmt = re.search(r"<title>\s*(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?\s*</title>", it, re.S)
                     lmt = re.search(r"<link>\s*(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?\s*</link>", it, re.S)
@@ -320,16 +322,20 @@ def main():
                     t = _h.unescape(re.sub(r"<[^>]+>", "", tmt.group(1))).strip()
                     u = lmt.group(1).strip()
                     tm2 = f"{mon.get(dmt.group(2), '01')}/{int(dmt.group(1)):02d} {dmt.group(3)}:{dmt.group(4)}" if dmt else ""
-                    if t and u.startswith("http"):
+                    if t and u.startswith("http") and t not in seenT:
+                        seenT.add(t)
                         out.append([t, office, tm2, u, "해외"])
-                    if len(out) >= n:
+                        got += 1
+                    if got >= per:
                         break
-                if out:
-                    print("RSS 뉴스:", len(out), "건 ←", office, flush=True)
-                    return out
+                time.sleep(0.2)
             except Exception as e:
                 print("[진단] RSS 실패:", str(e)[:100], url[:60], flush=True)
-        return []
+        out.sort(key=lambda x: x[2] or "00/00 00:00", reverse=True)
+        if out:
+            srcs = sorted(set(o[1] for o in out))
+            print("RSS 뉴스 통합:", len(out), "건 ←", ", ".join(srcs), flush=True)
+        return out[:total]
 
     def news_us():
         import html as _h
@@ -359,9 +365,10 @@ def main():
                 print("미국 뉴스:", len(out), "건", flush=True)
                 return out
         out = rss_news([
-            ("https://www.hankyung.com/feed/international", "한국경제"),
             ("https://www.mk.co.kr/rss/30300018/", "매일경제"),
             ("https://www.yna.co.kr/rss/international.xml", "연합뉴스"),
+            ("https://www.yna.co.kr/rss/economy.xml", "연합뉴스"),
+            ("https://rss.etnews.com/Section901.xml", "전자신문"),
         ])
         if not out:
             print("[진단] 미국 뉴스 수집 실패 (API·RSS 모두)", flush=True)
