@@ -127,20 +127,24 @@ if (!list.length) {
   const downN = items.filter(x=>(x.e[15]||0)<0).length;
   const gcol = surv>=65?"#4cd7a5":surv>=45?"#f0c948":"#f0645a";
 
-  // 실적 일정 (분기 공시 기한 기반 예상치 — 종목 코드별 고정)
+  // 실적 일정 (수집된 실제 공시 데이터가 있을 때만 표시)
   const hashOf = s => { let h=7; for (const c of String(s)) h=(h*31+c.charCodeAt(0))>>>0; return h; };
   const today0 = new Date(); today0.setHours(0,0,0,0);
+  const EARNK = (window.STOCK_MARKET && window.STOCK_MARKET.earn) || null;
+  const EARNU = (window.STOCK_MARKET_US && window.STOCK_MARKET_US.earn) || null;
   function earnDate(x){
-    const dl = x.us ? [[2,15],[5,15],[8,14],[11,14]] : [[3,31],[5,15],[8,14],[11,16]];
-    const h = hashOf(x.e[0]);
-    for (let k=0;k<9;k++){
-      const d = new Date(today0.getFullYear()+Math.floor(k/4), dl[k%4][0]-1, dl[k%4][1]);
-      d.setDate(d.getDate()-(h%16));
-      if (d>=today0) return d;
-    }
-    return null;
+    const m = x.us ? EARNU : EARNK;
+    const v = m && m[x.us ? x.key : x.e[0]];
+    if (!v) return null;
+    const s = String(v);
+    const yy = s.length>=8 ? +s.slice(0,4) : today0.getFullYear();
+    const mm = s.length>=8 ? +s.slice(4,6) : +s.slice(0,2);
+    const dd = s.length>=8 ? +s.slice(6,8) : +s.slice(2,4);
+    const d = new Date(yy, mm-1, dd);
+    return d >= today0 ? d : null;
   }
   const dday = d => Math.round((d-today0)/864e5);
+  const hasEarn = !!(EARNK || EARNU);
   const earnSoon = items.filter(x=>{ const d=earnDate(x); return d && dday(d)<=7; }).length;
 
   // 카드 아이콘 + 미니 그래프
@@ -159,7 +163,7 @@ if (!list.length) {
     <div class="scard"><span class="ic">${listIcon}</span><div class="l"><div class="lb">전체 보유 종목</div><div class="vl num">${n}<small> 개</small></div><div class="sub">보유 종목 수</div></div>${miniLine("mg1","#1d9e75","#4cd7a5",n*17+5)}</div>
     <div class="scard"><span class="icgauge" style="background:conic-gradient(${gcol} 0% ${surv}%, #ffffff14 ${surv}% 100%);"><span class="ih" style="color:${gcol};">${g.g}</span></span><div class="l"><div class="lb">포트폴리오 생존점수</div><div class="vl num">${surv}<small> 점</small></div><div class="sub"><span class="tierb tier-${g.g}" style="font-size:9px;padding:1px 6px;">${g.g}</span> 티어 · ${surv>=65?"양호":surv>=45?"보통":"주의"}</div></div>${miniBars("mg2","#0f7a56","#4cd7a5",surv+13)}</div>
     <div class="scard"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${warnIcon}</span><div class="l"><div class="lb">고위험 종목 비중</div><div class="vl num" style="color:${highPct>=40?"#f0708a":"var(--text)"};">${highPct}<small> %</small></div><div class="sub">${highRisk.length}개 종목</div></div>${miniBars("mg3","#7a2822","#f0645a",highPct+7)}</div>
-    <div class="scard"><span class="ic">${calIcon}</span><div class="l"><div class="lb">실적 임박 종목</div><div class="vl num">${earnSoon}<small> 개</small></div><div class="sub">D-7 이내 · 예상 기준</div></div>${miniBars("mg4","#1d9e75","#8fd6b8",earnSoon*9+21)}</div>
+    <div class="scard"><span class="ic">${calIcon}</span><div class="l"><div class="lb">실적 임박 종목</div><div class="vl num">${hasEarn?earnSoon:"-"}<small>${hasEarn?" 개":""}</small></div><div class="sub">${hasEarn?"D-7 이내":"공시 데이터 수집 대기"}</div></div>${miniBars("mg4","#1d9e75","#8fd6b8",earnSoon*9+21)}</div>
   </div>`;
 
   // 구성 테이블
@@ -173,9 +177,11 @@ if (!list.length) {
     const chg = w1==null ? "-" : `<span class="${ST.cls(w1)}">${w1>0?"↗":w1<0?"↘":"→"} ${ST.pct(w1)}</span>`;
     const nm = ST.displayName(x.src,x.key);
     const rcode = x.us ? (x.key + (x.e[1]==="NASDAQ"?".O":x.e[1]==="NYSE"?".N":".A")) : x.e[0];
-    const av = `<img src="https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock${rcode}.svg" style="width:24px;height:24px;border-radius:50%;flex-shrink:0;background:#fff;" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex';"><span class="avat" style="display:none;margin-right:0;background:${AVCOL[hashOf(x.key)%AVCOL.length]};">${nm.charAt(0).toUpperCase()}</span>`;
+    const nvUrl = `https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock${rcode}.svg`;
+    const tsUrl = x.us ? nvUrl : "https://thumb.tossinvest.com/image/resized/96x0/" + encodeURIComponent("https://static.toss.im/png-icons/securities/icn-sec-fill-"+x.e[0]+".png");
+    const av = `<img src="${tsUrl}" style="width:24px;height:24px;border-radius:50%;flex-shrink:0;background:#fff;object-fit:cover;" loading="lazy" onerror="if(!this.dataset.f&&this.src!=='${nvUrl}'){this.dataset.f=1;this.src='${nvUrl}';}else{this.style.display='none';this.nextElementSibling.style.display='inline-flex';}"><span class="avat" style="display:none;margin-right:0;background:${AVCOL[hashOf(x.key)%AVCOL.length]};">${nm.charAt(0).toUpperCase()}</span>`;
     const ed = earnDate(x);
-    const eds = ed ? `${String(ed.getMonth()+1).padStart(2,"0")}/${String(ed.getDate()).padStart(2,"0")} <span style="color:var(--dim);">예상</span>${dday(ed)<=7?` <span style="color:#f0c948;font-weight:800;">D-${dday(ed)}</span>`:""}` : "-";
+    const eds = ed ? `${String(ed.getMonth()+1).padStart(2,"0")}/${String(ed.getDate()).padStart(2,"0")}${dday(ed)<=7?` <span style="color:#f0c948;font-weight:800;">D-${dday(ed)}</span>`:""}` : "-";
     return `<tr>
       <td class="num" style="color:var(--muted);">${i+1}</td>
       <td class="nm"><div style="display:flex;align-items:center;gap:8px;min-width:0;">${av}<a class="stock" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" href="${ST.stockUrl(x.src,x.key)}">${nm} <span style="color:var(--dim);font-weight:500;">(${x.e[0]})</span></a></div></td>
@@ -193,7 +199,7 @@ if (!list.length) {
   <div class="card"><h3>내 포트폴리오 구성 <span class="more" style="cursor:default;">균등 비중 가정 · 종합점수 순</span></h3>
     <table class="ptbl"><thead><tr><th>순위</th><th>종목명</th><th>시장</th><th>비중</th><th>현재 티어</th><th>종합점수</th><th>업종</th><th>테마</th><th>리스크</th><th>최근 변화</th><th>실적 일정</th></tr></thead>
     <tbody>${rows}</tbody></table>
-    <div class="dfoot">실적 일정은 분기 공시 기한 기반 예상치입니다 · 업종·테마는 일일 데이터 수집 후 표시됩니다</div></div>`;
+    <div class="dfoot">실적 일정·업종·테마는 일일 데이터 수집 후 표시됩니다</div></div>`;
 
   // 도넛 3종 (우측 범례, 녹색 계열)
   const GREENS = ["#1d9e75","#4cd7a5","#2c6a4e","#8fd6b8","#476b58","#33413a"];

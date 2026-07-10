@@ -343,14 +343,17 @@ drawChart();
 // ── 매그니피센트 7 (빅테크 당일 현황)
 (function(){
   const M7 = ["AAPL","MSFT","GOOGL","AMZN","NVDA","META","TSLA"];
-  document.getElementById("strength").innerHTML = M7.map(sym => {
+  const head = `<div class="dhead"><span style="width:21px;"></span><span style="flex:1;">종목명</span>
+    <span style="width:74px;text-align:right;">주가</span><span style="width:70px;text-align:right;">시가총액</span><span style="width:58px;text-align:right;">등락률</span></div>`;
+  document.getElementById("strength").innerHTML = head + M7.map(sym => {
     const e = ST.get("us", sym);
     if (!e) return "";
     return `
-    <div class="gaugerow" style="padding:5px 0;cursor:pointer;" onclick="location.href='${ST.stockUrl("us",sym)}'">
+    <div class="gaugerow" style="padding:5px 0;cursor:pointer;gap:8px;" onclick="location.href='${ST.stockUrl("us",sym)}'">
       <img src="https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock${sym}.O.svg" style="width:21px;height:21px;border-radius:50%;background:#fff;flex-shrink:0;" loading="lazy" onerror="this.style.visibility='hidden'">
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;font-weight:700;">${ST.displayName("us",sym)} <span style="color:var(--dim);font-weight:500;font-size:10.5px;">${sym}</span></span>
-      <span class="num" style="font-size:11.5px;color:var(--muted);flex-shrink:0;">${ST.priceStr(e[2],true)}</span>
+      <span class="num" style="width:74px;text-align:right;font-size:11.5px;flex-shrink:0;">${ST.priceStr(e[2],true)}</span>
+      <span class="num" style="width:70px;text-align:right;font-size:11px;color:var(--muted);flex-shrink:0;">${ST.capStr(e[8],true)}</span>
       <span class="num ${ST.cls(e[3])}" style="width:58px;text-align:right;font-weight:800;font-size:12px;flex-shrink:0;">${ST.pct2(e[3])}</span>
     </div>`;
   }).join("");
@@ -386,7 +389,7 @@ function evtRow(x, now){
 (function(){
   const now = new Date(); now.setHours(0,0,0,0);
   const all = (ST.EVENTS || []).map(e => ({ d:new Date(e[0]+"T00:00:00"), flag:e[1], type:e[2], title:e[3] }));
-  const list = all.filter(x => x.d >= now).slice(0, 5);
+  const list = all.filter(x => x.d >= now).slice(0, 6);
   document.getElementById("events").innerHTML = list.length ? list.map(x=>evtRow(x, now)).join("")
     : `<div style="font-size:12px;color:var(--dim);padding:10px 0;">예정된 일정이 없습니다. 연초에 새해 일정이 갱신됩니다.</div>`;
   document.getElementById("evtall").innerHTML = all.map(x=>evtRow(x, now)).join("");

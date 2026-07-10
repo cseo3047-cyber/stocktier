@@ -161,6 +161,15 @@ window.ST = (function () {
       }
     });
     document.addEventListener("click", e => { if (!e.target.closest(".nsearch")) sug.style.display="none"; });
+    // 모든 페이지 공통 하단 고지 바 (footer가 없으면 자동 생성)
+    const notice = "ⓘ 본 서비스는 재미용 지표를 제공하며, 등급·점수는 오락 목적의 가공 수치로 투자 판단의 근거가 될 수 없습니다.";
+    let ft = document.querySelector(".footer");
+    if (!ft) {
+      ft = document.createElement("div");
+      ft.className = "footer";
+      (document.querySelector(".wrap") || document.body).appendChild(ft);
+    }
+    ft.textContent = notice;
   }
 
   function asofText() {

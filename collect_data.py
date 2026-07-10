@@ -18,6 +18,59 @@ HEADERS = {
 S = requests.Session()
 S.headers.update(HEADERS)
 
+PC_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml",
+    "Referer": "https://finance.naver.com/",
+}
+
+
+def build_group_maps():
+    """네이버 PC 업종/테마 상세 페이지에서 종목코드 → 업종명/테마명 매핑"""
+    ind_map, thm_map = {}, {}
+
+    def list_pairs(gtype, pages):
+        pairs = []
+        for pg in range(1, pages + 1):
+            try:
+                url = f"https://finance.naver.com/sise/sise_group.naver?type={gtype}&page={pg}"
+                r = requests.get(url, headers=PC_HEADERS, timeout=15)
+                r.encoding = "euc-kr"
+                found = re.findall(r'type=' + gtype + r'&(?:amp;)?no=(\d+)"[^>]*>([^<]+)</a>', r.text)
+                if not found:
+                    break
+                pairs += found
+            except Exception:
+                break
+            time.sleep(0.1)
+        # 중복 제거
+        seen, out = set(), []
+        for no, nm in pairs:
+            if no not in seen:
+                seen.add(no)
+                out.append((no, nm.strip()))
+        return out
+
+    def detail_codes(gtype, no):
+        try:
+            url = f"https://finance.naver.com/sise/sise_group_detail.naver?type={gtype}&no={no}"
+            r = requests.get(url, headers=PC_HEADERS, timeout=15)
+            r.encoding = "euc-kr"
+            return re.findall(r'/item/main\.naver\?code=(\d{6})', r.text)
+        except Exception:
+            return []
+
+    for no, nm in list_pairs("upjong", 2):
+        for c in detail_codes("upjong", no):
+            ind_map.setdefault(c, nm)
+        time.sleep(0.05)
+    for no, nm in list_pairs("theme", 8):
+        for c in detail_codes("theme", no):
+            thm_map.setdefault(c, nm)
+        time.sleep(0.05)
+    print("업종 매핑:", len(ind_map), "종목 / 테마 매핑:", len(thm_map), "종목", flush=True)
+    return ind_map, thm_map
+
 
 def get_json(url, tries=3):
     for i in range(tries):
@@ -246,9 +299,53 @@ def market_extra():
         print("뉴스:", len(out), "건", flush=True)
         return out
 
+    def earn_kr():
+        """실적 발표 일정 시도 (증시 캘린더 API 후보 순차 시도 — 실패해도 무시)"""
+        s2 = datetime.date.today().strftime("%Y%m%d")
+        e2 = (datetime.date.today() + datetime.timedelta(days=45)).strftime("%Y%m%d")
+        cands = [
+            f"https://m.stock.naver.com/api/calendar/earnings?startDate={s2}&endDate={e2}&page=1&pageSize=300",
+            f"https://m.stock.naver.com/api/calendar/schedules/earnings?startDate={s2}&endDate={e2}",
+            f"https://api.stock.naver.com/calendar/earnings?startDate={s2}&endDate={e2}&page=1&pageSize=300",
+        ]
+
+        def walk(o, out):
+            # JSON 재귀 탐색: 같은 객체 안의 6자리 종목코드 + 8자리 날짜 쌍 수집
+            if isinstance(o, dict):
+                code = date = None
+                for k, v in o.items():
+                    if isinstance(v, str):
+                        lk = k.lower()
+                        if re.fullmatch(r"\d{6}", v) and ("code" in lk or "item" in lk or "stock" in lk):
+                            code = v
+                        m = re.search(r"(20\d{6})", v.replace("-", "").replace(".", ""))
+                        if m and ("date" in lk or "day" in lk or lk.endswith("dt")):
+                            date = m.group(1)
+                if code and date:
+                    out.setdefault(code, date)
+                for v in o.values():
+                    walk(v, out)
+            elif isinstance(o, list):
+                for v in o:
+                    walk(v, out)
+
+        for url in cands:
+            j = get_json(url)
+            if not j:
+                print("[진단] 실적 캘린더 응답 없음:", url[:90], flush=True)
+                continue
+            found = {}
+            walk(j, found)
+            if found:
+                print("실적 일정:", len(found), "종목", flush=True)
+                return found
+            print("[진단] 실적 캘린더 파싱 0건:", str(j)[:200], flush=True)
+        return {}
+
     mk["upjong"] = groups("upjong", 100) or upjong_scrape()
     mk["theme"] = groups("theme", 30)
     mk["news"] = news_kr()
+    mk["earn"] = earn_kr()
     print("지수:", [k for k in mk if k not in ("upjong", "theme")],
           "/ 업종", len(mk.get("upjong", [])), "/ 테마", len(mk.get("theme", [])), flush=True)
     return mk
@@ -260,6 +357,7 @@ def main():
         sys.exit("종목 목록 수집 실패: " + str(len(stocks)))
 
     market = market_extra()
+    ind_map, thm_map = build_group_maps()
 
     out = {}
     fchart_ok = 0
@@ -300,6 +398,7 @@ def main():
             st["code"], st["mkt"], st["price"], days[0], per, pbr, div, roe,
             st["cap"], vol3m, vol_prev, st["volToday"], days, forn,
             r1w, r1m, r3m, fbuy, obuy, spk,
+            ind_map.get(st["code"], ""), thm_map.get(st["code"], ""),
         ]
         if (i + 1) % 200 == 0:
             print(f"{i+1}/{len(stocks)} 처리, fchart 성공 {fchart_ok}", flush=True)
