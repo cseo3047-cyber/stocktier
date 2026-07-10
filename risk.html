@@ -112,33 +112,37 @@ const today0 = new Date(); today0.setHours(0,0,0,0);
 const dday = d => Math.round((d-today0)/864e5);
 
 const EARNK = (window.STOCK_MARKET && window.STOCK_MARKET.earn) || null;
+const EARNU = (window.STOCK_MARKET_US && window.STOCK_MARKET_US.earn) || null;
 const hashOf = s => { let h=7; for (const c of String(s)) h=(h*31+c.charCodeAt(0))>>>0; return h; };
 function earnInfo(x){
-  const v = EARNK && EARNK[x.e[0]];
+  const us = x.src==="us";
+  const m = us ? EARNU : EARNK;
+  const v = m && m[us ? x.key : x.e[0]];
   if (v) { const t = String(v);
     const d = t.length>=8 ? new Date(+t.slice(0,4), +t.slice(4,6)-1, +t.slice(6,8)) : new Date(today0.getFullYear(), +t.slice(0,2)-1, +t.slice(2,4));
     if (d >= today0) return { d, est:false }; }
+  if (us) return null;
   const h = hashOf(x.e[0]); const dl = [[3,31],[5,15],[8,14],[11,16]];
   for (let k=0;k<9;k++){ const d = new Date(today0.getFullYear()+Math.floor(k/4), dl[k%4][0]-1, dl[k%4][1]);
     d.setDate(d.getDate()-(h%16)); if (d>=today0) return { d, est:true }; }
   return null;
 }
 
-// 위험 유형 분류
-const A = ST.all().filter(x=>x.src==="kr").map(x=>{
-  const e = x.e;
-  const sc = ST.score(e,false), rk = ST.risk(e);
+// 위험 유형 분류 (국내 + 미국)
+const A = ST.all().map(x=>{
+  const e = x.e, us = x.src==="us";
+  const sc = ST.score(e,us), rk = ST.risk(e);
   const surge = e[9]>0 ? e[11]/e[9] : 0;
   const vol5 = e[12].reduce((a,b)=>a+Math.abs(b),0)/5;
   const eo = earnInfo(x);
   let type = "기타", sig = "변동성 확대";
   if (surge>=2 || (e[14]||0)>=10) { type = "급등 과열"; sig = surge>=2 ? `단기 급등 · 거래량 ${surge.toFixed(1)}배` : "단기 급등, 과열권 진입"; }
-  else if (e.length>18 && e[17]!=null && e[17]<0 && e[18]<0) { type = "수급 악화"; sig = "외국인·기관 동반 매도"; }
-  else if (e.length>18 && e[17]!=null && e[17]<0) { type = "수급 악화"; sig = "외국인 연속 매도"; }
+  else if (!us && e.length>18 && e[17]!=null && e[17]<0 && e[18]<0) { type = "수급 악화"; sig = "외국인·기관 동반 매도"; }
+  else if (!us && e.length>18 && e[17]!=null && e[17]<0) { type = "수급 악화"; sig = "외국인 연속 매도"; }
   else if (eo && dday(eo.d)<=7) { type = "실적/공시"; sig = `실적 발표 D-${dday(eo.d)}${eo.est?" (예상)":""}`; }
   else if (e[4]<=0 && e[7]<0) { type = "재무 위험"; sig = "적자 지속 · 수익성 부진"; }
   else if ((e[14]||0)<=-8) { type = "수급 악화"; sig = `1주 ${ST.pct(e[14])} 급락`; }
-  return { ...x, sc, rk, surge, vol5, eo, type, sig };
+  return { ...x, us, sc, rk, surge, vol5, eo, type, sig };
 });
 
 const risky = A.filter(x=>x.rk>=60).sort((a,b)=>b.rk-a.rk);
@@ -159,8 +163,8 @@ const miniBars = (id,c1,c2,seed) => { let b="";
   for (let i=0;i<8;i++){ const h=7+((seed*(i+3))%17); b+=`<rect x="${i*9.5}" y="${36-h}" width="6.5" height="${h}" rx="2" fill="url(#${id})"/>`; }
   return `<svg class="mini" width="78" height="36" viewBox="0 0 78 36"><defs><linearGradient id="${id}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>${b}</svg>`; };
 const logo = x => {
-  const nv = `https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock${x.e[0]}.svg`;
-  const ts = "https://thumb.tossinvest.com/image/resized/96x0/" + encodeURIComponent("https://static.toss.im/png-icons/securities/icn-sec-fill-"+x.e[0]+".png");
+  const nv = `https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock${x.us ? x.key+(x.e[1]==="NASDAQ"?".O":x.e[1]==="NYSE"?".N":".A") : x.e[0]}.svg`;
+  const ts = x.us ? nv : "https://thumb.tossinvest.com/image/resized/96x0/" + encodeURIComponent("https://static.toss.im/png-icons/securities/icn-sec-fill-"+x.e[0]+".png");
   return `<img src="${ts}" style="width:19px;height:19px;border-radius:50%;background:#fff;flex-shrink:0;vertical-align:-4px;margin-right:6px;" loading="lazy"
     onerror="if(!this.dataset.f){this.dataset.f=1;this.src='${nv}';}else{this.style.visibility='hidden';}">`;
 };
@@ -177,11 +181,15 @@ const logo = x => {
 })();
 
 // ── 위험 종목 리스트
-let CAT = "all", SORT = "rk", SHOW = 10, Q = "";
+let CAT = "all", SORT = "rk", SHOW = 10, Q = "", MKT = "all";
 const CATS = [["all","전체"],["급등 과열","급등 과열"],["수급 악화","수급 악화"],["실적/공시","실적/공시"],["재무 위험","재무 위험"],["기타","기타"]];
 function pool(){
-  if (Q) return A.filter(x => x.key.includes(Q) || String(x.e[0]).includes(Q)).sort((a,b)=>b.rk-a.rk);
+  const qU = Q.toUpperCase();
+  if (Q) return A.filter(x => ST.displayName(x.src,x.key).includes(Q) ||
+    String(x.key).toUpperCase().includes(qU) || String(x.e[0]).includes(Q)).sort((a,b)=>b.rk-a.rk);
   let p = risky.filter(x => CAT==="all" || x.type===CAT);
+  if (MKT==="kr") p = p.filter(x=>!x.us);
+  else if (MKT==="us") p = p.filter(x=>x.us);
   p.sort((a,b)=> SORT==="rk" ? b.rk-a.rk : SORT==="chg" ? b.e[3]-a.e[3] : b.vol5-a.vol5);
   return p;
 }
@@ -190,6 +198,10 @@ function drawBar(){
   document.getElementById("catbar").innerHTML =
     CATS.map(([k,t])=>`<span class="fchip ${CAT===k?"on":""}" onclick="setCat('${k}')">${t}</span>`).join("") +
     `<span style="margin-left:auto;display:flex;gap:7px;align-items:center;font-size:11px;color:var(--dim);">
+      시장 <select onchange="setMkt(this.value)">
+        <option value="all" ${MKT==="all"?"selected":""}>전체</option>
+        <option value="kr" ${MKT==="kr"?"selected":""}>국내</option>
+        <option value="us" ${MKT==="us"?"selected":""}>미국</option></select>
       정렬 <select onchange="setSort(this.value)">
         <option value="rk" ${SORT==="rk"?"selected":""}>위험도 순</option>
         <option value="chg" ${SORT==="chg"?"selected":""}>당일 등락</option>
@@ -197,20 +209,21 @@ function drawBar(){
 }
 window.setCat = k => { CAT=k; SHOW=10; drawBar(); drawTbl(); };
 window.setSort = v => { SORT=v; SHOW=10; drawTbl(); };
+window.setMkt = v => { MKT=v; SHOW=10; drawBar(); drawTbl(); };
 const buyCell = q => q==null ? `<span style="color:var(--dim);">-</span>` : q>0 ? `<span class="up">순매수</span>` : q<0 ? `<span class="down">순매도</span>` : `<span style="color:var(--dim);">중립</span>`;
 function drawTbl(){
   const p = pool();
   document.getElementById("tbody").innerHTML = p.slice(0,SHOW).map((x,i)=>`
-    <tr onclick="location.href='${ST.stockUrl("kr",x.key)}'">
+    <tr onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
       <td class="num" style="color:var(--muted);">${i+1}</td>
-      <td class="nm">${logo(x)}${x.key}</td>
+      <td class="nm">${logo(x)}${ST.displayName(x.src,x.key)}</td>
       <td class="num" style="color:var(--dim);font-size:11px;">${x.e[0]}</td>
       <td><span class="tchg" style="${x.type==="급등 과열"?"background:#3d2313;color:#e0a63e;":x.type==="수급 악화"?"background:#3a1a22;color:#f0708a;":x.type==="실적/공시"?"background:#13303d;color:#4cc3d7;":x.type==="재무 위험"?"background:#33202c;color:#d68ab0;":"background:#22303c;color:#9db9d4;"}">${x.type}</span></td>
       <td><span class="rknum" style="background:${x.rk>=80?"#7a2822":"#3d3313"};color:${x.rk>=80?"#ffb3ad":"#f0c948"};">${x.rk}</span></td>
       <td class="num ${ST.cls(x.e[14]||0)}" style="font-weight:700;">${(x.e[14]||0)>0?"▲":"▼"} ${Math.abs(x.e[14]||0).toFixed(1)}</td>
       <td class="num">${x.vol5.toFixed(1)}%</td>
-      <td>${buyCell(x.e.length>18?x.e[17]:null)}</td>
-      <td>${buyCell(x.e.length>18?x.e[18]:null)}</td>
+      <td>${buyCell(!x.us && x.e.length>18 ? x.e[17] : null)}</td>
+      <td>${buyCell(!x.us && x.e.length>18 ? x.e[18] : null)}</td>
       <td style="text-align:left;font-size:11.5px;color:var(--muted);">${x.sig}</td>
     </tr>`).join("");
   document.getElementById("morebtn").style.display = p.length > SHOW ? "block" : "none";
@@ -222,16 +235,18 @@ drawBar(); drawTbl();
 (function(){
   const sig = risky.slice(0,5);
   document.getElementById("signals").innerHTML = sig.map(x=>`
-    <div class="alrow" style="cursor:pointer;" onclick="location.href='${ST.stockUrl("kr",x.key)}'">
+    <div class="alrow" style="cursor:pointer;" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
       <span style="color:#f0645a;font-weight:900;">●</span>
-      <span class="tx"><b style="color:var(--text);">${x.key}</b> ${x.sig}</span></div>`).join("");
+      <span class="tx"><b style="color:var(--text);">${ST.displayName(x.src,x.key)}</b> ${x.sig}</span></div>`).join("");
 
   const MK = window.STOCK_MARKET || {};
+  const MKU = window.STOCK_MARKET_US || {};
   const upN2 = A.filter(x=>x.e[3]>0).length, dnN = A.filter(x=>x.e[3]<0).length;
   const avgVol = A.length ? A.reduce((a,x)=>a+x.vol5,0)/A.length : 0;
   const rows = [
     ["코스피", MK.kospi ? `${ST.num(MK.kospi.price)} <span class="${ST.cls(MK.kospi.ratio)}">${ST.pct2(MK.kospi.ratio)}</span>` : "-"],
     ["코스닥", MK.kosdaq ? `${ST.num(MK.kosdaq.price)} <span class="${ST.cls(MK.kosdaq.ratio)}">${ST.pct2(MK.kosdaq.ratio)}</span>` : "-"],
+    ["나스닥", MKU.ixic ? `${ST.num(MKU.ixic.price)} <span class="${ST.cls(MKU.ixic.ratio)}">${ST.pct2(MKU.ixic.ratio)}</span>` : "-"],
     ["상승/하락", `<span class="up">▲${ST.num(upN2)}</span> · <span class="down">▼${ST.num(dnN)}</span>`],
     ["평균 변동성(5일)", `<span style="color:${avgVol>=3?"var(--down)":"var(--text)"};">${avgVol.toFixed(2)}%</span>`],
     ["고위험 비중", `${Math.round(A.filter(x=>x.rk>=70).length/Math.max(1,A.length)*100)}%`],
@@ -246,9 +261,9 @@ drawBar(); drawTbl();
 
   const res = A.filter(x=>x.rk<40 && Math.abs(x.e[15]||0)>=8).sort((a,b)=>a.rk-b.rk).slice(0,5);
   document.getElementById("resolved").innerHTML = res.length ? res.map((x,i)=>`
-    <div class="nrow2" onclick="location.href='${ST.stockUrl("kr",x.key)}'">
+    <div class="nrow2" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
       <span class="rank" style="background:#13322a;color:#4cd7a5;">${i+1}</span>
-      <span class="tx">${x.key}</span>
+      <span class="tx">${ST.displayName(x.src,x.key)}</span>
       <span class="num" style="color:var(--dim);font-size:11px;">위험도 ${x.rk}</span>
       <span class="tchg" style="background:#13322a;color:#4cd7a5;">위험 해소</span></div>`).join("")
   : `<div style="font-size:12px;color:var(--dim);padding:8px 0;">해당 종목 없음</div>`;
@@ -274,8 +289,8 @@ drawBar(); drawTbl();
 
   const mk5 = (arr, id, valFn) => {
     document.getElementById(id).innerHTML = arr.length ? arr.map((x,i)=>`
-      <div class="nrow2" onclick="location.href='${ST.stockUrl("kr",x.key)}'">
-        <span class="rank">${i+1}</span><span class="tx">${x.key}</span>${valFn(x)}</div>`).join("")
+      <div class="nrow2" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
+        <span class="rank">${i+1}</span><span class="tx">${ST.displayName(x.src,x.key)}</span>${valFn(x)}</div>`).join("")
     : `<div style="font-size:12px;color:var(--dim);padding:8px 0;">해당 종목 없음</div>`;
   };
   mk5(A.filter(x=>x.type==="급등 과열").sort((a,b)=>b.e[14]-a.e[14]).slice(0,5), "hotlist",
