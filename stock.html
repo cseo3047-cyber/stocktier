@@ -91,6 +91,7 @@
 
 <script src="data.js"></script>
 <script src="data_us.js"></script>
+<script src="flows.js"></script>
 <script src="common.js"></script>
 <script>
 ST.nav("");
@@ -402,7 +403,9 @@ if (!s) {
       <span class="tx">${t}</span></div>`).join("")}
   </div>`;
 
-  const flowPanel = (id, lb, q, col) => `
+  const FLOWS = (!us && window.STOCK_FLOWS && window.STOCK_FLOWS[code] && window.STOCK_FLOWS[code].length > 1)
+    ? window.STOCK_FLOWS[code] : null;
+  const flowPanel = (id, lb, q) => `
     <div style="flex:1;min-width:260px;">
       <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
         <span style="font-size:12px;color:var(--muted);font-weight:700;">${lb}</span>
@@ -412,12 +415,12 @@ if (!s) {
       <div class="chartbox" style="margin-top:6px;"><div id="${id}box"></div><div class="ctip" id="${id}tip"></div></div>
     </div>`;
   const flowCard = `
-  <div class="card"><h3>기관·외국인 동향 <span class="more" style="cursor:default;">순매수는 전일 기준 · 차트는 주가 추이</span></h3>
+  <div class="card"><h3>기관·외국인 동향 <span class="more" style="cursor:default;">${FLOWS?"일별 순매수 금액 (종가 환산)":"순매수는 전일 기준 · 차트는 주가 추이"}</span></h3>
     <div style="display:flex;gap:26px;flex-wrap:wrap;">
-      ${flowPanel("ff", "외국인 순매수", us?null:s[17], "#4cd7a5")}
-      ${flowPanel("fo", "기관 순매수", us?null:s[18], "#f0c948")}
+      ${flowPanel("ff", "외국인 순매수", us?null:s[17])}
+      ${flowPanel("fo", "기관 순매수", us?null:s[18])}
     </div>
-    <div style="font-size:10px;color:var(--dim);margin-top:8px;">* 순매수 추이(기간별) 데이터는 제공되지 않아, 차트는 주가 추이를 표시합니다.</div>
+    <div style="font-size:10px;color:var(--dim);margin-top:8px;">${FLOWS?"* 순매수 이력은 매일 누적되어 최대 3개월(60거래일)까지 표시됩니다.":"* 순매수 추이 데이터 수집 후 일별 수급 차트로 자동 전환됩니다."}</div>
   </div>`;
 
   box.innerHTML = `
@@ -446,7 +449,73 @@ if (!s) {
       `<span class="chip ${c.per===p?"on":""}" onclick="setPer('${id}','${p}')">${PLBL[p]}</span>`).join("");
     mountChart(id+"box", id+"tip", c.per, c.cfg);
   }
-  ["top","main","ff","fo"].forEach(draw1);
+  ["top","main"].forEach(draw1);
+
+  // ── 수급 차트 (실데이터 있으면 일별 순매수 막대, 없으면 주가 추이 폴백)
+  if (FLOWS) {
+    const FP = { ff:{sel:"3m", idx:1, col:"#4cd7a5"}, fo:{sel:"3m", idx:2, col:"#f0c948"} };
+    window.setFper = (id, sel) => { FP[id].sel = sel; drawFlow(id); };
+    function drawFlow(id){
+      const c = FP[id];
+      const n = Math.min(c.sel==="1m" ? 20 : 60, FLOWS.length);
+      document.getElementById(id+"chips").innerHTML = [["1m","1개월"],["3m","3개월"]].map(([k,t])=>
+        `<span class="chip ${c.sel===k?"on":""}" onclick="setFper('${id}','${k}')">${t}</span>`).join("");
+      const rows = FLOWS.slice(-n);
+      const el = document.getElementById(id+"box"), tip = document.getElementById(id+"tip");
+      const W=420, H=130, padL=50, padR=8, padT=8, padB=18;
+      const vals = rows.map(r=>r[c.idx]);
+      const mxA = Math.max(...vals.map(v=>Math.abs(v)), 1);
+      const mid = padT + (H-padT-padB)/2;
+      const Y = v => mid - v/mxA*(H-padT-padB)/2;
+      const bw = Math.max(2, (W-padL-padR)/rows.length*0.62);
+      const X = i => padL + (i+0.5)/rows.length*(W-padL-padR);
+      const fmtD = ymd => ymd.slice(2,4)+"/"+ymd.slice(4,6);
+      let bars = "";
+      rows.forEach((r,i)=>{
+        const v = r[c.idx];
+        const y = Y(Math.max(v,0)), h = Math.max(1.5, Math.abs(Y(v)-mid));
+        bars += `<rect x="${(X(i)-bw/2).toFixed(1)}" y="${(v>=0?Y(v):mid).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="url(#${id}${v>=0?"u":"d"})"/>`;
+      });
+      let xlab = "";
+      for (const fr of [0, 0.5, 1]){
+        const i = Math.round(fr*(rows.length-1));
+        xlab += `<text x="${X(i).toFixed(1)}" y="${H-5}" text-anchor="${fr===0?"start":fr===1?"end":"middle"}" fill="#5a737d" font-size="9">${fmtD(rows[i][0])}</text>`;
+      }
+      el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:130px;display:block;">
+        <defs><linearGradient id="${id}u" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#0f7a56"/><stop offset="1" stop-color="#4cd7a5"/></linearGradient>
+        <linearGradient id="${id}d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a2822"/><stop offset="1" stop-color="#f0645a"/></linearGradient></defs>
+        <text x="${padL-6}" y="${(Y(mxA)+4).toFixed(1)}" text-anchor="end" fill="#5a737d" font-size="9">+${mxA.toLocaleString("ko-KR")}억</text>
+        <text x="${padL-6}" y="${mid+3}" text-anchor="end" fill="#5a737d" font-size="9">0</text>
+        <text x="${padL-6}" y="${(Y(-mxA)+2).toFixed(1)}" text-anchor="end" fill="#5a737d" font-size="9">-${mxA.toLocaleString("ko-KR")}억</text>
+        <line x1="${padL}" y1="${mid}" x2="${W-padR}" y2="${mid}" stroke="#1c3440" stroke-width="1"/>
+        ${bars}${xlab}
+        <g class="cross" style="display:none;">
+          <line class="cxv" y1="${padT}" y2="${H-padB}" stroke="#8da4ac" stroke-width="1" stroke-dasharray="4,4"/>
+          <line class="cxh" x1="${padL}" x2="${W-padR}" stroke="#8da4ac" stroke-width="1" stroke-dasharray="4,4"/></g>`;
+      const svg = el.querySelector("svg");
+      const cross = svg.querySelector(".cross");
+      svg.onmousemove = ev => {
+        const r2 = svg.getBoundingClientRect();
+        const vx = (ev.clientX - r2.left)/r2.width*W;
+        let i = Math.round((vx-padL)/(W-padL-padR)*rows.length - 0.5);
+        i = Math.max(0, Math.min(rows.length-1, i));
+        const v = rows[i][c.idx];
+        const x = X(i), y = Y(v);
+        svg.querySelector(".cxv").setAttribute("x1",x); svg.querySelector(".cxv").setAttribute("x2",x);
+        svg.querySelector(".cxh").setAttribute("y1",y); svg.querySelector(".cxh").setAttribute("y2",y);
+        cross.style.display = "";
+        tip.innerHTML = `날짜: 20${rows[i][0].slice(0,2)}.${rows[i][0].slice(2,4)}.${rows[i][0].slice(4,6)}<br>${c.idx===1?"외국인":"기관"} 순매수: <b style="color:${v>=0?"var(--up)":"var(--down)"};">${v>=0?"+":""}${v.toLocaleString("ko-KR")}억</b>`;
+        tip.style.left = (x/W*100)+"%";
+        tip.style.top = (y/H*100)+"%";
+        tip.style.transform = y < H*0.45 ? "translate(-50%, 14px)" : "translate(-50%,-108%)";
+        tip.style.display = "block";
+      };
+      svg.onmouseleave = () => { cross.style.display="none"; tip.style.display="none"; };
+    }
+    drawFlow("ff"); drawFlow("fo");
+  } else {
+    ["ff","fo"].forEach(draw1);
+  }
 
   window.toggleWatch = function(){ ST.watchToggle(src, key); updateWatchBtn(); };
   function updateWatchBtn(){

@@ -147,12 +147,50 @@ def detail(code):
         if vol_prev is None:
             vol_prev = int(num(d.get("accumulatedTradingVolume")) or 0)
     fbuy = obuy = None
+    flows = []
     if trends:
         f0 = num(trends[0].get("foreignerPureBuyQuant"))
         o0 = num(trends[0].get("organPureBuyQuant"))
         fbuy = int(f0) if f0 is not None else None
         obuy = int(o0) if o0 is not None else None
-    return per, pbr, div, roe, forn, prevs, vol_prev, fbuy, obuy
+        # 최근 5거래일 수급 이력: [YYMMDD, 외인 순매수(억), 기관 순매수(억)]
+        for t in trends[:5]:
+            fq, oq = num(t.get("foreignerPureBuyQuant")), num(t.get("organPureBuyQuant"))
+            cp = num(t.get("closePrice"))
+            bd = str(t.get("bizdate") or "")
+            if fq is None or oq is None or not cp or len(bd) < 8:
+                continue
+            flows.append([bd[2:], int(round(fq * cp / 1e8)), int(round(oq * cp / 1e8))])
+        flows.reverse()   # 과거 → 최신 순
+    return per, pbr, div, roe, forn, prevs, vol_prev, fbuy, obuy, flows
+
+
+def scrape_frgn(code, pages=3):
+    """PC 매매동향 페이지에서 과거 수급 소급 (약 20거래일/페이지) → [[YYMMDD, 외인억, 기관억] 과거→최신]"""
+    rows = {}
+    for page in range(1, pages + 1):
+        try:
+            r = requests.get(f"https://finance.naver.com/item/frgn.naver?code={code}&page={page}",
+                             headers=PC_HEADERS, timeout=15)
+            r.encoding = "euc-kr"
+            for tr in r.text.split("<tr")[1:]:
+                dm = re.search(r"(\d{4})\.(\d{2})\.(\d{2})", tr)
+                if not dm:
+                    continue
+                vals = re.findall(r'<span class="tah[^"]*">\s*([+\-]?[\d,.%]+)\s*</span>', tr)
+                if len(vals) < 6:
+                    continue
+                close = num(vals[0])
+                organ = num(vals[4])
+                forgn = num(vals[5])
+                if close is None or organ is None or forgn is None:
+                    continue
+                ymd = dm.group(1)[2:] + dm.group(2) + dm.group(3)
+                rows[ymd] = [ymd, int(round(forgn * close / 1e8)), int(round(organ * close / 1e8))]
+            time.sleep(0.05)
+        except Exception:
+            break
+    return [rows[k] for k in sorted(rows.keys())]
 
 
 def history(code, count=1250):
@@ -469,13 +507,38 @@ def main():
     market = market_extra()
     ind_map, thm_map = build_group_maps()
 
+    # 이전 수급 이력(flows.js) 로드 — 최근 60거래일 누적 유지
+    prev_flows = {}
+    try:
+        with open("flows.js", encoding="utf-8") as f:
+            m = re.search(r"window\.STOCK_FLOWS=(\{.*\});", f.read(), re.S)
+            if m:
+                prev_flows = json.loads(m.group(1))
+    except Exception:
+        prev_flows = {}
+    new_flows = {}
+    # 첫 실행(누적 데이터가 거의 없을 때)에만 과거 3개월 소급 스크래핑
+    BACKFILL = len(prev_flows) < 100
+    if BACKFILL:
+        print("수급 소급 스크래핑 시작 (첫 실행 · 종목당 약 60거래일)", flush=True)
+
     out = {}
     fchart_ok = 0
     for i, st in enumerate(stocks):
         d = detail(st["code"])
         if d is None:
             continue
-        per, pbr, div, roe, forn, prevs, vol_prev, fbuy, obuy = d
+        per, pbr, div, roe, forn, prevs, vol_prev, fbuy, obuy, flows = d
+
+        # 수급 이력 병합 (날짜 기준 중복 제거, 최근 60거래일 유지)
+        byd = {r[0]: r for r in prev_flows.get(st["code"], [])}
+        if BACKFILL:
+            for r in scrape_frgn(st["code"]):
+                byd[r[0]] = r
+        for r in flows:
+            byd[r[0]] = r
+        if byd:
+            new_flows[st["code"]] = [byd[k] for k in sorted(byd.keys())][-60:]
 
         closes, vols = history(st["code"])
         spk = None
@@ -526,6 +589,11 @@ def main():
                                                      separators=(",", ":")) + ";\n")
         fp.write("window.STOCK_DB=" + json.dumps(out, ensure_ascii=False,
                                                  separators=(",", ":")) + ";\n")
+    with open("flows.js", "w", encoding="utf-8") as fp:
+        fp.write("window.STOCK_FLOWS=" + json.dumps(new_flows, ensure_ascii=False,
+                                                    separators=(",", ":")) + ";\n")
+    avg_days = round(sum(len(v) for v in new_flows.values()) / max(1, len(new_flows)), 1)
+    print("수급 이력:", len(new_flows), "종목 (평균", avg_days, "일) → flows.js", flush=True)
     print("완료:", len(out), "종목 → data.js (fchart 성공:", fchart_ok, ")")
 
 
