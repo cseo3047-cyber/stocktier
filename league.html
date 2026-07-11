@@ -184,6 +184,15 @@ const evalOf = d => Object.keys(d.pos || {}).reduce((s,k)=>{
   const cur = priceOf(k) || ps.avg;
   return s + (cur - ps.avg) * ps.q;
 }, 0);
+// 환손익 합계 = 미국 보유 종목의 환율 변동 손익 합
+const fxOf = d => Object.keys(d.pos || {}).reduce((s,k)=>{
+  if (splitK(k)[0] !== "us") return s;
+  const ps = d.pos[k]; if (!ps || !ps.q) return s;
+  const aU = ps.avgUsd || ps.avg/1350;
+  const fx0 = ps.avg / aU;
+  const curUsd = (ST.get("us", splitK(k)[1]) || [])[2] || aU;
+  return s + ps.q * curUsd * (FX - fx0);
+}, 0);
 // 지폐 다발 아이콘 (플랫 스타일)
 const CASH_ICON = `<svg width="42" height="30" viewBox="0 0 42 30" style="flex-shrink:0;">
   <rect x="3" y="17" width="36" height="9" rx="2.5" fill="#0b4a38"/>
@@ -223,12 +232,15 @@ function tierOf(total, seed){
     }
   }
 }
-// 시즌: 분기마다 진행 (1~3월=시즌1, 4~6월=시즌2, ...)
+// 시즌: 분기마다 진행 — 2026년 3분기가 시즌 1
 const SNOW = new Date();
 const SQ = Math.floor(SNOW.getMonth() / 3);
+const SEPOCH = 2026*4 + 2;
+const SNUM = Math.max(1, SNOW.getFullYear()*4 + SQ - SEPOCH + 1);
 const SSTART = new Date(SNOW.getFullYear(), SQ*3, 1);
 const SEND = new Date(SNOW.getFullYear(), SQ*3+3, 0);
 const SLEFT = Math.max(0, Math.ceil((SEND - SNOW) / 864e5));
+const sNumOf = k => String(k||"").startsWith("S") ? k.slice(1) : String(k||"").split("-")[1] || "?";
 const fmtSD = d => `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`;
 window.openTiers = () => {
   const total = totalOf(L), my = tierOf(total, L.seedWon);
@@ -303,7 +315,12 @@ async function load(){
     try { const gs = await firebase.firestore().collection("games").doc(USER.uid).get();
       MYPTS = (gs.exists && gs.data().pts) || 0; } catch(e) { MYPTS = 0; }
     // 시즌 전환 감지: 분기가 바뀌었으면 지난 시즌 최종 티어를 기록
-    const sKey = SNOW.getFullYear() + "-" + (SQ + 1);
+    const sKey = "S" + SNUM;
+    // 구버전 시즌 키("2026-3" 형식) → 새 형식으로 조용히 변환
+    if (L.season && /^\d{4}-\d$/.test(L.season)) {
+      const oy = +L.season.split("-")[0], oq = +L.season.split("-")[1];
+      L.season = "S" + Math.max(1, oy*4 + (oq-1) - SEPOCH + 1);
+    }
     let seasonEnded = null;
     if (L.season && L.season !== sKey) {
       const t0 = totalOf(L);
@@ -343,10 +360,10 @@ async function load(){
     }
     if (seasonEnded) {
       await stAlert("🏁 지난 시즌 마감!", `<div style="font-size:12.5px;color:var(--muted);line-height:1.9;margin-bottom:6px;">
-        시즌 ${seasonEnded.key.split("-")[1]}(${seasonEnded.key.split("-")[0]}년)이 종료되었습니다.</div>`
+        시즌 ${sNumOf(seasonEnded.key)}이(가) 종료되었습니다.</div>`
         + cmrow("최종 티어", `<span style="color:${seasonEnded.c};">${seasonEnded.ic} ${seasonEnded.tier}</span>`)
         + cmrow("최종 수익률", `<span class="${ST.cls(seasonEnded.ret)}">${seasonEnded.ret>=0?"+":""}${seasonEnded.ret}%</span>`)
-        + `<div style="font-size:11.5px;color:var(--dim);margin-top:10px;">새 시즌(시즌 ${SQ+1})이 시작됐어요. 자산과 기록은 그대로 이어지고, 지난 시즌 티어는 상단에 계속 표시됩니다.</div>`);
+        + `<div style="font-size:11.5px;color:var(--dim);margin-top:10px;">새 시즌(시즌 ${SNUM})이 시작됐어요. 자산과 기록은 그대로 이어지고, 지난 시즌 티어는 상단에 계속 표시됩니다.</div>`);
     }
     if (settled <= 0 && !seasonEnded) showNotice();
   } catch(e) {
@@ -380,7 +397,7 @@ function sparkT(w, h, key){
   if (vals.length === 1) vals = [vals[0], vals[0]];
   if (!vals.length) return "";
   let mn=Math.min(...vals), mx=Math.max(...vals);
-  if (mx===mn){ mn*=0.99; mx*=1.01; }
+  if (mx===mn){ const pad=Math.max(1, Math.abs(mx)*0.01); mn-=pad; mx+=pad; }   // 값이 0이어도 수평선 표시
   const pts = vals.map((v,i)=>[i/(vals.length-1)*w, h-3-(v-mn)/(mx-mn)*(h-8)]);
   const xy = pts.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
   const id = "spg" + (++SPGID);
@@ -398,6 +415,7 @@ function render(){
   const canReset = Date.now() >= resetAt();
   const posKeys = Object.keys(L.pos).filter(k=>L.pos[k].q>0);
   const evalPL = evalOf(L);
+  const fxPL = fxOf(L);
   const invSum = posKeys.reduce((s,k)=>s+L.pos[k].avg*L.pos[k].q,0);
 
   // 포트폴리오 구성 도넛 (현금 포함)
@@ -416,20 +434,21 @@ function render(){
   const myTier = tierOf(total, L.seedWon);
   box.innerHTML = `
     <div class="seasonrow">
-      <div class="seabox"><span class="si">🕐</span><div><div class="sl">시즌 ${SQ+1} 진행 중</div><div class="sv num" style="font-size:12px;color:var(--muted);">${fmtSD(SSTART)} ~ ${fmtSD(SEND)}</div></div></div>
+      <div class="seabox"><span class="si">🕐</span><div><div class="sl">시즌 ${SNUM} 진행 중</div><div class="sv num" style="font-size:12px;color:var(--muted);">${fmtSD(SSTART)} ~ ${fmtSD(SEND)}</div></div></div>
       <div class="seabox"><div><div class="sl">시즌 종료까지</div><div class="sv" style="color:var(--gold);">${SLEFT}일 남음</div></div></div>
       <div class="seabox"><span class="si">${myTier.ic}</span><div><div class="sl">내 리그 티어</div><div class="sv" style="color:${myTier.c};">${myTier.full}</div></div></div>
-      ${L.lastSeason ? `<div class="seabox" style="opacity:.85;"><span class="si">${L.lastSeason.ic}</span><div><div class="sl">지난 시즌 최종 (시즌 ${L.lastSeason.key.split("-")[1]})</div><div class="sv" style="color:${L.lastSeason.c};">${L.lastSeason.tier}</div></div></div>` : ""}
+      ${L.lastSeason ? `<div class="seabox" style="opacity:.85;"><span class="si">${L.lastSeason.ic}</span><div><div class="sl">지난 시즌 최종 (시즌 ${sNumOf(L.lastSeason.key)})</div><div class="sv" style="color:${L.lastSeason.c};">${L.lastSeason.tier}</div></div></div>` : ""}
       <span style="flex:1;"></span>
       <button onclick="openTiers()" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:9px 20px;font-size:12.5px;font-weight:800;cursor:pointer;">🎖️ 티어 구분</button>
       <button onclick="openRules()" style="background:transparent;border:1px solid var(--gold-dim);color:var(--gold);border-radius:10px;padding:9px 20px;font-size:12.5px;font-weight:800;cursor:pointer;">📖 게임 규칙</button>
     </div>
     <div class="sumrow">
-        <div class="sumbox"><div class="lb">총 자산 <span class="dim2">· 누적 지급 ${wonC(L.seedWon)}</span></div>
-          <div style="display:flex;align-items:center;gap:12px;"><div class="vl num">${wonN(total)}원</div><span style="margin-left:auto;">${sparkT(104,36)}</span></div></div>
+        <div class="sumbox"><div class="lb">총 자산</div>
+          <div style="display:flex;align-items:center;gap:12px;"><div class="vl num">${wonN(total)}원</div><span style="margin-left:auto;">${sparkT(104,36)}</span></div>
+          <div class="sumsub num" style="color:#5a737d;">투자원금 ${wonN(invSum)}원</div></div>
         <div class="sumbox"><div class="lb">평가손익 <span class="dim2">· 보유 종목</span></div>
           <div style="display:flex;align-items:center;gap:12px;"><div class="vl num ${ST.cls(evalPL)}">${evalPL>=0?"+":""}${wonN(evalPL)}원</div><span style="margin-left:auto;">${sparkT(104,36,"e")}</span></div>
-          <div class="sumsub num" style="color:#5a737d;">투자원금 ${wonN(invSum)}원</div></div>
+          <div class="sumsub num ${ST.cls(fxPL)}">환손익 ${fxPL>=0?"+":""}${wonN(fxPL)}원</div></div>
         <div class="sumbox"><div class="lb">수익률 <span class="dim2">· 지급액 대비</span></div>
           <div style="display:flex;align-items:center;gap:12px;"><div class="vl num ${ST.cls(ret)}">${ret>=0?"+":""}${ret.toFixed(2)}%</div><span style="margin-left:auto;">${sparkT(104,36)}</span></div>
           <div class="sumsub num ${ST.cls(ret)}">${total-L.seedWon>=0?"+":""}${wonN(total-L.seedWon)}원</div></div>
