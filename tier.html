@@ -49,6 +49,14 @@
   .bullets2 { font-size:12px; color:var(--muted); line-height:1.85; }
   .bullets2 li { list-style:none; padding-left:21px; position:relative; margin-bottom:6px; }
   .bullets2 li:before { content:"✓"; position:absolute; left:0; top:2px; width:14px; height:14px; border-radius:50%; background:#13322a; color:#4cd7a5; font-size:9px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .crow { display:flex; align-items:center; gap:10px; padding:10px 2px; border-bottom:1px solid #ffffff0d; font-size:12.5px; cursor:pointer; }
+  .crow:last-child { border-bottom:none; }
+  .crow:hover .clb { color:var(--gold); }
+  .crow .clb { flex:1; font-weight:700; }
+  .crow .cn { width:64px; text-align:right; font-variant-numeric:tabular-nums; font-weight:800; }
+  .crow .cm { width:70px; height:6px; background:var(--panel2); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+  .crow .cm i { display:block; height:100%; background:linear-gradient(90deg,#0f7a56,#4cd7a5); border-radius:4px; }
+  .crow .cp { width:38px; text-align:right; font-variant-numeric:tabular-nums; font-weight:800; color:var(--muted); }
   .dwrap { display:flex; gap:14px; align-items:center; }
   .donut { width:112px; height:112px; border-radius:50%; position:relative; flex-shrink:0; }
   .donut .hole { position:absolute; inset:26px; background:var(--panel); border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; }
@@ -108,7 +116,7 @@
       <div class="row3b">
         <div class="card"><h3>등급 상향 TOP 5</h3><div id="upgrades"></div></div>
         <div class="card"><h3>업종별 AAA 수</h3><div id="indbars"></div></div>
-        <div class="card"><h3>오늘의 한줄 해설</h3><ul class="bullets2" id="notes"></ul></div>
+        <div class="card"><h3>티어 변경 사유 분석</h3><div id="causes"></div></div>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;height:100%;">
@@ -320,14 +328,68 @@ drawBar(); drawTbl();
     <div class="hbar"><span class="lb2">${nm}</span><div class="m"><i style="width:${Math.max(8,c/mx*100)}%"></i></div><b>${c}</b></div>`).join("")
   : `<div style="font-size:12px;color:var(--dim);padding:10px 0;">업종 데이터 수집 후 표시됩니다</div>`;
 
-  const sTop = kr.filter(x=>x.sc>=85).sort((a,b)=>b.sc-a.sc);
-  const notes = [];
-  if (inds.length) notes.push(`${inds.slice(0,2).map(x2=>x2[0]).join("·")} 중심으로 상위 티어 집중`);
-  if (sTop.length) notes.push(`${sTop[0].key} 종합점수 ${sTop[0].sc}점으로 전체 1위`);
-  notes.push(`외국인 순매수 상위 종목의 지표 개선 흐름`);
-  notes.push(`밸류 매력은 ${kr.filter(x=>x.value>=60).length}개 종목에서 상대적으로 우수`);
-  notes.push("단기 과열 종목은 리스크 지표 점검 필요");
-  document.getElementById("notes").innerHTML = notes.slice(0,5).map(n=>`<li>${n}</li>`).join("");
+})();
+
+// ── 티어 변경 사유 분석 (사유 클릭 시 종목 리스트 팝업)
+const EARNK = (window.STOCK_MARKET && window.STOCK_MARKET.earn) || null;
+const EARNU = (window.STOCK_MARKET_US && window.STOCK_MARKET_US.earn) || null;
+const today0 = new Date(); today0.setHours(0,0,0,0);
+const dday = d => Math.round((d-today0)/864e5);
+const hashOf = s => { let h=7; for (const c of String(s)) h=(h*31+c.charCodeAt(0))>>>0; return h; };
+function earnInfo(x){
+  const m = x.us ? EARNU : EARNK;
+  const v = m && m[x.us ? x.key : x.e[0]];
+  if (v) { const t = String(v);
+    const d = t.length>=8 ? new Date(+t.slice(0,4), +t.slice(4,6)-1, +t.slice(6,8)) : new Date(today0.getFullYear(), +t.slice(0,2)-1, +t.slice(2,4));
+    if (d >= today0) return { d, est:false }; }
+  if (x.us) return null;
+  const h = hashOf(x.e[0]); const dl = [[3,31],[5,15],[8,14],[11,16]];
+  for (let k=0;k<9;k++){ const d = new Date(today0.getFullYear()+Math.floor(k/4), dl[k%4][0]-1, dl[k%4][1]);
+    d.setDate(d.getDate()-(h%16)); if (d>=today0) return { d, est:true }; }
+  return null;
+}
+(function(){
+  const CAUSE = { sup:[], mom:[], earn:[], risk:[] };
+  for (const x of ALL) {
+    if (!x.us && x.e.length>18 && x.e[17]!=null && x.e[17]>0 && x.e[18]>0) { CAUSE.sup.push(x); continue; }
+    if ((x.e[14]||0) >= 5) { CAUSE.mom.push(x); continue; }
+    const eo = earnInfo(x);
+    if (eo && dday(eo.d) <= 14 && (x.e[14]||0) > 0) { x.eo = eo; CAUSE.earn.push(x); continue; }
+    if (x.rk >= 70) CAUSE.risk.push(x);
+  }
+  CAUSE.sup.sort((a,b)=>(b.e[17]+b.e[18])*b.e[2]-(a.e[17]+a.e[18])*a.e[2]);
+  CAUSE.mom.sort((a,b)=>(b.e[14]||0)-(a.e[14]||0));
+  CAUSE.earn.sort((a,b)=>dday(a.eo.d)-dday(b.eo.d));
+  CAUSE.risk.sort((a,b)=>b.rk-a.rk);
+  const total = Math.max(1, CAUSE.sup.length + CAUSE.mom.length + CAUSE.earn.length + CAUSE.risk.length);
+  const CINFO = {
+    sup: ["수급 개선", "외국인·기관 동반 순매수 (전일)", x=>`<b class="num up">+${Math.round((x.e[17]+x.e[18])*x.e[2]/1e8).toLocaleString("ko-KR")}억</b>`],
+    mom: ["모멘텀 강화", "최근 1주 +5% 이상 상승", x=>`<b class="num up">+${(x.e[14]||0).toFixed(1)}%</b>`],
+    earn: ["실적 기대", "실적 발표 D-14 이내 + 상승 흐름", x=>`<b class="num" style="color:#f0c948;">D-${dday(x.eo.d)}${x.eo.est?" 예상":""}</b>`],
+    risk: ["리스크 증가", "위험도 70 이상 (과열·급변동)", x=>`<b class="num down">위험도 ${x.rk}</b>`],
+  };
+  const mx = Math.max(...Object.values(CAUSE).map(a=>a.length), 1);
+  document.getElementById("causes").innerHTML =
+    `<div class="crow" style="cursor:default;color:var(--dim);font-size:10.5px;font-weight:700;">
+      <span class="clb" style="font-weight:700;">변경 사유</span><span class="cn">종목 수</span><span class="cm" style="border:none;background:none;"></span><span class="cp">비중</span></div>` +
+    Object.keys(CINFO).map(k=>`
+    <div class="crow" onclick="showCause('${k}')">
+      <span class="clb">${CINFO[k][0]}</span>
+      <span class="cn num">${ST.num(CAUSE[k].length)}개</span>
+      <span class="cm"><i style="width:${Math.max(4,CAUSE[k].length/mx*100)}%;${k==="risk"?"background:linear-gradient(90deg,#7a2822,#f0645a);":""}"></i></span>
+      <span class="cp num">${Math.round(CAUSE[k].length/total*100)}%</span></div>`).join("");
+  window.showCause = k => {
+    document.getElementById("lmtitle").textContent = "티어 변경 사유 — " + CINFO[k][0];
+    document.getElementById("lmsub").textContent = CINFO[k][1];
+    document.getElementById("lmbody").innerHTML = CAUSE[k].slice(0,30).map((x,i)=>`
+      <div class="nrow2" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
+        <span class="rank">${i+1}</span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${logo(x)}${ST.displayName(x.src,x.key)}</span>
+        <span class="tierb tier-${x.gNow.g}" style="font-size:10px;">${x.gNow.g}</span>
+        <span style="flex-shrink:0;">${CINFO[k][2](x)}</span></div>`).join("")
+      || `<div style="font-size:12px;color:var(--dim);padding:10px 0;">해당 종목이 없습니다</div>`;
+    document.getElementById("lmod").style.display = "flex";
+  };
 })();
 
 // ── 사이드: 티어 분포 도넛 (신용등급 9단계)
