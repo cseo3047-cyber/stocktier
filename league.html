@@ -9,11 +9,14 @@
   .wrap { max-width:1280px; }
   .layout { display:grid; grid-template-columns:1fr 320px; gap:14px; align-items:start; }
   @media (max-width:1000px){ .layout { grid-template-columns:1fr; } }
-  .sumrow { display:grid; grid-template-columns:repeat(4,1fr); gap:11px; margin-bottom:14px; }
+  .sumrow { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px; }
   @media (max-width:900px){ .sumrow { grid-template-columns:repeat(2,1fr); } }
-  .sumbox { background:linear-gradient(135deg,#0d2e3b,#123f4b); border:1px solid var(--border); border-radius:14px; padding:13px 15px; }
-  .sumbox .lb { font-size:11px; color:var(--muted); font-weight:700; }
-  .sumbox .vl { font-size:18.5px; font-weight:800; margin-top:5px; white-space:nowrap; }
+  .sumbox { background:linear-gradient(135deg,#0c3a42,#155a52); border:1px solid #2e5c47; border-radius:15px; padding:17px 19px; }
+  .sumbox .lb { font-size:11.5px; color:#9db8a9; font-weight:700; }
+  .sumbox .vl { font-size:22px; font-weight:800; margin-top:6px; white-space:nowrap; }
+  .sumbox .sumsub { font-size:11px; margin-top:4px; font-weight:700; }
+  .rkgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px; align-items:start; }
+  @media (max-width:900px){ .rkgrid { grid-template-columns:1fr; } }
   .trade { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
   .trade .sbox { position:relative; flex:1; min-width:200px; }
   .trade input { width:100%; box-sizing:border-box; padding:10px 32px 10px 13px; font-size:13px; background:var(--panel2); border:1.5px solid var(--border); border-radius:9px; color:var(--text); outline:none; }
@@ -31,10 +34,10 @@
   .ptbl th { text-align:center; color:var(--dim); font-size:10.5px; font-weight:700; padding:8px 4px; border-bottom:1px solid var(--border); white-space:nowrap; }
   .ptbl td { padding:9px 4px; border-bottom:1px solid #ffffff0d; text-align:center; font-variant-numeric:tabular-nums; white-space:nowrap; }
   .ptbl td.nm { text-align:left; font-weight:700; }
-  .dwrap { display:flex; gap:14px; align-items:center; }
-  .donut { width:110px; height:110px; border-radius:50%; position:relative; flex-shrink:0; }
-  .donut .hole { position:absolute; inset:26px; background:var(--panel); border-radius:50%; }
-  .dlegend { flex:1; min-width:0; font-size:11.5px; }
+  .dwrap { display:flex; flex-direction:column; gap:16px; align-items:center; }
+  .donut { width:158px; height:158px; border-radius:50%; position:relative; flex-shrink:0; }
+  .donut .hole { position:absolute; inset:38px; background:var(--panel); border-radius:50%; }
+  .dlegend { width:100%; min-width:0; font-size:11.5px; }
   .dlegend .r { display:flex; align-items:center; gap:7px; padding:3px 0; color:var(--muted); font-variant-numeric:tabular-nums; }
   .dlegend .dot { width:9px; height:9px; border-radius:3px; flex-shrink:0; }
   .dlegend .lb { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -304,20 +307,22 @@ function render(){
   }).join("");
 
   box.innerHTML = `
-  <div class="layout">
-    <div>
-      <div class="sumrow">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+      <button onclick="openRules()" style="background:transparent;border:1px solid var(--gold-dim);color:var(--gold);border-radius:10px;padding:9px 22px;font-size:12.5px;font-weight:800;cursor:pointer;">📖 게임 규칙</button>
+    </div>
+    <div class="sumrow">
         <div class="sumbox"><div class="lb">총 자산 <span style="color:var(--dim);">· 누적 지급 ${wonC(L.seedWon)}</span></div>
-          <div style="display:flex;align-items:center;gap:9px;"><div class="vl num">${wonN(total)}원</div>${sparkT(62,26)}</div></div>
+          <div style="display:flex;align-items:center;gap:12px;"><div class="vl num">${wonN(total)}원</div><span style="margin-left:auto;">${sparkT(96,34)}</span></div></div>
         <div class="sumbox"><div class="lb">평가손익 <span style="color:var(--dim);">· 보유 종목</span></div>
-          <div class="vl num ${ST.cls(evalPL)}">${evalPL>=0?"+":""}${wonN(evalPL)}원</div></div>
+          <div style="display:flex;align-items:center;gap:12px;"><div class="vl num ${ST.cls(evalPL)}">${evalPL>=0?"+":""}${wonN(evalPL)}원</div><span style="margin-left:auto;font-size:26px;">📈</span></div>
+          <div class="sumsub num" style="color:var(--dim);">투자원금 ${wonN(invSum)}원</div></div>
         <div class="sumbox"><div class="lb">수익률 <span style="color:var(--dim);">· 지급액 대비</span></div>
-          <div style="display:flex;align-items:center;gap:9px;"><div class="vl num ${ST.cls(ret)}">${ret>=0?"+":""}${ret.toFixed(2)}%</div>${sparkT(62,26)}</div>
-          <div style="font-size:10.5px;margin-top:2px;" class="num ${ST.cls(ret)}">${total-L.seedWon>=0?"+":""}${wonN(total-L.seedWon)}원</div></div>
+          <div style="display:flex;align-items:center;gap:12px;"><div class="vl num ${ST.cls(ret)}">${ret>=0?"+":""}${ret.toFixed(2)}%</div><span style="margin-left:auto;">${sparkT(96,34)}</span></div>
+          <div class="sumsub num ${ST.cls(ret)}">${total-L.seedWon>=0?"+":""}${wonN(total-L.seedWon)}원</div></div>
         <div class="sumbox"><div class="lb">보유 현금</div>
-          <div style="display:flex;align-items:center;gap:9px;"><div class="vl num">${wonN(L.cash)}원</div><span style="font-size:21px;margin-left:auto;">💵</span></div>
-          <div style="font-size:10.5px;color:var(--dim);margin-top:2px;" class="num">${total?(L.cash/total*100).toFixed(1):0}%</div></div>
-      </div>
+          <div style="display:flex;align-items:center;gap:12px;"><div class="vl num">${wonN(L.cash)}원</div><span style="margin-left:auto;font-size:27px;">💵</span></div>
+          <div class="sumsub num" style="color:var(--dim);">${total?(L.cash/total*100).toFixed(1):0}%</div></div>
+    </div>
       <div class="card"><h3>주문하기 <span class="more" style="cursor:default;">전일 종가 체결 · 환율 ${FX.toLocaleString("ko-KR")}원 (전일 기준)</span></h3>
         <div class="trade">
           <div class="sbox"><input id="tq" placeholder="종목명 검색 (국내·미국)" autocomplete="off"><span class="mag">⌕</span><div class="suggest" id="tsug"></div></div>
@@ -369,6 +374,12 @@ function render(){
             : `🔒 초기화 가능까지 <b style="color:var(--gold);">D-${nextD}</b> (1개월마다 가능) · 월간 지급은 자동 정산`}</div>
         </div>
       </div>
+      <div class="card" style="margin-top:14px;"><h3>총자산 추이 <span class="chips2" id="hchips" style="margin-left:auto;"></span></h3>
+        <div style="display:flex;gap:16px;align-items:stretch;">
+          <div class="chartbox" style="flex:1;min-width:0;"><div id="hbox"></div><div class="ctip" id="htip"></div></div>
+          <div id="hstat" style="flex:0 0 150px;display:flex;flex-direction:column;justify-content:center;gap:8px;"></div>
+        </div>
+      </div>
       <div class="card" style="margin-top:14px;"><h3>최근 거래 내역 <span class="more" style="cursor:default;">최신순 · 전일 종가 체결 기준</span></h3>
         ${(L.tr||[]).length ? `<table class="ptbl"><thead><tr><th>일시</th><th>종목명</th><th>구분</th><th>수량</th><th>체결가</th><th>금액</th></tr></thead><tbody>
           ${L.tr.slice(-8).reverse().map(t=>{
@@ -383,15 +394,7 @@ function render(){
         </tbody></table>`
         : `<div style="font-size:12px;color:var(--dim);text-align:center;padding:14px 0;">아직 거래 내역이 없습니다.</div>`}
       </div>
-      <div class="card" style="margin-top:14px;"><h3>총자산 추이 <span class="chips2" id="hchips" style="margin-left:auto;"></span></h3>
-        <div class="chartbox"><div id="hbox"></div><div class="ctip" id="htip"></div></div>
-      </div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:12px;">
-      <button onclick="openRules()" style="width:100%;background:transparent;border:1px solid var(--gold-dim);color:var(--gold);border-radius:11px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;">📖 게임 규칙</button>
-      <div id="rkcards" style="display:flex;flex-direction:column;gap:12px;"></div>
-    </div>
-  </div>`;
+      <div id="rkcards" class="rkgrid"></div>`;
 
   // ── 검색 + 주문 미리보기
   const tin = document.getElementById("tq"), sug = document.getElementById("tsug"), tqty = document.getElementById("tqty");
@@ -523,14 +526,19 @@ function drawHist(){
     const d = new Date(2000+ +r.d.slice(0,2), +r.d.slice(2,4)-1, +r.d.slice(4,6));
     return d >= cutoff;
   });
+  const stat = document.getElementById("hstat");
   if (!rows.length) {
     el.innerHTML = `<div style="font-size:12px;color:var(--dim);text-align:center;padding:28px 0;">기록이 쌓이는 중이에요 — 접속·거래할 때마다 그날의 총자산이 기록됩니다.</div>`;
+    if (stat) stat.innerHTML = "";
     return;
   }
   if (rows.length === 1) rows.push({ d: rows[0].d, t: rows[0].t });   // 첫날: 수평선으로 표시
   const W=760, H=190, padL=76, padR=14, padT=12, padB=24;
   const vals = rows.map(r=>r.t);
   let mn=Math.min(...vals), mx=Math.max(...vals);
+  // 우측 요약: 최고 / 현재 / 최저
+  if (stat) stat.innerHTML = [["최고", mx, "#4cd7a5"], ["현재", rows[rows.length-1].t, "var(--text)"], ["최저", mn, "#f0708a"]].map(([lb,v,c]) =>
+    `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:9px 12px;font-size:11px;font-weight:700;color:var(--muted);"><span>${lb}</span><b class="num" style="color:${c};font-size:12px;">${wonN(v)}원</b></div>`).join("");
   if (mx === mn) { mn *= 0.98; mx *= 1.02; }   // 변동 없을 땐 선이 가운데 오도록 여유
   const rg=(mx-mn)||1;
   const X=i=>padL+i/(rows.length-1)*(W-padL-padR), Y=v=>padT+(1-(v-mn)/rg)*(H-padT-padB);
