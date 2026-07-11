@@ -184,8 +184,13 @@ if (!list.length) {
   const rows = items.map((x,i)=>{
     const gg = ST.gradeOf(x.sc);
     const rb = x.rk<40?["Low","r-low"]:x.rk<70?["Medium","r-med"]:["High","r-high"];
-    const ind = (x.e.length>20 && x.e[20]) ? x.e[20] : `<span style="color:var(--dim);">수집 중</span>`;
-    const thm = (x.e.length>21 && x.e[21]) ? x.e[21] : `<span style="color:var(--dim);">수집 중</span>`;
+    const isUs = x.src==="us";
+    // 미국은 업종=19번(단일), 별도 테마 없음 / 국내는 업종=20번, 테마=21번
+    const indRaw = isUs ? (x.e.length>19 && typeof x.e[19]==="string" ? x.e[19] : null)
+                        : (x.e.length>20 && x.e[20] ? x.e[20] : null);
+    const ind = indRaw || `<span style="color:var(--dim);">수집 중</span>`;
+    const thm = isUs ? `<span style="color:var(--dim);">-</span>`
+                     : ((x.e.length>21 && x.e[21]) ? x.e[21] : `<span style="color:var(--dim);">수집 중</span>`);
     const w1 = x.e[14];
     const chg = w1==null ? "-" : `<span class="${ST.cls(w1)}">${w1>0?"↗":w1<0?"↘":"→"} ${ST.pct(w1)}</span>`;
     const nm = ST.displayName(x.src,x.key);
