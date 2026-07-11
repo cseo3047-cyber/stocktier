@@ -6,7 +6,7 @@
 <title>Stocktier — 모의투자 리그</title>
 <link rel="stylesheet" href="style.css">
 <style>
-  .wrap { max-width:1250px; }
+  .wrap { max-width:1280px; }
   .layout { display:grid; grid-template-columns:1fr 320px; gap:14px; align-items:start; }
   @media (max-width:1000px){ .layout { grid-template-columns:1fr; } }
   .sumrow { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:14px; }
@@ -22,50 +22,63 @@
   .tbtn { padding:10px 20px; border-radius:9px; border:none; font-size:13px; font-weight:800; cursor:pointer; }
   .tbtn.buy { background:#1d9e75; color:#fff; }
   .tbtn.sell { background:#c0443a; color:#fff; }
-  .tbtn:disabled { opacity:.5; cursor:default; }
+  .prevbox { background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:10px 13px; margin-top:10px; font-size:12.5px; color:var(--muted); font-weight:600; line-height:1.9; display:none; }
+  .prevbox b { color:var(--text); font-variant-numeric:tabular-nums; }
+  .posgrid { display:grid; grid-template-columns:0.85fr 1.75fr; gap:14px; align-items:stretch; margin-top:14px; }
+  @media (max-width:900px){ .posgrid { grid-template-columns:1fr; } }
   .ptbl { width:100%; border-collapse:collapse; font-size:12.5px; margin-top:6px; }
   .ptbl th { text-align:center; color:var(--dim); font-size:10.5px; font-weight:700; padding:8px 4px; border-bottom:1px solid var(--border); white-space:nowrap; }
   .ptbl td { padding:9px 4px; border-bottom:1px solid #ffffff0d; text-align:center; font-variant-numeric:tabular-nums; white-space:nowrap; }
   .ptbl td.nm { text-align:left; font-weight:700; }
+  .dwrap { display:flex; gap:14px; align-items:center; }
+  .donut { width:110px; height:110px; border-radius:50%; position:relative; flex-shrink:0; }
+  .donut .hole { position:absolute; inset:26px; background:var(--panel); border-radius:50%; }
+  .dlegend { flex:1; min-width:0; font-size:11.5px; }
+  .dlegend .r { display:flex; align-items:center; gap:7px; padding:3px 0; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .dlegend .dot { width:9px; height:9px; border-radius:3px; flex-shrink:0; }
+  .dlegend .lb { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dlegend b { color:var(--text); width:42px; text-align:right; }
+  .chips2 { display:flex; gap:4px; flex-wrap:wrap; }
+  .chips2 .chip { font-size:10px; padding:3px 9px; border-radius:7px; border:1px solid var(--border); color:var(--muted); cursor:pointer; font-weight:700; }
+  .chips2 .chip.on { background:#13322a; color:#4cd7a5; border-color:#2e5c47; }
+  .chartbox { position:relative; }
+  .ctip { position:absolute; background:#021b27; border:1px solid var(--gold-dim); color:var(--text); font-size:11px; font-weight:600; padding:7px 10px; border-radius:8px; pointer-events:none; white-space:nowrap; transform:translate(-50%,-108%); z-index:5; font-variant-numeric:tabular-nums; line-height:1.7; display:none; }
   .rkrow { display:flex; align-items:center; gap:9px; padding:9px 0; border-bottom:1px solid #ffffff0d; font-size:12.5px; font-weight:700; }
   .rkrow:last-child { border-bottom:none; }
   .rkrow .rank { width:20px; height:20px; border-radius:6px; background:var(--panel2); border:1px solid var(--border); color:var(--muted); font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   .rkrow.me { background:#3d331322; border-radius:8px; padding-left:6px; padding-right:6px; }
   .msg2 { font-size:12px; font-weight:700; min-height:16px; margin-top:8px; }
+  .rulerow { display:flex; gap:12px; padding:11px 0; border-bottom:1px solid #ffffff0d; }
+  .rulerow:last-child { border-bottom:none; }
+  .rulerow .ric { width:38px; height:38px; border-radius:11px; background:#13322a; border:1px solid #2e5c47; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
+  .rulerow b { font-size:13px; display:block; margin-bottom:2px; }
+  .rulerow p { font-size:12px; color:var(--muted); line-height:1.7; margin:0; }
 </style>
 </head>
 <body>
 <nav class="nav" id="nav"></nav>
 <div class="wrap">
   <span class="asof" id="asof"></span>
-  <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
-    <div style="flex:1;min-width:220px;">
-      <div class="page-title">🏆 모의투자 리그</div>
-      <div class="page-sub">가상 자금 1억 원으로 시작하는 모의투자. 국내·미국 주식 모두 전일 종가 기준으로 체결됩니다.</div>
-    </div>
-    <button id="rulebtn" style="background:transparent;border:1px solid var(--gold-dim);color:var(--gold);border-radius:9px;padding:9px 18px;font-size:12px;font-weight:800;cursor:pointer;margin-top:4px;">📖 게임 규칙</button>
-  </div>
+  <div class="page-title">🏆 모의투자 리그</div>
+  <div class="page-sub">가상 자금 1억 원으로 시작하는 모의투자. 국내·미국 주식 모두 전일 종가 기준으로 체결됩니다.</div>
   <div id="body"><div class="card" style="text-align:center;padding:40px;color:var(--muted);">로그인 상태 확인 중...</div></div>
   <div class="footer"></div>
 </div>
 
 <div id="rulemodal" style="position:fixed;inset:0;background:#000000aa;display:none;align-items:center;justify-content:center;z-index:300;" onclick="if(event.target===this)this.style.display='none'">
-  <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;width:min(440px,92vw);max-height:80vh;overflow:auto;padding:22px 24px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;width:min(470px,92vw);max-height:82vh;overflow:auto;padding:22px 24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <b style="font-size:16px;">📖 모의투자 리그 규칙</b>
-      <span style="cursor:pointer;color:var(--muted);padding:2px 6px;" onclick="document.getElementById('rulemodal').style.display='none'">✕</span></div>
-    <div style="font-size:13px;color:var(--muted);line-height:2.0;">
-      <div>💰 <b style="color:var(--text);">시작 자금</b> — 가상 투자금 1억 원으로 시작합니다.</div>
-      <div>📅 <b style="color:var(--text);">월간 지급</b> — 1개월(30일)마다 가상 1억 원이 추가 지급됩니다. 물타기·불타기에 활용하세요.</div>
-      <div>🔄 <b style="color:var(--text);">초기화</b> — 1개월에 한 번, 계속 운용 또는 초기화를 선택할 수 있습니다. 그 전엔 초기화가 잠깁니다.</div>
-      <div>🌎 <b style="color:var(--text);">대상 종목</b> — 국내 전 종목 + 미국 전 종목. 미국 주식은 환율 <b>1,350원 고정</b>으로 원화 환산됩니다.</div>
-      <div>⚡ <b style="color:var(--text);">체결 가격</b> — 전일 종가 기준, 수수료·세금 없음. 시세는 매일 저녁 갱신됩니다.</div>
-      <div>🏆 <b style="color:var(--text);">랭킹</b> — 수익률 = 총자산 ÷ 누적 지급액. 지급받은 금액이 달라도 공정하게 비교됩니다.</div>
-    </div>
+      <span style="cursor:pointer;color:var(--muted);padding:2px 6px;font-size:16px;" onclick="document.getElementById('rulemodal').style.display='none'">✕</span></div>
+    <div class="rulerow"><span class="ric">💰</span><div><b>시작 자금 1억 원</b><p>가입 시 가상 투자금 1억 원이 지급됩니다.</p></div></div>
+    <div class="rulerow"><span class="ric">📅</span><div><b>매월 추가 지급</b><p>1개월(30일)마다 기본 <b style="color:#f0c948;">2,000만 원</b>이 지급됩니다. 여기에 <b style="color:#f0c948;">출석 포인트 1P당 +100만 원</b>이 더해져요. 물타기·불타기에 활용하세요.</p></div></div>
+    <div class="rulerow"><span class="ric">🔥</span><div><b>출석 포인트</b><p>출석 체크 시 매일 10P + 연속 출석 보너스가 쌓입니다. 포인트가 많을수록 매월 지급액이 커져요.</p></div></div>
+    <div class="rulerow"><span class="ric">🔄</span><div><b>초기화는 월 1회</b><p>1개월마다 계속 운용 또는 초기화를 선택할 수 있습니다. 그 전엔 초기화가 잠깁니다.</p></div></div>
+    <div class="rulerow"><span class="ric">🌎</span><div><b>국내 + 미국 전 종목</b><p>미국 주식은 <b>전일 기준 환율</b>로 원화 환산됩니다. 체결은 전일 종가, 수수료·세금 없음.</p></div></div>
+    <div class="rulerow"><span class="ric">🏆</span><div><b>랭킹 산정</b><p>수익률 = 총자산 ÷ 누적 지급액. 지급받은 금액이 서로 달라도 공정하게 비교됩니다.</p></div></div>
     <div style="font-size:10.5px;color:var(--dim);margin-top:12px;">※ 실제 투자가 아닌 가상 시뮬레이션입니다.</div>
   </div>
 </div>
-<script>document.addEventListener("DOMContentLoaded",()=>{});</script>
 
 <script src="data.js"></script>
 <script src="data_us.js"></script>
@@ -74,8 +87,12 @@
 ST.nav("league.html");
 document.getElementById("asof").textContent = "업데이트: " + ST.asofText();
 const box = document.getElementById("body");
-const SEED = 100000000;   // 1억
-let USER = null, ready = false, L = null, SELK = null;
+const SEED = 100000000;                 // 시작 1억
+const BASE_GRANT = 20000000;            // 매월 기본 2천만
+const PT_BONUS = 1000000;               // 포인트당 +100만
+const MONTH = 30 * 864e5;
+const FX = (window.STOCK_MARKET && window.STOCK_MARKET.fx) || 1350;   // 전일 기준 환율
+let USER = null, ready = false, L = null, SELK = null, MYPTS = 0;
 
 function locked(){
   box.innerHTML = `<div class="card" style="text-align:center;padding:50px;">
@@ -86,45 +103,53 @@ function locked(){
 }
 
 const wonN = v => Math.round(v).toLocaleString("ko-KR");
-const MONTH = 30 * 864e5;   // 1개월 = 30일
-const FX = 1350;            // 미국 주식 원화 환산 환율 (고정)
+const wonC = v => v >= 1e8 ? (v/1e8).toFixed(v%1e8?2:0).replace(/\.?0+$/,"")+"억" : wonN(v/1e4)+"만";
 const splitK = pk => pk.includes(":") ? [pk.slice(0, pk.indexOf(":")), pk.slice(pk.indexOf(":")+1)] : ["kr", pk];
 const priceOf = pk => { const [src, k] = splitK(pk); const e = ST.get(src, k);
   return e ? (src === "us" ? Math.round(e[2] * FX) : e[2]) : null; };
 const nameOf = pk => { const [src, k] = splitK(pk); return ST.displayName(src, k); };
-document.getElementById("rulebtn").addEventListener("click", () => document.getElementById("rulemodal").style.display = "flex");
 const totalOf = d => {
   let t = d.cash || 0;
-  for (const k of Object.keys(d.pos || {})) {
-    const p = priceOf(k);
-    if (p) t += d.pos[k].q * p;
-  }
+  for (const k of Object.keys(d.pos || {})) { const p = priceOf(k); if (p) t += d.pos[k].q * p; }
   return t;
 };
-const seedOf = d => (d.grants || 1) * SEED;
+const seedOf = d => d.seedWon || ((d.grants || 1) * SEED);
 
 async function load(){
   if (!USER) { locked(); return; }
   const ref = firebase.firestore().collection("league").doc(USER.uid);
   const snap = await ref.get();
   const p = window.ST_PROFILE || {};
-  L = snap.exists ? snap.data() : { cash: SEED, pos: {}, start: Date.now(), grants: 1, cycleStart: Date.now() };
+  L = snap.exists ? snap.data() : { cash: SEED, pos: {}, start: Date.now(), cycleStart: Date.now(), seedWon: SEED, hist: [] };
   L.pos = L.pos || {};
-  L.grants = L.grants || 1;
   L.cycleStart = L.cycleStart || L.start || Date.now();
+  L.seedWon = seedOf(L);
+  L.hist = L.hist || [];
   L.nick = p.nick || USER.displayName || USER.email.split("@")[0];
   L.av = p.avatar || "";
+  // 출석 포인트 조회 (월 지급 보너스 계산용)
+  try { const gs = await firebase.firestore().collection("games").doc(USER.uid).get();
+    MYPTS = (gs.exists && gs.data().pts) || 0; } catch(e) { MYPTS = 0; }
+  // 총자산 추이 기록 (데이터 날짜 기준 1일 1회)
+  const dk = ((window.STOCK_META && window.STOCK_META.date) || "").slice(2);
+  if (dk) {
+    const t = totalOf(L);
+    const last = L.hist[L.hist.length-1];
+    if (last && last[0] === dk) last[1] = t;
+    else L.hist.push([dk, t]);
+    L.hist = L.hist.slice(-400);
+  }
   await ref.set(L, { merge: true });
   render();
 }
 
-// 1개월 경과 시: 계속 운용(+1억 지급) 또는 초기화 선택
 const monthsDue = () => Math.floor((Date.now() - L.cycleStart) / MONTH);
+const grantPer = () => BASE_GRANT + MYPTS * PT_BONUS;
 window.contPlay = async () => {
   const due = monthsDue();
   if (due < 1) return;
-  L.grants += due;
-  L.cash += due * SEED;
+  const amt = due * grantPer();
+  L.cash += amt; L.seedWon += amt;
   L.cycleStart += due * MONTH;
   L.updated = Date.now();
   await firebase.firestore().collection("league").doc(USER.uid).set(L, { merge: false });
@@ -132,36 +157,54 @@ window.contPlay = async () => {
 };
 window.resetPlay = async () => {
   if (monthsDue() < 1) { alert("초기화는 1개월(30일)에 한 번만 가능해요."); return; }
-  if (!confirm("모든 보유 종목과 기록을 지우고 1억 원부터 새로 시작할까요?\n(계속 운용을 선택하면 추가 1억 원을 지급받고 이어갈 수 있어요)")) return;
-  L = { cash: SEED, pos: {}, start: Date.now(), grants: 1, cycleStart: Date.now(), nick: L.nick, av: L.av, updated: Date.now() };
+  if (!confirm("모든 보유 종목과 기록을 지우고 1억 원부터 새로 시작할까요?")) return;
+  L = { cash: SEED, pos: {}, start: Date.now(), cycleStart: Date.now(), seedWon: SEED, hist: [], nick: L.nick, av: L.av, updated: Date.now() };
   SELK = null;
   await firebase.firestore().collection("league").doc(USER.uid).set(L, { merge: false });
   render();
 };
+window.openRules = () => document.getElementById("rulemodal").style.display = "flex";
+
+let HPER = "1m";
+const HWIN = { "1w":["1주",7], "1m":["1개월",30], "3m":["3개월",91], "6m":["6개월",182], "1y":["1년",365], "3y":["3년",1095] };
+window.setHper = p => { HPER = p; drawHist(); };
 
 function render(){
   const total = totalOf(L);
-  const seed = seedOf(L);
-  const ret = (total/seed - 1) * 100;
+  const ret = (total/L.seedWon - 1) * 100;
   const due = monthsDue();
   const nextD = Math.max(0, Math.ceil((L.cycleStart + MONTH - Date.now()) / 864e5));
   const posKeys = Object.keys(L.pos).filter(k=>L.pos[k].q>0);
+
+  // 포트폴리오 구성 도넛 (현금 포함)
+  const GREENS = ["#d6ef7a","#a8e05a","#6fd18f","#4cd7a5","#2fb98a","#1d9e75","#177a5e","#115c48"];
+  const segsArr = posKeys.map(k=>({ nm:nameOf(k), v:(priceOf(k)||L.pos[k].avg)*L.pos[k].q }));
+  segsArr.push({ nm:"현금", v:L.cash, cash:true });
+  segsArr.sort((a,b)=>b.v-a.v);
+  let acc = 0; const segs = [];
+  const legend = segsArr.map((s2,i)=>{
+    const col = s2.cash ? "#5a737d" : GREENS[i%GREENS.length];
+    const pct = total ? s2.v/total*100 : 0;
+    segs.push(`${col} ${acc}% ${acc+pct}%`); acc += pct;
+    return `<div class="r"><span class="dot" style="background:${col};"></span><span class="lb">${s2.nm}</span><b>${pct.toFixed(1)}%</b></div>`;
+  }).join("");
+
   box.innerHTML = `
   <div class="layout">
     <div>
       ${due >= 1 ? `<div style="background:linear-gradient(120deg,#3d3313,#123f4b);border:1px solid #c9a83266;border-radius:13px;padding:15px 18px;margin-bottom:14px;">
         <div style="font-size:14px;font-weight:800;margin-bottom:5px;">🎉 ${due}개월이 지났어요! 어떻게 할까요?</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">계속 운용하면 가상 투자금 <b style="color:#f0c948;">${due}억 원</b>이 추가 지급됩니다. (물타기·불타기 가능)</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">계속 운용하면 <b style="color:#f0c948;">${wonC(due*grantPer())}</b>이 추가 지급됩니다. (기본 ${wonC(BASE_GRANT)}${MYPTS>0?` + 출석 ${MYPTS}P 보너스 ${wonC(MYPTS*PT_BONUS)}`:""}) × ${due}개월</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button class="tbtn buy" onclick="contPlay()">계속 운용 (+${due}억 지급)</button>
+          <button class="tbtn buy" onclick="contPlay()">계속 운용 (+${wonC(due*grantPer())})</button>
           <button class="tbtn" style="background:transparent;border:1px solid var(--border);color:var(--muted);" onclick="resetPlay()">초기화하고 새로 시작</button>
         </div></div>` : ""}
       <div class="sumrow">
-        <div class="sumbox"><div class="lb">총 자산 <span style="color:var(--dim);">· 누적 지급 ${L.grants}억</span></div><div class="vl num">${wonN(total)}원</div></div>
+        <div class="sumbox"><div class="lb">총 자산 <span style="color:var(--dim);">· 누적 지급 ${wonC(L.seedWon)}</span></div><div class="vl num">${wonN(total)}원</div></div>
         <div class="sumbox"><div class="lb">수익률 <span style="color:var(--dim);">· 지급액 대비</span></div><div class="vl num ${ST.cls(ret)}">${ret>=0?"+":""}${ret.toFixed(2)}%</div></div>
         <div class="sumbox"><div class="lb">보유 현금</div><div class="vl num">${wonN(L.cash)}원</div></div>
       </div>
-      <div class="card" style="margin-bottom:14px;"><h3>주문하기 <span class="more" style="cursor:default;">전일 종가 체결 · 수수료 없음</span></h3>
+      <div class="card"><h3>주문하기 <span class="more" style="cursor:default;">전일 종가 체결 · 환율 ${FX.toLocaleString("ko-KR")}원 (전일 기준)</span></h3>
         <div class="trade">
           <div class="sbox"><input id="tq" placeholder="종목명 검색 (국내·미국)" autocomplete="off"><span class="mag">⌕</span><div class="suggest" id="tsug"></div></div>
           <input class="qty" id="tqty" type="number" min="1" placeholder="수량">
@@ -169,40 +212,74 @@ function render(){
           <button class="tbtn sell" id="sellbtn">매도</button>
         </div>
         <div id="selinfo" style="font-size:12px;color:var(--muted);margin-top:9px;font-weight:700;"></div>
+        <div class="prevbox" id="ordprev"></div>
         <div class="msg2" id="tmsg"></div>
       </div>
-      <div class="card"><h3>보유 종목</h3>
-        ${posKeys.length ? `<table class="ptbl"><thead><tr><th>종목명</th><th>수량</th><th>평균단가</th><th>현재가</th><th>평가금액</th><th>손익</th></tr></thead><tbody>
-          ${posKeys.map(k=>{
-            const ps = L.pos[k], cur = priceOf(k) || ps.avg;
-            const pl = (cur/ps.avg-1)*100;
-            const [srcx, kx] = splitK(k);
-            return `<tr>
-              <td class="nm" style="cursor:pointer;" onclick="location.href='${ST.stockUrl(srcx,kx)}'">${nameOf(k)}${srcx==="us"?` <span style="color:var(--dim);font-size:10px;font-weight:500;">US</span>`:""}</td>
-              <td class="num">${wonN(ps.q)}주</td>
-              <td class="num">${wonN(ps.avg)}원</td>
-              <td class="num">${wonN(cur)}원</td>
-              <td class="num" style="font-weight:800;">${wonN(ps.q*cur)}원</td>
-              <td class="num ${ST.cls(pl)}" style="font-weight:800;">${pl>=0?"+":""}${pl.toFixed(2)}%</td></tr>`;}).join("")}
-        </tbody></table>`
-        : `<div style="font-size:12.5px;color:var(--dim);text-align:center;padding:18px 0;">보유 종목이 없습니다. 위에서 첫 종목을 매수해보세요!</div>`}
-        <div style="margin-top:12px;text-align:right;font-size:11px;color:var(--dim);font-weight:700;">
-          ${due >= 1 ? `<button onclick="resetPlay()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;">처음부터 다시 시작</button>`
-          : `🔒 초기화·추가 지급까지 <b style="color:var(--gold);">D-${nextD}</b> (1개월마다 가능)`}</div>
+      <div class="posgrid">
+        <div class="card"><h3>포트폴리오 구성</h3>
+          <div class="dwrap" style="margin-top:6px;">
+            <div class="donut" style="background:conic-gradient(${segs.join(",")});"><div class="hole"></div></div>
+            <div class="dlegend">${legend}</div>
+          </div>
+        </div>
+        <div class="card"><h3>보유 종목</h3>
+          ${posKeys.length ? `<table class="ptbl"><thead><tr><th>종목명</th><th>수량</th><th>평균단가</th><th>현재가</th><th>평가금액</th><th>손익</th></tr></thead><tbody>
+            ${posKeys.map(k=>{
+              const ps = L.pos[k], cur = priceOf(k) || ps.avg;
+              const pl = (cur/ps.avg-1)*100;
+              const [srcx, kx] = splitK(k);
+              return `<tr>
+                <td class="nm" style="cursor:pointer;" onclick="location.href='${ST.stockUrl(srcx,kx)}'">${nameOf(k)}${srcx==="us"?` <span style="color:var(--dim);font-size:10px;font-weight:500;">US</span>`:""}</td>
+                <td class="num">${wonN(ps.q)}주</td>
+                <td class="num">${wonN(ps.avg)}원</td>
+                <td class="num">${wonN(cur)}원</td>
+                <td class="num" style="font-weight:800;">${wonN(ps.q*cur)}원</td>
+                <td class="num ${ST.cls(pl)}" style="font-weight:800;">${pl>=0?"+":""}${pl.toFixed(2)}%</td></tr>`;}).join("")}
+          </tbody></table>`
+          : `<div style="font-size:12.5px;color:var(--dim);text-align:center;padding:18px 0;">보유 종목이 없습니다. 위에서 첫 종목을 매수해보세요!</div>`}
+          <div style="margin-top:12px;text-align:right;font-size:11px;color:var(--dim);font-weight:700;">
+            ${due >= 1 ? `<button onclick="resetPlay()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;">처음부터 다시 시작</button>`
+            : `🔒 초기화·추가 지급까지 <b style="color:var(--gold);">D-${nextD}</b> (1개월마다 가능)`}</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px;"><h3>총자산 추이 <span class="chips2" id="hchips" style="margin-left:auto;"></span></h3>
+        <div class="chartbox"><div id="hbox"></div><div class="ctip" id="htip"></div></div>
       </div>
     </div>
-    <div class="card" style="align-self:stretch;"><h3>🏆 수익률 랭킹</h3><div id="ranks">불러오는 중...</div></div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button onclick="openRules()" style="width:100%;background:transparent;border:1px solid var(--gold-dim);color:var(--gold);border-radius:11px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;">📖 게임 규칙</button>
+      <div class="card"><h3>🏆 수익률 랭킹</h3><div id="ranks">불러오는 중...</div></div>
+    </div>
   </div>`;
 
-  // 종목 검색
-  const tin = document.getElementById("tq"), sug = document.getElementById("tsug");
+  // ── 검색 + 주문 미리보기
+  const tin = document.getElementById("tq"), sug = document.getElementById("tsug"), tqty = document.getElementById("tqty");
   const info = () => {
     const el = document.getElementById("selinfo");
     if (!SELK) { el.textContent = ""; return; }
     const [srcx] = splitK(SELK);
     const cur = priceOf(SELK), held = L.pos[SELK];
-    el.innerHTML = `<b>${nameOf(SELK)}</b>${srcx==="us"?` <span style="color:var(--dim);font-size:10.5px;">미국 · 환율 ${FX.toLocaleString("ko-KR")}원 환산</span>`:""} · 현재가 <b class="num">${wonN(cur)}원</b>${held&&held.q>0?` · 보유 <b class="num">${wonN(held.q)}주</b> (평단 ${wonN(held.avg)}원)`:""} · 최대 <b class="num">${wonN(Math.floor(L.cash/cur))}주</b> 매수 가능`;
+    el.innerHTML = `<b>${nameOf(SELK)}</b>${srcx==="us"?` <span style="color:var(--dim);font-size:10.5px;">미국 · 환율 환산</span>`:""} · 현재가 <b class="num">${wonN(cur)}원</b>${held&&held.q>0?` · 보유 <b class="num">${wonN(held.q)}주</b> (평단 ${wonN(held.avg)}원)`:""} · 최대 <b class="num">${wonN(Math.floor(L.cash/cur))}주</b> 매수 가능`;
   };
+  // 수량 입력 시: 주문 금액 + 물타기 미리보기
+  const updPrev = () => {
+    const pv = document.getElementById("ordprev");
+    const qn = Math.floor(+tqty.value);
+    if (!SELK || !qn || qn < 1) { pv.style.display = "none"; return; }
+    const cur = priceOf(SELK), cost = cur * qn;
+    const held = L.pos[SELK];
+    let html = `주문 금액: <b>${wonN(cost)}원</b> <span style="color:var(--dim);">(${wonN(qn)}주 × ${wonN(cur)}원)</span>`;
+    if (held && held.q > 0) {
+      const nq = held.q + qn;
+      const nAvg = Math.round((held.q*held.avg + cost) / nq);
+      const dAvg = (nAvg/held.avg - 1) * 100;
+      html += `<br>💧 매수 후: 평단 <b>${wonN(nAvg)}원</b> <span style="color:${dAvg<=0?"var(--up)":"var(--down)"};">(${dAvg<=0?"▼":"▲"}${Math.abs(dAvg).toFixed(1)}%)</span> · 수량 <b>${wonN(nq)}주</b> · 평가금액 <b>${wonN(nq*cur)}원</b>`;
+      html += `<br>매도 시: <b>${wonN(Math.min(qn,held.q)*cur)}원</b> 회수 · 잔여 <b>${wonN(Math.max(0,held.q-qn))}주</b>`;
+    }
+    pv.innerHTML = html;
+    pv.style.display = "block";
+  };
+  tqty.addEventListener("input", updPrev);
   tin.addEventListener("input", () => {
     const q = tin.value.trim();
     if (!q) { sug.style.display="none"; return; }
@@ -212,7 +289,7 @@ function render(){
     sug.style.display="block";
     sug.querySelectorAll("div[data-k]").forEach(el=>el.addEventListener("click",()=>{
       SELK = decodeURIComponent(el.dataset.k);
-      tin.value = nameOf(SELK); sug.style.display="none"; info();
+      tin.value = nameOf(SELK); sug.style.display="none"; info(); updPrev();
     }));
   });
   document.addEventListener("click", e => { if (!e.target.closest(".sbox")) sug.style.display="none"; });
@@ -221,6 +298,9 @@ function render(){
 
   async function saveRender(t, ok){
     L.updated = Date.now();
+    const dk = ((window.STOCK_META && window.STOCK_META.date) || "").slice(2);
+    if (dk) { const tt = totalOf(L); const last = L.hist[L.hist.length-1];
+      if (last && last[0]===dk) last[1]=tt; else L.hist.push([dk,tt]); }
     await firebase.firestore().collection("league").doc(USER.uid).set(L, { merge: false });
     render(); msg(t, ok); loadRanks();
   }
@@ -231,11 +311,18 @@ function render(){
   };
   document.getElementById("buybtn").addEventListener("click", () => {
     const k = pickPk();
-    const qn = Math.floor(+document.getElementById("tqty").value);
+    const qn = Math.floor(+tqty.value);
     if (!k || !priceOf(k)) { msg("종목을 검색해서 선택해주세요."); return; }
     if (!qn || qn<1) { msg("수량을 입력해주세요."); return; }
     const cur = priceOf(k), cost = cur*qn;
     if (cost > L.cash) { msg(`현금이 부족해요. (필요 ${wonN(cost)}원 / 보유 ${wonN(L.cash)}원)`); return; }
+    const held = L.pos[k];
+    let cf = `[매수 확인]\n${nameOf(k)} ${wonN(qn)}주 × ${wonN(cur)}원 = ${wonN(cost)}원`;
+    if (held && held.q>0) {
+      const nAvg = Math.round((held.q*held.avg + cost)/(held.q+qn));
+      cf += `\n매수 후 평단 ${wonN(nAvg)}원 · 수량 ${wonN(held.q+qn)}주`;
+    }
+    if (!confirm(cf + "\n\n진행할까요?")) return;
     const ps = L.pos[k] || { q:0, avg:0 };
     ps.avg = Math.round((ps.q*ps.avg + cost) / (ps.q+qn));
     ps.q += qn;
@@ -246,18 +333,82 @@ function render(){
   });
   document.getElementById("sellbtn").addEventListener("click", () => {
     const k = pickPk();
-    const qn = Math.floor(+document.getElementById("tqty").value);
+    const qn = Math.floor(+tqty.value);
     const ps = k && L.pos[k];
     if (!ps || ps.q<1) { msg("보유하지 않은 종목입니다."); return; }
     if (!qn || qn<1 || qn>ps.q) { msg(`매도 가능 수량: ${wonN(ps.q)}주`); return; }
     const cur = priceOf(k);
+    if (!confirm(`[매도 확인]\n${nameOf(k)} ${wonN(qn)}주 × ${wonN(cur)}원 = ${wonN(cur*qn)}원 회수\n잔여 ${wonN(ps.q-qn)}주\n\n진행할까요?`)) return;
     ps.q -= qn;
     L.cash += cur*qn;
     if (ps.q === 0) delete L.pos[k];
     SELK = k;
     saveRender(`${nameOf(k)} ${wonN(qn)}주 매도 완료 (+${wonN(cur*qn)}원)`, true);
   });
+  drawHist();
   loadRanks();
+}
+
+// ── 총자산 추이 차트 (십자선 + 툴팁)
+function drawHist(){
+  const chips = document.getElementById("hchips"), el = document.getElementById("hbox"), tip = document.getElementById("htip");
+  if (!chips || !el) return;
+  chips.innerHTML = Object.keys(HWIN).map(p=>`<span class="chip ${HPER===p?"on":""}" onclick="setHper('${p}')">${HWIN[p][0]}</span>`).join("");
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - HWIN[HPER][1]);
+  const rows = (L.hist||[]).filter(r=>{
+    const d = new Date(2000+ +r[0].slice(0,2), +r[0].slice(2,4)-1, +r[0].slice(4,6));
+    return d >= cutoff;
+  });
+  if (rows.length < 2) {
+    el.innerHTML = `<div style="font-size:12px;color:var(--dim);text-align:center;padding:28px 0;">기록이 쌓이는 중이에요 — 접속·거래할 때마다 그날의 총자산이 기록됩니다.</div>`;
+    return;
+  }
+  const W=760, H=190, padL=76, padR=14, padT=12, padB=24;
+  const vals = rows.map(r=>r[1]);
+  const mn=Math.min(...vals), mx=Math.max(...vals), rg=(mx-mn)||1;
+  const X=i=>padL+i/(rows.length-1)*(W-padL-padR), Y=v=>padT+(1-(v-mn)/rg)*(H-padT-padB);
+  const xy = rows.map((r,i)=>`${X(i).toFixed(1)},${Y(r[1]).toFixed(1)}`);
+  let grid = "";
+  for (let gz=0; gz<=2; gz++){
+    const v = mn + rg*(1-gz/2), y = padT + (H-padT-padB)*gz/2;
+    grid += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#0d3a52" stroke-width="1"/>
+      <text x="${padL-6}" y="${y+4}" text-anchor="end" fill="#5a737d" font-size="9.5">${wonN(v)}</text>`;
+  }
+  const fD = r => `${r[0].slice(2,4)}/${r[0].slice(4,6)}`;
+  let xlab = "";
+  for (const fr of [0, 0.5, 1]){
+    const i = Math.round(fr*(rows.length-1));
+    xlab += `<text x="${X(i).toFixed(1)}" y="${H-7}" text-anchor="${fr===0?"start":fr===1?"end":"middle"}" fill="#5a737d" font-size="9.5">${fD(rows[i])}</text>`;
+  }
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:190px;display:block;">
+    <defs><linearGradient id="hgf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4cd7a5" stop-opacity="0.3"/><stop offset="1" stop-color="#4cd7a5" stop-opacity="0"/></linearGradient>
+    <linearGradient id="hgl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0f7a56"/><stop offset="1" stop-color="#4cd7a5"/></linearGradient></defs>
+    ${grid}${xlab}
+    <polygon points="${padL},${H-padB} ${xy.join(" ")} ${W-padR},${H-padB}" fill="url(#hgf)"/>
+    <polyline points="${xy.join(" ")}" fill="none" stroke="url(#hgl)" stroke-width="2"/>
+    <g class="cross" style="display:none;">
+      <line class="cxv" y1="${padT}" y2="${H-padB}" stroke="#8da4ac" stroke-width="1" stroke-dasharray="4,4"/>
+      <line class="cxh" x1="${padL}" x2="${W-padR}" stroke="#8da4ac" stroke-width="1" stroke-dasharray="4,4"/>
+      <circle class="cp" r="4" fill="#4cd7a5" stroke="#10231c" stroke-width="1.5"/></g></svg>`;
+  const svg = el.querySelector("svg"), cross = svg.querySelector(".cross");
+  svg.onmousemove = ev => {
+    const r2 = svg.getBoundingClientRect();
+    const vx = (ev.clientX - r2.left)/r2.width*W;
+    let i = Math.round((vx-padL)/(W-padL-padR)*(rows.length-1));
+    i = Math.max(0, Math.min(rows.length-1, i));
+    const x = X(i), y = Y(rows[i][1]);
+    svg.querySelector(".cxv").setAttribute("x1",x); svg.querySelector(".cxv").setAttribute("x2",x);
+    svg.querySelector(".cxh").setAttribute("y1",y); svg.querySelector(".cxh").setAttribute("y2",y);
+    const cp = svg.querySelector(".cp"); cp.setAttribute("cx",x); cp.setAttribute("cy",y);
+    cross.style.display = "";
+    const rr = (rows[i][1]/L.seedWon-1)*100;
+    tip.innerHTML = `날짜: 20${rows[i][0].slice(0,2)}.${rows[i][0].slice(2,4)}.${rows[i][0].slice(4,6)}<br>총자산: ${wonN(rows[i][1])}원<br>수익률: <b class="${ST.cls(rr)}">${rr>=0?"+":""}${rr.toFixed(2)}%</b>`;
+    tip.style.left = (x/W*100)+"%";
+    tip.style.top = (y/H*100)+"%";
+    tip.style.transform = y < H*0.45 ? "translate(-50%, 14px)" : "translate(-50%,-108%)";
+    tip.style.display = "block";
+  };
+  svg.onmouseleave = () => { cross.style.display="none"; tip.style.display="none"; };
 }
 
 async function loadRanks(){

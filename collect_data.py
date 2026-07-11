@@ -489,6 +489,21 @@ def market_extra():
         print("[진단] 공시 0건 (최근 30일)", flush=True)
         return {"date": "", "items": []}
 
+    def fx_usdkrw():
+        """원/달러 환율 (ECB 기반 무료 API, 실패 시 후보 재시도)"""
+        for url in ("https://api.frankfurter.app/latest?from=USD&to=KRW",
+                    "https://open.er-api.com/v6/latest/USD"):
+            j = get_json(url)
+            try:
+                if j and "rates" in j and "KRW" in j["rates"]:
+                    return round(float(j["rates"]["KRW"]), 2)
+            except Exception:
+                pass
+        print("[진단] 환율 수집 실패 — 기본값 사용", flush=True)
+        return None
+
+    mk["fx"] = fx_usdkrw() or 0
+    print("환율(USD/KRW):", mk["fx"] or "실패", flush=True)
     mk["upjong"] = groups("upjong", 100) or upjong_scrape()
     mk["theme"] = groups("theme", 30)
     mk["news"] = news_kr()

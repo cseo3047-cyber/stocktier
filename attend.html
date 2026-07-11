@@ -33,7 +33,7 @@
 <div class="wrap">
   <span class="asof" id="asof"></span>
   <div class="page-title">🔥 출석 체크</div>
-  <div class="page-sub">매일 방문하면 스트릭이 이어집니다. 하루라도 빠지면 리셋!</div>
+  <div class="page-sub">매일 출석하면 10P + 연속 보너스가 쌓입니다. 포인트 1P당 모의투자 리그 월 지급금이 +100만 원! 하루라도 빠지면 스트릭 리셋.</div>
   <div id="body"><div class="card" style="text-align:center;padding:40px;color:var(--muted);">로그인 상태 확인 중...</div></div>
   <div class="footer"></div>
 </div>
@@ -72,13 +72,17 @@ async function load(){
   // 오늘 출석 처리
   const now = new Date(), today = ymd(now);
   const yest = new Date(now); yest.setDate(yest.getDate()-1);
-  let newAttend = false;
+  let newAttend = false, gained = 0;
+  G.pts = G.pts || 0;
   if (G.lastAttend !== today) {
     G.streak = (G.lastAttend === ymd(yest)) ? G.streak + 1 : 1;
     G.best = Math.max(G.best, G.streak);
     G.lastAttend = today;
     G.days.push(today);
     G.days = [...new Set(G.days)].sort().slice(-62);
+    // 포인트: 기본 10P + 연속 출석 보너스(하루당 +1P, 최대 +20P)
+    gained = 10 + Math.min(20, G.streak - 1);
+    G.pts += gained;
     newAttend = true;
     await ref.set(G, { merge: true });
   }
@@ -102,13 +106,22 @@ async function load(){
       <div class="card">
         <div class="streakbig">
           <b>🔥 <span class="num" style="color:#f0c948;">${G.streak}</span>일</b>
-          <div class="lb">연속 출석 중${newAttend?" — 오늘 출석 완료! ✓":""}</div>
+          <div class="lb">연속 출석 중${newAttend?` — 오늘 출석 완료! <span style="color:#4cd7a5;">+${gained}P</span> ✓`:""}</div>
           <div style="font-size:11.5px;color:var(--dim);margin-top:5px;">최고 기록 ${G.best}일 · 총 출석 ${G.days.length}일</div>
         </div>
         <div class="cal">${cal}</div>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card"><h3>💰 내 포인트</h3>
+        <div style="text-align:center;padding:10px 0 6px;">
+          <b class="num" style="font-size:34px;color:#f0c948;">${G.pts.toLocaleString("ko-KR")}<span style="font-size:16px;">P</span></b>
+          ${newAttend?`<div style="font-size:11.5px;color:#4cd7a5;font-weight:700;margin-top:4px;">오늘 +${gained}P (기본 10P + 연속 보너스 ${gained-10}P)</div>`:""}
+        </div>
+        <div style="font-size:11.5px;color:var(--muted);line-height:1.8;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+          🏆 <b>1P = 모의투자 리그 월 지급금 +100만 원</b><br>다음 지급 예상: <b style="color:var(--gold);">${((20000000+G.pts*1000000)/1e8).toFixed(1).replace(/\.0$/,"")}억 원</b> <span style="color:var(--dim);">(기본 2,000만 + ${G.pts}P 보너스)</span>
+        </div>
+      </div>
       <div class="card"><h3>배지</h3>
         ${BADGES.map(([n,ic,lb])=>`<div class="badge2 ${G.best>=n?"got":""}"><span class="ic2">${ic}</span><span style="flex:1;">${lb} 출석</span><span style="font-size:11px;color:${G.best>=n?"#4cd7a5":"var(--dim)"};">${G.best>=n?"달성!":`${n}일 필요`}</span></div>`).join("")}
       </div>
