@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stocktier — 예측 게임</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap { max-width:1100px; }
+  .layout { display:grid; grid-template-columns:1fr 300px; gap:14px; align-items:start; }
+  @media (max-width:1000px){ .layout { grid-template-columns:1fr; } }
+  .qcard { background:linear-gradient(135deg,#0d2e3b,#123f4b); border:1px solid var(--border); border-radius:14px; padding:18px; margin-bottom:12px; }
+  .qhead { display:flex; align-items:center; gap:12px; }
+  .qhead img { width:42px; height:42px; border-radius:50%; background:#fff; flex-shrink:0; }
+  .pickbtn { flex:1; padding:14px; border-radius:11px; border:1.5px solid var(--border); background:var(--panel2); color:var(--text); font-size:14px; font-weight:800; cursor:pointer; }
+  .pickbtn.up:hover, .pickbtn.up.sel { background:#13322a; border-color:#2e5c47; color:#4cd7a5; }
+  .pickbtn.dn:hover, .pickbtn.dn.sel { background:#3a1a22; border-color:#7a2822; color:#f0708a; }
+  .pickbtn:disabled { cursor:default; opacity:.55; }
+  .pickbtn.sel:disabled { opacity:1; }
+  .resrow { display:flex; align-items:center; gap:10px; padding:9px 2px; border-bottom:1px solid #ffffff0d; font-size:12.5px; }
+  .resrow:last-child { border-bottom:none; }
+  .rkrow { display:flex; align-items:center; gap:9px; padding:8px 0; border-bottom:1px solid #ffffff0d; font-size:12.5px; font-weight:700; }
+  .rkrow:last-child { border-bottom:none; }
+  .rkrow .rank { width:20px; height:20px; border-radius:6px; background:var(--panel2); border:1px solid var(--border); color:var(--muted); font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .rkrow.me { background:#3d331322; border-radius:8px; padding-left:6px; padding-right:6px; }
+  .statbox { text-align:center; flex:1; }
+  .statbox b { font-size:23px; display:block; }
+  .statbox span { font-size:11px; color:var(--dim); }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<div class="wrap">
+  <span class="asof" id="asof"></span>
+  <div class="page-title">🎯 오늘의 예측 게임</div>
+  <div class="page-sub">내일 이 종목, 오를까 내릴까? 다음 거래일 종가로 정답이 공개됩니다. (재미용)</div>
+  <div id="body"><div class="card" style="text-align:center;padding:40px;color:var(--muted);">로그인 상태 확인 중...</div></div>
+  <div class="footer"></div>
+</div>
+
+<script src="data.js"></script>
+<script src="data_us.js"></script>
+<script src="common.js"></script>
+<script>
+ST.nav("predict.html");
+document.getElementById("asof").textContent = "업데이트: " + ST.asofText();
+const box = document.getElementById("body");
+const DDATE = (window.STOCK_META && window.STOCK_META.date) || "";
+let USER = null, ready = false;
+
+function locked(){
+  box.innerHTML = `<div class="card" style="text-align:center;padding:50px;">
+    <div style="font-size:28px;margin-bottom:12px;">🔒</div>
+    <div style="font-size:15px;font-weight:800;margin-bottom:6px;">로그인하고 예측 게임에 참여하세요</div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:16px;">적중률이 기록되고 랭킹에 오릅니다.</div>
+    <button class="btn3" style="background:transparent;border:1px solid var(--gold-dim);color:var(--gold);border-radius:9px;padding:10px 26px;font-size:13px;font-weight:800;cursor:pointer;" onclick="document.getElementById('loginbtn').click()">로그인하기</button></div>`;
+}
+
+// 오늘의 3문제: 시총 상위 30개 중 날짜 기반으로 모두에게 동일하게 선정
+const hashOf = s => { let h=7; for (const c of String(s)) h=(h*31+c.charCodeAt(0))>>>0; return h; };
+const POOL = ST.all().filter(x=>x.src==="kr").sort((a,b)=>b.e[8]-a.e[8]).slice(0,30);
+const QS = [];
+for (let i=0; QS.length<3 && i<30; i++){
+  const idx = hashOf(DDATE + ":" + i) % POOL.length;
+  if (!QS.includes(POOL[idx])) QS.push(POOL[idx]);
+}
+const logo = x => `<img src="https://thumb.tossinvest.com/image/resized/96x0/${encodeURIComponent("https://static.toss.im/png-icons/securities/icn-sec-fill-"+x.e[0]+".png")}" loading="lazy"
+  onerror="if(!this.dataset.f){this.dataset.f=1;this.src='https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock${x.e[0]}.svg';}else{this.style.visibility='hidden';}">`;
+
+let G = null;   // games/{uid} 문서
+async function load(){
+  if (!USER) { locked(); return; }
+  const ref = firebase.firestore().collection("games").doc(USER.uid);
+  const snap = await ref.get();
+  const p = window.ST_PROFILE || {};
+  G = snap.exists ? snap.data() : {};
+  G.preds = G.preds || {};
+  G.hit = G.hit || 0; G.total = G.total || 0;
+  G.nick = p.nick || USER.displayName || USER.email.split("@")[0];
+  G.av = p.avatar || "";
+
+  // ── 지난 예측 채점 (데이터 날짜가 예측일보다 뒤면 정답 확정)
+  let judgedNow = [];
+  for (const dk of Object.keys(G.preds)) {
+    const pd = G.preds[dk];
+    if (pd.done || dk >= DDATE) continue;
+    for (const code of Object.keys(pd.picks || {})) {
+      const st = ST.all().find(x=>x.src==="kr" && x.e[0]===code);
+      if (!st) continue;
+      const ok = (st.e[2] > pd.price0[code]) === (pd.picks[code] === "up");
+      G.hit += ok ? 1 : 0; G.total += 1;
+      judgedNow.push({ code, name: st.key, pick: pd.picks[code], ok, p0: pd.price0[code], p1: st.e[2], d: dk });
+    }
+    pd.done = true;
+  }
+  await ref.set(G, { merge: true });
+  render(judgedNow);
+}
+
+function render(judgedNow){
+  const today = G.preds[DDATE] || { picks:{}, price0:{} };
+  const rate = G.total ? Math.round(G.hit/G.total*100) : 0;
+  box.innerHTML = `
+  <div class="layout">
+    <div>
+      <div class="card" style="margin-bottom:14px;"><h3>오늘의 3문제 <span class="more" style="cursor:default;">${DDATE.slice(4,6)}/${DDATE.slice(6,8)} 종가 기준 → 다음 거래일 종가로 판정</span></h3>
+        ${QS.map((x,i)=>{
+          const picked = today.picks[x.e[0]];
+          return `<div class="qcard">
+            <div class="qhead">${logo(x)}
+              <div style="flex:1;min-width:0;">
+                <b style="font-size:15px;">${x.key}</b>
+                <div class="num" style="font-size:12px;color:var(--dim);margin-top:2px;">현재 ${ST.num(x.e[2])}원 · 오늘 <span class="${ST.cls(x.e[3])}">${ST.pct2(x.e[3])}</span></div>
+              </div>
+              <span class="tierb tier-${ST.gradeOf(ST.score(x.e,false)).g}">${ST.gradeOf(ST.score(x.e,false)).g}</span>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:13px;">
+              <button class="pickbtn up ${picked==="up"?"sel":""}" data-c="${x.e[0]}" data-p="up" ${picked?"disabled":""}>📈 오른다</button>
+              <button class="pickbtn dn ${picked==="down"?"sel":""}" data-c="${x.e[0]}" data-p="down" ${picked?"disabled":""}>📉 내린다</button>
+            </div>
+            ${picked?`<div style="font-size:11px;color:var(--gold);font-weight:700;margin-top:9px;">✓ 예측 완료 — 다음 거래일에 결과가 공개됩니다</div>`:""}
+          </div>`;}).join("")}
+      </div>
+      <div class="card"><h3>최근 채점 결과</h3>
+        ${judgedNow.length ? judgedNow.map(j=>`
+          <div class="resrow">
+            <span style="font-size:15px;">${j.ok?"⭕":"❌"}</span>
+            <b style="flex:1;">${j.name}</b>
+            <span style="color:var(--muted);">${j.pick==="up"?"📈 오른다":"📉 내린다"} 예측</span>
+            <span class="num" style="color:var(--dim);font-size:11px;">${ST.num(j.p0)} → ${ST.num(j.p1)}원</span>
+          </div>`).join("")
+        : `<div style="font-size:12px;color:var(--dim);padding:8px 0;">새로 채점된 예측이 없습니다. 예측 후 다음 거래일에 확인하세요!</div>`}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card"><h3>내 전적</h3>
+        <div style="display:flex;padding:8px 0;">
+          <div class="statbox"><b class="num" style="color:${rate>=60?"#4cd7a5":rate>=40?"#f0c948":"var(--text)"};">${rate}%</b><span>적중률</span></div>
+          <div class="statbox"><b class="num">${G.hit}</b><span>적중</span></div>
+          <div class="statbox"><b class="num">${G.total}</b><span>전체</span></div>
+        </div>
+      </div>
+      <div class="card" style="flex:1;"><h3>🏆 적중 랭킹 <span class="more" style="cursor:default;">적중 수 기준</span></h3><div id="ranks">불러오는 중...</div></div>
+    </div>
+  </div>`;
+
+  document.querySelectorAll(".pickbtn:not(:disabled)").forEach(b => b.addEventListener("click", async () => {
+    const code = b.dataset.c, pick = b.dataset.p;
+    const st = QS.find(x=>x.e[0]===code);
+    if (!G.preds[DDATE]) G.preds[DDATE] = { picks:{}, price0:{} };
+    G.preds[DDATE].picks[code] = pick;
+    G.preds[DDATE].price0[code] = st.e[2];
+    await firebase.firestore().collection("games").doc(USER.uid).set(G, { merge: true });
+    render([]);
+    loadRanks();
+  }));
+  loadRanks();
+}
+
+async function loadRanks(){
+  const el = document.getElementById("ranks");
+  if (!el) return;
+  try {
+    const snap = await firebase.firestore().collection("games").orderBy("hit","desc").limit(20).get();
+    const rows = [];
+    snap.forEach(d => { const v = d.data(); if (v.total) rows.push({ uid:d.id, ...v }); });
+    el.innerHTML = rows.length ? rows.map((r,i)=>`
+      <div class="rkrow ${r.uid===USER.uid?"me":""}">
+        <span class="rank">${i+1}</span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.av?r.av+" ":""}${(r.nick||"익명").replace(/</g,"&lt;")}</span>
+        <span class="num" style="color:var(--gold);">${Math.round(r.hit/r.total*100)}%</span>
+        <span class="num" style="color:var(--dim);font-size:11px;">${r.hit}/${r.total}</span>
+      </div>`).join("")
+    : `<div style="font-size:12px;color:var(--dim);">아직 기록이 없어요. 첫 예측의 주인공이 되어보세요!</div>`;
+  } catch(e) { el.innerHTML = `<div style="font-size:12px;color:var(--dim);">랭킹을 불러오지 못했습니다. (Firestore 규칙 확인)</div>`; }
+}
+
+document.addEventListener("st-auth", e => { ready = true; USER = e.detail; load(); });
+setTimeout(() => { if (!ready) locked(); }, 4000);
+</script>
+</body>
+</html>

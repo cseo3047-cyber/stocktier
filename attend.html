@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stocktier — 출석 체크</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap { max-width:1000px; }
+  .layout { display:grid; grid-template-columns:1fr 300px; gap:14px; align-items:start; }
+  @media (max-width:900px){ .layout { grid-template-columns:1fr; } }
+  .streakbig { text-align:center; padding:18px 0 10px; }
+  .streakbig b { font-size:52px; line-height:1; }
+  .streakbig .lb { font-size:13px; color:var(--muted); font-weight:700; margin-top:8px; }
+  .cal { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:14px; }
+  .cal .wd { text-align:center; font-size:10.5px; color:var(--dim); font-weight:700; padding-bottom:4px; }
+  .cal .d { aspect-ratio:1; border-radius:9px; background:var(--panel2); border:1px solid var(--border); display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .cal .d.on { background:#13322a; border-color:#2e5c47; color:#4cd7a5; font-weight:800; }
+  .cal .d.today { border-color:var(--gold-dim); }
+  .cal .d.empty { background:transparent; border:none; }
+  .badge2 { display:flex; align-items:center; gap:10px; background:var(--panel2); border:1px solid var(--border); border-radius:11px; padding:11px 13px; margin-bottom:8px; font-size:12.5px; font-weight:700; }
+  .badge2.got { border-color:#2e5c47; }
+  .badge2 .ic2 { font-size:19px; filter:grayscale(1); opacity:.4; }
+  .badge2.got .ic2 { filter:none; opacity:1; }
+  .rkrow { display:flex; align-items:center; gap:9px; padding:8px 0; border-bottom:1px solid #ffffff0d; font-size:12.5px; font-weight:700; }
+  .rkrow:last-child { border-bottom:none; }
+  .rkrow .rank { width:20px; height:20px; border-radius:6px; background:var(--panel2); border:1px solid var(--border); color:var(--muted); font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .rkrow.me { background:#3d331322; border-radius:8px; padding-left:6px; padding-right:6px; }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<div class="wrap">
+  <span class="asof" id="asof"></span>
+  <div class="page-title">🔥 출석 체크</div>
+  <div class="page-sub">매일 방문하면 스트릭이 이어집니다. 하루라도 빠지면 리셋!</div>
+  <div id="body"><div class="card" style="text-align:center;padding:40px;color:var(--muted);">로그인 상태 확인 중...</div></div>
+  <div class="footer"></div>
+</div>
+
+<script src="data.js"></script>
+<script src="data_us.js"></script>
+<script src="common.js"></script>
+<script>
+ST.nav("attend.html");
+document.getElementById("asof").textContent = "업데이트: " + ST.asofText();
+const box = document.getElementById("body");
+let USER = null, ready = false;
+
+function locked(){
+  box.innerHTML = `<div class="card" style="text-align:center;padding:50px;">
+    <div style="font-size:28px;margin-bottom:12px;">🔒</div>
+    <div style="font-size:15px;font-weight:800;margin-bottom:6px;">로그인하고 출석을 기록하세요</div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:16px;">연속 출석 스트릭과 배지가 계정에 저장됩니다.</div>
+    <button style="background:transparent;border:1px solid var(--gold-dim);color:var(--gold);border-radius:9px;padding:10px 26px;font-size:13px;font-weight:800;cursor:pointer;" onclick="document.getElementById('loginbtn').click()">로그인하기</button></div>`;
+}
+
+const ymd = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+
+async function load(){
+  if (!USER) { locked(); return; }
+  const ref = firebase.firestore().collection("games").doc(USER.uid);
+  const snap = await ref.get();
+  const p = window.ST_PROFILE || {};
+  const G = snap.exists ? snap.data() : {};
+  G.days = G.days || [];
+  G.streak = G.streak || 0;
+  G.best = G.best || 0;
+  G.nick = p.nick || USER.displayName || USER.email.split("@")[0];
+  G.av = p.avatar || "";
+
+  // 오늘 출석 처리
+  const now = new Date(), today = ymd(now);
+  const yest = new Date(now); yest.setDate(yest.getDate()-1);
+  let newAttend = false;
+  if (G.lastAttend !== today) {
+    G.streak = (G.lastAttend === ymd(yest)) ? G.streak + 1 : 1;
+    G.best = Math.max(G.best, G.streak);
+    G.lastAttend = today;
+    G.days.push(today);
+    G.days = [...new Set(G.days)].sort().slice(-62);
+    newAttend = true;
+    await ref.set(G, { merge: true });
+  }
+
+  // 이번 달 캘린더
+  const y = now.getFullYear(), m = now.getMonth();
+  const first = new Date(y, m, 1).getDay();
+  const last = new Date(y, m+1, 0).getDate();
+  const dset = new Set(G.days);
+  let cal = ["일","월","화","수","목","금","토"].map(w=>`<div class="wd">${w}</div>`).join("");
+  for (let i=0;i<first;i++) cal += `<div class="d empty"></div>`;
+  for (let d=1; d<=last; d++){
+    const k = `${y}${String(m+1).padStart(2,"0")}${String(d).padStart(2,"0")}`;
+    cal += `<div class="d ${dset.has(k)?"on":""} ${k===today?"today":""}">${dset.has(k)?"✓":d}</div>`;
+  }
+  const BADGES = [[3,"🌱","3일 연속"],[7,"🔥","7일 연속"],[14,"⚡","14일 연속"],[30,"👑","30일 연속"]];
+
+  box.innerHTML = `
+  <div class="layout">
+    <div>
+      <div class="card">
+        <div class="streakbig">
+          <b>🔥 <span class="num" style="color:#f0c948;">${G.streak}</span>일</b>
+          <div class="lb">연속 출석 중${newAttend?" — 오늘 출석 완료! ✓":""}</div>
+          <div style="font-size:11.5px;color:var(--dim);margin-top:5px;">최고 기록 ${G.best}일 · 총 출석 ${G.days.length}일</div>
+        </div>
+        <div class="cal">${cal}</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card"><h3>배지</h3>
+        ${BADGES.map(([n,ic,lb])=>`<div class="badge2 ${G.best>=n?"got":""}"><span class="ic2">${ic}</span><span style="flex:1;">${lb} 출석</span><span style="font-size:11px;color:${G.best>=n?"#4cd7a5":"var(--dim)"};">${G.best>=n?"달성!":`${n}일 필요`}</span></div>`).join("")}
+      </div>
+      <div class="card" style="flex:1;"><h3>🏆 스트릭 랭킹</h3><div id="ranks">불러오는 중...</div></div>
+    </div>
+  </div>`;
+
+  try {
+    const rs = await firebase.firestore().collection("games").orderBy("streak","desc").limit(20).get();
+    const rows = [];
+    rs.forEach(d => { const v = d.data(); if (v.streak) rows.push({ uid:d.id, ...v }); });
+    document.getElementById("ranks").innerHTML = rows.length ? rows.map((r,i)=>`
+      <div class="rkrow ${r.uid===USER.uid?"me":""}">
+        <span class="rank">${i+1}</span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.av?r.av+" ":""}${(r.nick||"익명").replace(/</g,"&lt;")}</span>
+        <span class="num" style="color:#f0c948;">🔥 ${r.streak}일</span>
+      </div>`).join("")
+    : `<div style="font-size:12px;color:var(--dim);">아직 기록이 없어요.</div>`;
+  } catch(e) { document.getElementById("ranks").innerHTML = `<div style="font-size:12px;color:var(--dim);">랭킹을 불러오지 못했습니다.</div>`; }
+}
+
+document.addEventListener("st-auth", e => { ready = true; USER = e.detail; load(); });
+setTimeout(() => { if (!ready) locked(); }, 4000);
+</script>
+</body>
+</html>

@@ -301,7 +301,15 @@ window.ST = (function () {
         <a href="market.html" class="${active==="market.html"?"cur":""}">${flag("kr")}국내 시장</a>
         <a href="market_us.html" class="${active==="market_us.html"?"cur":""}">${flag("us")}미국 시장</a>
       </span></span>`;
-    const menu = mktDrop + items.map(([h,t]) => `<a href="${h}" class="${active===h?"on":""}">${t}</a>`).join("");
+    const gameOn = ["predict.html","attend.html","league.html"].includes(active) ? "on" : "";
+    const gameDrop = `<span class="navdrop">
+      <a href="predict.html" class="${gameOn}">게임 ▾</a>
+      <span class="dmenu">
+        <a href="predict.html" class="${active==="predict.html"?"cur":""}">🎯 예측 게임</a>
+        <a href="attend.html" class="${active==="attend.html"?"cur":""}">🔥 출석 체크</a>
+        <a href="league.html" class="${active==="league.html"?"cur":""}">🏆 모의투자 리그</a>
+      </span></span>`;
+    const menu = mktDrop + items.map(([h,t]) => `<a href="${h}" class="${active===h?"on":""}">${t}</a>`).join("") + gameDrop;
     document.getElementById("nav").innerHTML = `
       <a class="brand" href="index.html"><span class="mark"><i></i><i></i><i></i></span>Stocktier</a>
       <div class="menu">${menu}</div>
