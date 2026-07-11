@@ -204,7 +204,8 @@ window.ST = (function () {
       if (!G.preds) return;
       const judged = [];
       let hit = G.hit || 0, total = G.total || 0;
-      for (const dk of Object.keys(G.preds)) {
+      let pstreak = G.pstreak || 0, pbest = G.pbest || 0;
+      for (const dk of Object.keys(G.preds).sort()) {
         const pd = G.preds[dk];
         if (pd.done || dk >= DD) continue;
         for (const code of Object.keys(pd.picks || {})) {
@@ -213,12 +214,16 @@ window.ST = (function () {
           const cur = KR[key2][2];
           const ok = (cur > pd.price0[code]) === (pd.picks[code] === "up");
           hit += ok ? 1 : 0; total += 1;
+          pstreak = ok ? pstreak + 1 : 0;           // 연속 적중
+          pbest = Math.max(pbest, pstreak);
           judged.push({ name: key2, pick: pd.picks[code], ok, p0: pd.price0[code], p1: cur, d: dk });
         }
         pd.done = true;
       }
       if (!judged.length) return;
       G.hit = hit; G.total = total; G.lastJudged = judged;
+      G.pstreak = pstreak; G.pbest = pbest;
+      G.res = judged.slice().reverse().concat(G.res || []).slice(0, 40);   // 채점 이력 (최신순)
       await ref.set(G, { merge: true });
       const okN = judged.filter(j => j.ok).length;
       const pm = document.createElement("div");

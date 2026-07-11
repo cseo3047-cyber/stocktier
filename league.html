@@ -9,10 +9,11 @@
   .wrap { max-width:1280px; }
   .layout { display:grid; grid-template-columns:1fr 320px; gap:14px; align-items:start; }
   @media (max-width:1000px){ .layout { grid-template-columns:1fr; } }
-  .sumrow { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:14px; }
-  .sumbox { background:linear-gradient(135deg,#0d2e3b,#123f4b); border:1px solid var(--border); border-radius:14px; padding:15px 17px; }
-  .sumbox .lb { font-size:11.5px; color:var(--muted); font-weight:700; }
-  .sumbox .vl { font-size:22px; font-weight:800; margin-top:5px; }
+  .sumrow { display:grid; grid-template-columns:repeat(4,1fr); gap:11px; margin-bottom:14px; }
+  @media (max-width:900px){ .sumrow { grid-template-columns:repeat(2,1fr); } }
+  .sumbox { background:linear-gradient(135deg,#0d2e3b,#123f4b); border:1px solid var(--border); border-radius:14px; padding:13px 15px; }
+  .sumbox .lb { font-size:11px; color:var(--muted); font-weight:700; }
+  .sumbox .vl { font-size:18.5px; font-weight:800; margin-top:5px; white-space:nowrap; }
   .trade { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
   .trade .sbox { position:relative; flex:1; min-width:200px; }
   .trade input { width:100%; box-sizing:border-box; padding:10px 32px 10px 13px; font-size:13px; background:var(--panel2); border:1.5px solid var(--border); border-radius:9px; color:var(--text); outline:none; }
@@ -78,9 +79,9 @@
       <b style="font-size:16px;">📖 모의투자 리그 규칙</b>
       <span style="cursor:pointer;color:var(--muted);padding:2px 6px;font-size:16px;" onclick="document.getElementById('rulemodal').style.display='none'">✕</span></div>
     <div class="rulerow"><span class="ric">💰</span><div><b>시작 자금 1억 원</b><p>가입 시 가상 투자금 1억 원이 지급됩니다.</p></div></div>
-    <div class="rulerow"><span class="ric">📅</span><div><b>매월 추가 지급</b><p>1개월(30일)마다 기본 <b style="color:#f0c948;">2,000만 원</b>이 지급됩니다. 여기에 <b style="color:#f0c948;">출석 포인트 1P당 +100만 원</b>이 더해져요. 물타기·불타기에 활용하세요.</p></div></div>
-    <div class="rulerow"><span class="ric">🔥</span><div><b>출석 포인트</b><p>출석 체크 시 매일 10P + 연속 출석 보너스가 쌓입니다. 포인트가 많을수록 매월 지급액이 커져요.</p></div></div>
-    <div class="rulerow"><span class="ric">🔄</span><div><b>초기화는 월 1회</b><p>1개월마다 계속 운용 또는 초기화를 선택할 수 있습니다. 그 전엔 초기화가 잠깁니다.</p></div></div>
+    <div class="rulerow"><span class="ric">📅</span><div><b>매월 자동 정산 지급</b><p>1개월(30일)마다 기본 <b style="color:#f0c948;">2,000만 원</b> + <b style="color:#f0c948;">출석 포인트 1P당 100만 원</b>이 자동으로 정산·지급됩니다. 물타기·불타기에 활용하세요.</p></div></div>
+    <div class="rulerow"><span class="ric">🔥</span><div><b>출석 포인트</b><p>출석 체크 시 매일 10P + 연속·월간 보너스가 쌓입니다. 포인트가 많을수록 매월 지급액이 커져요.</p></div></div>
+    <div class="rulerow"><span class="ric">🔄</span><div><b>초기화는 월 1회</b><p>초기화는 1개월에 한 번만 가능합니다. 그 전엔 잠겨 있어요.</p></div></div>
     <div class="rulerow"><span class="ric">🌎</span><div><b>국내 + 미국 전 종목</b><p>미국 주식은 <b>전일 기준 환율</b>로 원화 환산됩니다. 체결은 전일 종가, 수수료·세금 없음.</p></div></div>
     <div class="rulerow"><span class="ric">🏆</span><div><b>랭킹 산정</b><p>수익률 = 총자산 ÷ 누적 지급액. 지급받은 금액이 서로 달라도 공정하게 비교됩니다.</p></div></div>
     <div style="font-size:10.5px;color:var(--dim);margin-top:12px;">※ 실제 투자가 아닌 가상 시뮬레이션입니다.</div>
@@ -91,7 +92,7 @@
   <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;width:min(440px,92vw);padding:22px 24px;">
     <b style="font-size:16px;display:block;margin-bottom:10px;">📌 잠깐! 시작 전에 확인하세요</b>
     <div class="rulerow"><span class="ric" style="background:#3d3313;border-color:#c9a83266;">🔒</span><div><b>초기화는 1개월에 한 번만!</b><p>한번 매수하면 <b style="color:#f0c948;">30일 동안 초기화할 수 없어요.</b> 실전처럼 신중하게 매수하세요.</p></div></div>
-    <div class="rulerow"><span class="ric">📅</span><div><b>매월 자금이 추가 지급돼요</b><p>1개월마다 기본 2,000만 원 + 출석 포인트 보너스가 지급됩니다. 물타기·불타기 기회로 활용하세요.</p></div></div>
+    <div class="rulerow"><span class="ric">📅</span><div><b>매월 자금이 자동 지급돼요</b><p>1개월마다 기본 2,000만 원 + 출석 포인트 보너스(1P당 100만 원)가 자동 정산되어 지급됩니다.</p></div></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;">
       <span onclick="noticeClose(true)" style="font-size:11.5px;color:var(--dim);cursor:pointer;text-decoration:underline;">오늘 다시 보지 않기</span>
       <button class="mbtn no" onclick="noticeClose(false)">닫기</button>
@@ -217,6 +218,16 @@ async function load(){
     // 출석 포인트 조회 (월 지급 보너스 계산용)
     try { const gs = await firebase.firestore().collection("games").doc(USER.uid).get();
       MYPTS = (gs.exists && gs.data().pts) || 0; } catch(e) { MYPTS = 0; }
+    // 월간 자동 정산: 1개월(30일)이 지났으면 자동으로 지급 (기본 2,000만 + 포인트 1P당 100만)
+    const due = monthsDue();
+    let settled = 0;
+    if (due >= 1) {
+      settled = due * grantPer();
+      L.cash += settled;
+      L.seedWon += settled;
+      L.cycleStart += due * MONTH;
+      L.mStart = totalOf(L);   // 새 달 기준점 (지급분 포함)
+    }
     // 총자산 추이 기록 (데이터 날짜 기준 1일 1회)
     const dk = ((window.STOCK_META && window.STOCK_META.date) || "").slice(2);
     if (dk) {
@@ -228,7 +239,13 @@ async function load(){
     }
     await ref.set(L, { merge: true });
     render();
-    showNotice();
+    if (settled > 0) {
+      stAlert("🎉 월간 정산 완료!", `<div style="font-size:12.5px;color:var(--muted);line-height:1.9;">
+        ${due}개월치 투자금이 자동 지급되었어요.</div>`
+        + cmrow("기본 지급", wonC(BASE_GRANT) + " × " + due + "개월")
+        + (MYPTS > 0 ? cmrow("출석 포인트 보너스", `${MYPTS}P × 100만 = ` + wonC(MYPTS*PT_BONUS) + " × " + due + "개월") : "")
+        + cmrow("총 지급액", `<span style="color:#f0c948;">+${wonC(settled)}</span>`));
+    } else showNotice();
   } catch(e) {
     box.innerHTML = `<div class="card" style="text-align:center;padding:40px;">
       <div style="font-size:13px;font-weight:800;margin-bottom:6px;">데이터를 불러오지 못했어요</div>
@@ -238,21 +255,11 @@ async function load(){
 
 const monthsDue = () => Math.floor((Date.now() - L.cycleStart) / MONTH);
 const grantPer = () => BASE_GRANT + MYPTS * PT_BONUS;
-window.contPlay = async () => {
-  const due = monthsDue();
-  if (due < 1) return;
-  const amt = due * grantPer();
-  L.cash += amt; L.seedWon += amt;
-  L.cycleStart += due * MONTH;
-  L.mStart = totalOf(L);   // 새 달 시작 — 월간 랭킹 기준점 갱신 (지급분 포함)
-  L.updated = Date.now();
-  await firebase.firestore().collection("league").doc(USER.uid).set(L, { merge: false });
-  render();
-};
+const resetAt = () => (L.lastReset || L.start || Date.now()) + MONTH;
 window.resetPlay = async () => {
-  if (monthsDue() < 1) { stAlert("🔒 아직 초기화할 수 없어요", `<div style="font-size:12.5px;color:var(--muted);line-height:1.8;">초기화는 1개월(30일)에 한 번만 가능합니다.<br>다음 초기화 가능일까지 <b style="color:var(--gold);">D-${Math.max(0,Math.ceil((L.cycleStart+MONTH-Date.now())/864e5))}</b></div>`); return; }
+  if (Date.now() < resetAt()) { stAlert("🔒 아직 초기화할 수 없어요", `<div style="font-size:12.5px;color:var(--muted);line-height:1.8;">초기화는 1개월(30일)에 한 번만 가능합니다.<br>다음 초기화 가능일까지 <b style="color:var(--gold);">D-${Math.max(0,Math.ceil((resetAt()-Date.now())/864e5))}</b></div>`); return; }
   if (!await stConfirm("🔄 처음부터 다시 시작", `<div style="font-size:12.5px;color:var(--muted);line-height:1.8;">모든 보유 종목·수익률·추이 기록이 삭제되고<br><b style="color:var(--text);">1억 원</b>부터 새로 시작합니다.<br><b style="color:#f0708a;">이 작업은 되돌릴 수 없어요.</b></div>`, { okTxt:"초기화", red:true })) return;
-  L = { cash: SEED, pos: {}, start: Date.now(), cycleStart: Date.now(), seedWon: SEED, mStart: SEED, hist: [], nick: L.nick, av: L.av, updated: Date.now() };
+  L = { cash: SEED, pos: {}, start: Date.now(), cycleStart: Date.now(), seedWon: SEED, mStart: SEED, hist: [], tr: [], nick: L.nick, av: L.av, lastReset: Date.now(), updated: Date.now() };
   SELK = null;
   await firebase.firestore().collection("league").doc(USER.uid).set(L, { merge: false });
   render();
@@ -263,12 +270,25 @@ let HPER = "1m";
 const HWIN = { "1w":["1주",7], "1m":["1개월",30], "3m":["3개월",91], "6m":["6개월",182], "1y":["1년",365], "3y":["3년",1095] };
 window.setHper = p => { HPER = p; drawHist(); };
 
+// 총자산 추이 미니 스파크라인 (그라데이션)
+function sparkT(w, h){
+  const vals = (L.hist||[]).slice(-15).map(r=>r.t);
+  if (vals.length < 2) return "";
+  let mn=Math.min(...vals), mx=Math.max(...vals);
+  if (mx===mn){ mn*=0.99; mx*=1.01; }
+  const xy = vals.map((v,i)=>`${(i/(vals.length-1)*w).toFixed(1)},${(h-2-(v-mn)/(mx-mn)*(h-4)).toFixed(1)}`).join(" ");
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="flex-shrink:0;"><defs><linearGradient id="spg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0f7a56"/><stop offset="1" stop-color="#4cd7a5"/></linearGradient></defs><polyline points="${xy}" fill="none" stroke="url(#spg)" stroke-width="1.8"/></svg>`;
+}
+
 function render(){
   const total = totalOf(L);
   const ret = (total/L.seedWon - 1) * 100;
-  const due = monthsDue();
-  const nextD = Math.max(0, Math.ceil((L.cycleStart + MONTH - Date.now()) / 864e5));
+  const nextD = Math.max(0, Math.ceil((resetAt() - Date.now()) / 864e5));
+  const canReset = Date.now() >= resetAt();
   const posKeys = Object.keys(L.pos).filter(k=>L.pos[k].q>0);
+  // 평가손익 = 보유 종목 (현재가-평단)×수량 합
+  const evalPL = posKeys.reduce((s,k)=>{ const ps=L.pos[k]; const cur=priceOf(k)||ps.avg; return s+(cur-ps.avg)*ps.q; },0);
+  const invSum = posKeys.reduce((s,k)=>s+L.pos[k].avg*L.pos[k].q,0);
 
   // 포트폴리오 구성 도넛 (현금 포함)
   const GREENS = ["#d6ef7a","#a8e05a","#6fd18f","#4cd7a5","#2fb98a","#1d9e75","#177a5e","#115c48"];
@@ -286,22 +306,23 @@ function render(){
   box.innerHTML = `
   <div class="layout">
     <div>
-      ${due >= 1 ? `<div style="background:linear-gradient(120deg,#3d3313,#123f4b);border:1px solid #c9a83266;border-radius:13px;padding:15px 18px;margin-bottom:14px;">
-        <div style="font-size:14px;font-weight:800;margin-bottom:5px;">🎉 ${due}개월이 지났어요! 어떻게 할까요?</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">계속 운용하면 <b style="color:#f0c948;">${wonC(due*grantPer())}</b>이 추가 지급됩니다. (기본 ${wonC(BASE_GRANT)}${MYPTS>0?` + 출석 ${MYPTS}P 보너스 ${wonC(MYPTS*PT_BONUS)}`:""}) × ${due}개월</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button class="tbtn buy" onclick="contPlay()">계속 운용 (+${wonC(due*grantPer())})</button>
-          <button class="tbtn" style="background:transparent;border:1px solid var(--border);color:var(--muted);" onclick="resetPlay()">초기화하고 새로 시작</button>
-        </div></div>` : ""}
       <div class="sumrow">
-        <div class="sumbox"><div class="lb">총 자산 <span style="color:var(--dim);">· 누적 지급 ${wonC(L.seedWon)}</span></div><div class="vl num">${wonN(total)}원</div></div>
-        <div class="sumbox"><div class="lb">수익률 <span style="color:var(--dim);">· 지급액 대비</span></div><div class="vl num ${ST.cls(ret)}">${ret>=0?"+":""}${ret.toFixed(2)}%</div></div>
-        <div class="sumbox"><div class="lb">보유 현금</div><div class="vl num">${wonN(L.cash)}원</div></div>
+        <div class="sumbox"><div class="lb">총 자산 <span style="color:var(--dim);">· 누적 지급 ${wonC(L.seedWon)}</span></div>
+          <div style="display:flex;align-items:center;gap:9px;"><div class="vl num">${wonN(total)}원</div>${sparkT(62,26)}</div></div>
+        <div class="sumbox"><div class="lb">평가손익 <span style="color:var(--dim);">· 보유 종목</span></div>
+          <div class="vl num ${ST.cls(evalPL)}">${evalPL>=0?"+":""}${wonN(evalPL)}원</div></div>
+        <div class="sumbox"><div class="lb">수익률 <span style="color:var(--dim);">· 지급액 대비</span></div>
+          <div style="display:flex;align-items:center;gap:9px;"><div class="vl num ${ST.cls(ret)}">${ret>=0?"+":""}${ret.toFixed(2)}%</div>${sparkT(62,26)}</div>
+          <div style="font-size:10.5px;margin-top:2px;" class="num ${ST.cls(ret)}">${total-L.seedWon>=0?"+":""}${wonN(total-L.seedWon)}원</div></div>
+        <div class="sumbox"><div class="lb">보유 현금</div>
+          <div style="display:flex;align-items:center;gap:9px;"><div class="vl num">${wonN(L.cash)}원</div><span style="font-size:21px;margin-left:auto;">💵</span></div>
+          <div style="font-size:10.5px;color:var(--dim);margin-top:2px;" class="num">${total?(L.cash/total*100).toFixed(1):0}%</div></div>
       </div>
       <div class="card"><h3>주문하기 <span class="more" style="cursor:default;">전일 종가 체결 · 환율 ${FX.toLocaleString("ko-KR")}원 (전일 기준)</span></h3>
         <div class="trade">
           <div class="sbox"><input id="tq" placeholder="종목명 검색 (국내·미국)" autocomplete="off"><span class="mag">⌕</span><div class="suggest" id="tsug"></div></div>
           <input class="qty" id="tqty" type="number" min="1" placeholder="수량">
+          <input class="qty" id="tamt" readonly placeholder="주문 금액" style="flex:0 0 140px;min-width:140px;color:var(--gold);font-weight:800;" tabindex="-1">
           <button class="tbtn buy" id="buybtn">매수</button>
           <button class="tbtn sell" id="sellbtn">매도</button>
         </div>
@@ -317,7 +338,7 @@ function render(){
           </div>
         </div>
         <div class="card"><h3>보유 종목</h3>
-          ${posKeys.length ? `<table class="ptbl"><thead><tr><th>종목명</th><th>수량</th><th>평균단가</th><th>현재가</th><th>평가금액</th><th>손익</th><th>환손익</th></tr></thead><tbody>
+          ${posKeys.length ? `<table class="ptbl"><thead><tr><th>종목명</th><th>수량</th><th>평균단가</th><th>현재가</th><th>투자원금</th><th>평가금액</th><th>평가손익</th><th>수익률</th><th>환손익</th></tr></thead><tbody>
             ${posKeys.map(k=>{
               const ps = L.pos[k], cur = priceOf(k) || ps.avg;
               const pl = (cur/ps.avg-1)*100;
@@ -330,20 +351,37 @@ function render(){
                 const fxWon = Math.round(ps.q * (ST.get("us",kx)?.[2]||aU) * (FX - fx0));
                 fxc = `<td class="num ${ST.cls(fpl)}" title="매수 환율 ${wonN(fx0)}원 → 현재 ${wonN(FX)}원">${fpl>=0?"+":""}${fpl.toFixed(2)}%<div style="font-size:10px;color:var(--dim);">${fxWon>=0?"+":""}${wonN(fxWon)}원</div></td>`;
               }
+              const plWon = (cur-ps.avg)*ps.q;
               return `<tr>
                 <td class="nm" style="cursor:pointer;" onclick="location.href='${ST.stockUrl(srcx,kx)}'">${nameOf(k)}${srcx==="us"?` <span style="color:var(--dim);font-size:10px;font-weight:500;">US</span>`:""}</td>
                 <td class="num">${wonN(ps.q)}주</td>
                 <td class="num">${wonN(ps.avg)}원</td>
                 <td class="num">${wonN(cur)}원</td>
+                <td class="num" style="color:var(--muted);">${wonN(ps.avg*ps.q)}원</td>
                 <td class="num" style="font-weight:800;">${wonN(ps.q*cur)}원</td>
+                <td class="num ${ST.cls(plWon)}" style="font-weight:800;">${plWon>=0?"+":""}${wonN(plWon)}원</td>
                 <td class="num ${ST.cls(pl)}" style="font-weight:800;">${pl>=0?"+":""}${pl.toFixed(2)}%</td>${fxc}</tr>`;}).join("")}
           </tbody></table>
           <div style="font-size:10.5px;color:var(--dim);margin-top:8px;">※ 환손익: 매수 시점 대비 환율 변동에 따른 손익 (미국 종목만, 총 손익에 포함되어 있음)</div>`
           : `<div style="font-size:12.5px;color:var(--dim);text-align:center;padding:18px 0;">보유 종목이 없습니다. 위에서 첫 종목을 매수해보세요!</div>`}
           <div style="margin-top:12px;text-align:right;font-size:11px;color:var(--dim);font-weight:700;">
-            ${due >= 1 ? `<button onclick="resetPlay()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;">처음부터 다시 시작</button>`
-            : `🔒 초기화·추가 지급까지 <b style="color:var(--gold);">D-${nextD}</b> (1개월마다 가능)`}</div>
+            ${canReset ? `<button onclick="resetPlay()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;">처음부터 다시 시작</button>`
+            : `🔒 초기화 가능까지 <b style="color:var(--gold);">D-${nextD}</b> (1개월마다 가능) · 월간 지급은 자동 정산`}</div>
         </div>
+      </div>
+      <div class="card" style="margin-top:14px;"><h3>최근 거래 내역 <span class="more" style="cursor:default;">최신순 · 전일 종가 체결 기준</span></h3>
+        ${(L.tr||[]).length ? `<table class="ptbl"><thead><tr><th>일시</th><th>종목명</th><th>구분</th><th>수량</th><th>체결가</th><th>금액</th></tr></thead><tbody>
+          ${L.tr.slice(-8).reverse().map(t=>{
+            const d = new Date(t.ts);
+            return `<tr>
+              <td class="num" style="color:var(--dim);">${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}</td>
+              <td class="nm">${t.nm}</td>
+              <td style="font-weight:800;color:${t.side==="매수"?"#4cd7a5":"#f0708a"};">${t.side}</td>
+              <td class="num">${wonN(t.q)}주</td>
+              <td class="num">${wonN(t.p)}원</td>
+              <td class="num" style="font-weight:800;">${wonN(t.q*t.p)}원</td></tr>`;}).join("")}
+        </tbody></table>`
+        : `<div style="font-size:12px;color:var(--dim);text-align:center;padding:14px 0;">아직 거래 내역이 없습니다.</div>`}
       </div>
       <div class="card" style="margin-top:14px;"><h3>총자산 추이 <span class="chips2" id="hchips" style="margin-left:auto;"></span></h3>
         <div class="chartbox"><div id="hbox"></div><div class="ctip" id="htip"></div></div>
@@ -367,7 +405,9 @@ function render(){
   // 수량 입력 시: 주문 금액 + 물타기 미리보기
   const updPrev = () => {
     const pv = document.getElementById("ordprev");
+    const amtEl = document.getElementById("tamt");
     const qn = Math.floor(+tqty.value);
+    amtEl.value = (SELK && qn >= 1) ? wonN(priceOf(SELK)*qn) + "원" : "";
     if (!SELK || !qn || qn < 1) { pv.style.display = "none"; return; }
     const cur = priceOf(SELK), cost = cur * qn;
     const held = L.pos[SELK];
@@ -442,6 +482,7 @@ function render(){
     ps.q += qn;
     L.pos[k] = ps;
     L.cash -= cost;
+    L.tr = (L.tr||[]).concat([{ ts: Date.now(), nm: nameOf(k), side: "매수", q: qn, p: cur }]).slice(-30);
     SELK = k;
     saveRender(`${nameOf(k)} ${wonN(qn)}주 매수 완료 (${wonN(cost)}원)`, true);
   });
@@ -463,6 +504,7 @@ function render(){
     ps.q -= qn;
     L.cash += cur*qn;
     if (ps.q === 0) delete L.pos[k];
+    L.tr = (L.tr||[]).concat([{ ts: Date.now(), nm: nameOf(k), side: "매도", q: qn, p: cur }]).slice(-30);
     SELK = k;
     saveRender(`${nameOf(k)} ${wonN(qn)}주 매도 완료 (+${wonN(cur*qn)}원)`, true);
   });
