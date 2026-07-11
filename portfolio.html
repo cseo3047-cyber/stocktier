@@ -284,13 +284,6 @@ if (!list.length) {
   if (worst && worst.sc < 40) warns.push(`🕳 최저 점수: ${ST.displayName(worst.src,worst.key)} (${worst.sc}점)`);
   if (!warns.length) warns.push("✅ 특이 경고 없음 — 안정적인 구성입니다");
   const sideWarn = `<div class="card" style="min-height:228px;"><h3>포트폴리오 경고</h3>${warns.map(w=>`<div class="warnrow">${w}</div>`).join("")}</div>`;
-  const sideCrit = `
-  <div class="card"><h3>평가 기준</h3>
-    <div class="sbars">
-      ${[["분산도",20],["티어 품질",30],["리스크 노출",20],["모멘텀",20],["변동성",10]].map(([lb,v])=>
-        `<div class="r"><span class="lb">${lb}</span><div class="m"><i style="width:${v*3}%;background:linear-gradient(90deg,#8a6f1e,#f0c948);"></i></div><b>${v}%</b></div>`).join("")}
-    </div>
-  </div>`;
   const rebal = [];
   if (highPct >= 40) rebal.push("고위험 비중 축소 필요");
   if (maxMkt && maxMkt[1]/n >= 0.7) rebal.push(`${maxMkt[0]} 쏠림 — 시장 분산 고려`);
@@ -298,12 +291,12 @@ if (!list.length) {
   if (lowVal) rebal.push(`고PER 종목 ${lowVal}개 밸류 점검`);
   if (downN) rebal.push(`하락 추세 ${downN}개 종목 점검`);
   if (!rebal.length) rebal.push("현재 구성 유지 무난");
-  const sideRebal = `<div class="card" style="flex:1;min-height:178px;"><h3>리밸런싱 제안</h3><ul class="cmts">${rebal.map(r=>`<li title="${r}">${r}</li>`).join("")}</ul></div>`;
+  const sideRebal = `<div class="card" style="flex:1;"><h3>리밸런싱 제안</h3><ul class="cmts">${rebal.map(r=>`<li title="${r}">${r}</li>`).join("")}</ul></div>`;
 
   box.innerHTML = `
   <div class="layout">
     <div>${cards}${table}${donuts}</div>
-    <div style="display:flex;flex-direction:column;gap:14px;height:100%;">${sideSurv}${sideWarn}${sideCrit}${sideRebal}</div>
+    <div style="display:flex;flex-direction:column;gap:14px;height:100%;">${sideSurv}${sideWarn}${sideRebal}</div>
   </div>`;
 }
 </script>
