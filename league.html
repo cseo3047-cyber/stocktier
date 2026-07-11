@@ -53,6 +53,13 @@
   .rulerow .ric { width:38px; height:38px; border-radius:11px; background:#13322a; border:1px solid #2e5c47; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
   .rulerow b { font-size:13px; display:block; margin-bottom:2px; }
   .rulerow p { font-size:12px; color:var(--muted); line-height:1.7; margin:0; }
+  .cmrow { display:flex; justify-content:space-between; align-items:center; gap:14px; padding:8px 0; border-bottom:1px solid #ffffff0d; font-size:12.5px; color:var(--muted); font-weight:600; }
+  .cmrow:last-child { border-bottom:none; }
+  .cmrow b { color:var(--text); font-variant-numeric:tabular-nums; text-align:right; }
+  .mbtn { border-radius:9px; padding:10px 22px; font-size:13px; font-weight:800; cursor:pointer; }
+  .mbtn.ok { background:#1d9e75; border:none; color:#fff; }
+  .mbtn.ok.red { background:#c0443a; }
+  .mbtn.no { background:transparent; border:1px solid var(--border); color:var(--muted); }
 </style>
 </head>
 <body>
@@ -77,6 +84,44 @@
     <div class="rulerow"><span class="ric">🌎</span><div><b>국내 + 미국 전 종목</b><p>미국 주식은 <b>전일 기준 환율</b>로 원화 환산됩니다. 체결은 전일 종가, 수수료·세금 없음.</p></div></div>
     <div class="rulerow"><span class="ric">🏆</span><div><b>랭킹 산정</b><p>수익률 = 총자산 ÷ 누적 지급액. 지급받은 금액이 서로 달라도 공정하게 비교됩니다.</p></div></div>
     <div style="font-size:10.5px;color:var(--dim);margin-top:12px;">※ 실제 투자가 아닌 가상 시뮬레이션입니다.</div>
+  </div>
+</div>
+
+<div id="noticemodal" style="position:fixed;inset:0;background:#000000aa;display:none;align-items:center;justify-content:center;z-index:310;">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;width:min(440px,92vw);padding:22px 24px;">
+    <b style="font-size:16px;display:block;margin-bottom:10px;">📌 잠깐! 시작 전에 확인하세요</b>
+    <div class="rulerow"><span class="ric" style="background:#3d3313;border-color:#c9a83266;">🔒</span><div><b>초기화는 1개월에 한 번만!</b><p>한번 매수하면 <b style="color:#f0c948;">30일 동안 초기화할 수 없어요.</b> 실전처럼 신중하게 매수하세요.</p></div></div>
+    <div class="rulerow"><span class="ric">📅</span><div><b>매월 자금이 추가 지급돼요</b><p>1개월마다 기본 2,000만 원 + 출석 포인트 보너스가 지급됩니다. 물타기·불타기 기회로 활용하세요.</p></div></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;">
+      <span onclick="noticeClose(true)" style="font-size:11.5px;color:var(--dim);cursor:pointer;text-decoration:underline;">오늘 다시 보지 않기</span>
+      <button class="mbtn no" onclick="noticeClose(false)">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div id="cmodal" style="position:fixed;inset:0;background:#000000aa;display:none;align-items:center;justify-content:center;z-index:320;">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;width:min(400px,92vw);padding:22px 24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <b class="cm-title" style="font-size:15.5px;"></b>
+      <span style="cursor:pointer;color:var(--muted);padding:2px 6px;font-size:16px;" class="cm-x">✕</span></div>
+    <div class="cm-body"></div>
+    <div style="display:flex;justify-content:flex-end;gap:9px;margin-top:16px;">
+      <button class="mbtn no cm-no">취소</button>
+      <button class="mbtn ok cm-ok">확인</button>
+    </div>
+  </div>
+</div>
+
+<div id="rankmodal" style="position:fixed;inset:0;background:#000000aa;display:none;align-items:center;justify-content:center;z-index:315;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;width:min(460px,92vw);max-height:82vh;display:flex;flex-direction:column;padding:22px 24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <b style="font-size:16px;">🏆 리그 세부 랭킹</b>
+      <span style="cursor:pointer;color:var(--muted);padding:2px 6px;font-size:16px;" onclick="document.getElementById('rankmodal').style.display='none'">✕</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+      <span class="chips2" id="rktabs"></span>
+      <span class="chips2" id="rkmodes"></span>
+    </div>
+    <div id="rankfull" style="overflow:auto;flex:1;"></div>
   </div>
 </div>
 
@@ -115,6 +160,41 @@ const totalOf = d => {
 };
 const seedOf = d => d.seedWon || ((d.grants || 1) * SEED);
 
+// ── 공용 스타일 팝업 (confirm/alert 대체)
+function stConfirm(title, html, opt){
+  opt = opt || {};
+  return new Promise(res => {
+    const m = document.getElementById("cmodal");
+    m.querySelector(".cm-title").innerHTML = title;
+    m.querySelector(".cm-body").innerHTML = html;
+    const ok = m.querySelector(".cm-ok"), no = m.querySelector(".cm-no");
+    ok.textContent = opt.okTxt || "확인";
+    ok.classList.toggle("red", !!opt.red);
+    no.style.display = opt.alert ? "none" : "";
+    m.style.display = "flex";
+    const done = v => { m.style.display = "none"; m.onclick = null; res(v); };
+    ok.onclick = () => done(true);
+    no.onclick = () => done(false);
+    m.querySelector(".cm-x").onclick = () => done(false);
+    m.onclick = e => { if (e.target === m) done(false); };
+  });
+}
+const stAlert = (title, html) => stConfirm(title, html, { alert: true });
+const cmrow = (lb, v) => `<div class="cmrow"><span>${lb}</span><b>${v}</b></div>`;
+
+// ── 입장 안내 팝업 (오늘 다시 보지 않기)
+let NOTICED = false;
+window.noticeClose = skip => {
+  if (skip) localStorage.setItem("st_lg_notice", new Date().toDateString());
+  document.getElementById("noticemodal").style.display = "none";
+};
+function showNotice(){
+  if (NOTICED) return;
+  NOTICED = true;
+  if (localStorage.getItem("st_lg_notice") === new Date().toDateString()) return;
+  document.getElementById("noticemodal").style.display = "flex";
+}
+
 async function load(){
   if (!USER) { locked(); return; }
   try {
@@ -129,6 +209,7 @@ async function load(){
     }
     L.cycleStart = L.cycleStart || L.start || Date.now();
     L.seedWon = seedOf(L);
+    L.mStart = L.mStart || L.seedWon;   // 이번 달 시작 시점 총자산 (월간 랭킹 기준점)
     // 총자산 추이: Firestore는 중첩 배열 미지원 → {d:날짜, t:총자산} 객체 배열로 저장
     L.hist = (L.hist || []).filter(r => r && r.d);
     L.nick = p.nick || USER.displayName || USER.email.split("@")[0];
@@ -147,6 +228,7 @@ async function load(){
     }
     await ref.set(L, { merge: true });
     render();
+    showNotice();
   } catch(e) {
     box.innerHTML = `<div class="card" style="text-align:center;padding:40px;">
       <div style="font-size:13px;font-weight:800;margin-bottom:6px;">데이터를 불러오지 못했어요</div>
@@ -162,14 +244,15 @@ window.contPlay = async () => {
   const amt = due * grantPer();
   L.cash += amt; L.seedWon += amt;
   L.cycleStart += due * MONTH;
+  L.mStart = totalOf(L);   // 새 달 시작 — 월간 랭킹 기준점 갱신 (지급분 포함)
   L.updated = Date.now();
   await firebase.firestore().collection("league").doc(USER.uid).set(L, { merge: false });
   render();
 };
 window.resetPlay = async () => {
-  if (monthsDue() < 1) { alert("초기화는 1개월(30일)에 한 번만 가능해요."); return; }
-  if (!confirm("모든 보유 종목과 기록을 지우고 1억 원부터 새로 시작할까요?")) return;
-  L = { cash: SEED, pos: {}, start: Date.now(), cycleStart: Date.now(), seedWon: SEED, hist: [], nick: L.nick, av: L.av, updated: Date.now() };
+  if (monthsDue() < 1) { stAlert("🔒 아직 초기화할 수 없어요", `<div style="font-size:12.5px;color:var(--muted);line-height:1.8;">초기화는 1개월(30일)에 한 번만 가능합니다.<br>다음 초기화 가능일까지 <b style="color:var(--gold);">D-${Math.max(0,Math.ceil((L.cycleStart+MONTH-Date.now())/864e5))}</b></div>`); return; }
+  if (!await stConfirm("🔄 처음부터 다시 시작", `<div style="font-size:12.5px;color:var(--muted);line-height:1.8;">모든 보유 종목·수익률·추이 기록이 삭제되고<br><b style="color:var(--text);">1억 원</b>부터 새로 시작합니다.<br><b style="color:#f0708a;">이 작업은 되돌릴 수 없어요.</b></div>`, { okTxt:"초기화", red:true })) return;
+  L = { cash: SEED, pos: {}, start: Date.now(), cycleStart: Date.now(), seedWon: SEED, mStart: SEED, hist: [], nick: L.nick, av: L.av, updated: Date.now() };
   SELK = null;
   await firebase.firestore().collection("league").doc(USER.uid).set(L, { merge: false });
   render();
@@ -268,7 +351,7 @@ function render(){
     </div>
     <div style="display:flex;flex-direction:column;gap:12px;">
       <button onclick="openRules()" style="width:100%;background:transparent;border:1px solid var(--gold-dim);color:var(--gold);border-radius:11px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;">📖 게임 규칙</button>
-      <div class="card"><h3>🏆 수익률 랭킹</h3><div id="ranks">불러오는 중...</div></div>
+      <div id="rkcards" style="display:flex;flex-direction:column;gap:12px;"></div>
     </div>
   </div>`;
 
@@ -293,7 +376,10 @@ function render(){
       const nq = held.q + qn;
       const nAvg = Math.round((held.q*held.avg + cost) / nq);
       const dAvg = (nAvg/held.avg - 1) * 100;
-      html += `<br>💧 매수 후: 평단 <b>${wonN(nAvg)}원</b> <span style="color:${dAvg<=0?"var(--up)":"var(--down)"};">(${dAvg<=0?"▼":"▲"}${Math.abs(dAvg).toFixed(1)}%)</span> · 수량 <b>${wonN(nq)}주</b> · 평가금액 <b>${wonN(nq*cur)}원</b>`;
+      html += `<br>💧 <b>매수 후</b>`;
+      html += `<br><span style="display:inline-block;width:16px;"></span>평단 <b>${wonN(nAvg)}원</b> <span style="color:${dAvg<=0?"var(--up)":"var(--down)"};">(${dAvg<=0?"▼":"▲"}${Math.abs(dAvg).toFixed(1)}%)</span>`;
+      html += `<br><span style="display:inline-block;width:16px;"></span>수량 <b>${wonN(nq)}주</b>`;
+      html += `<br><span style="display:inline-block;width:16px;"></span>평가금액 <b>${wonN(nq*cur)}원</b>`;
       html += `<br>매도 시: <b>${wonN(Math.min(qn,held.q)*cur)}원</b> 회수 · 잔여 <b>${wonN(Math.max(0,held.q-qn))}주</b>`;
     }
     pv.innerHTML = html;
@@ -329,7 +415,7 @@ function render(){
     const h = ST.findStock(tin.value.trim());
     return h ? h[0] + ":" + h[1] : null;
   };
-  document.getElementById("buybtn").addEventListener("click", () => {
+  document.getElementById("buybtn").addEventListener("click", async () => {
     const k = pickPk();
     const qn = Math.floor(+tqty.value);
     if (!k || !priceOf(k)) { msg("종목을 검색해서 선택해주세요."); return; }
@@ -337,12 +423,15 @@ function render(){
     const cur = priceOf(k), cost = cur*qn;
     if (cost > L.cash) { msg(`현금이 부족해요. (필요 ${wonN(cost)}원 / 보유 ${wonN(L.cash)}원)`); return; }
     const held = L.pos[k];
-    let cf = `[매수 확인]\n${nameOf(k)} ${wonN(qn)}주 × ${wonN(cur)}원 = ${wonN(cost)}원`;
+    let body = cmrow("종목", nameOf(k) + (splitK(k)[0]==="us" ? ` <span style="color:var(--dim);font-size:10px;">US</span>` : ""))
+      + cmrow("수량", wonN(qn)+"주")
+      + cmrow("체결가", wonN(cur)+"원 <span style='color:var(--dim);font-size:10.5px;'>(전일 종가)</span>")
+      + cmrow("주문 금액", `<span style="color:#f0c948;">${wonN(cost)}원</span>`);
     if (held && held.q>0) {
       const nAvg = Math.round((held.q*held.avg + cost)/(held.q+qn));
-      cf += `\n매수 후 평단 ${wonN(nAvg)}원 · 수량 ${wonN(held.q+qn)}주`;
+      body += cmrow("매수 후 평단", wonN(nAvg)+"원") + cmrow("매수 후 수량", wonN(held.q+qn)+"주");
     }
-    if (!confirm(cf + "\n\n진행할까요?")) return;
+    if (!await stConfirm("🛒 매수 확인", body, { okTxt:"매수" })) return;
     const ps = L.pos[k] || { q:0, avg:0 };
     // 미국 종목: 환차손 계산용 달러 평단 함께 저장
     if (splitK(k)[0] === "us") {
@@ -356,14 +445,21 @@ function render(){
     SELK = k;
     saveRender(`${nameOf(k)} ${wonN(qn)}주 매수 완료 (${wonN(cost)}원)`, true);
   });
-  document.getElementById("sellbtn").addEventListener("click", () => {
+  document.getElementById("sellbtn").addEventListener("click", async () => {
     const k = pickPk();
     const qn = Math.floor(+tqty.value);
     const ps = k && L.pos[k];
     if (!ps || ps.q<1) { msg("보유하지 않은 종목입니다."); return; }
     if (!qn || qn<1 || qn>ps.q) { msg(`매도 가능 수량: ${wonN(ps.q)}주`); return; }
     const cur = priceOf(k);
-    if (!confirm(`[매도 확인]\n${nameOf(k)} ${wonN(qn)}주 × ${wonN(cur)}원 = ${wonN(cur*qn)}원 회수\n잔여 ${wonN(ps.q-qn)}주\n\n진행할까요?`)) return;
+    const pl = (cur/ps.avg-1)*100;
+    const body = cmrow("종목", nameOf(k))
+      + cmrow("수량", wonN(qn)+"주")
+      + cmrow("체결가", wonN(cur)+"원 <span style='color:var(--dim);font-size:10.5px;'>(전일 종가)</span>")
+      + cmrow("회수 금액", `<span style="color:#f0c948;">${wonN(cur*qn)}원</span>`)
+      + cmrow("손익", `<span class="${ST.cls(pl)}">${pl>=0?"+":""}${pl.toFixed(2)}%</span>`)
+      + cmrow("매도 후 잔여", wonN(ps.q-qn)+"주");
+    if (!await stConfirm("💸 매도 확인", body, { okTxt:"매도", red:true })) return;
     ps.q -= qn;
     L.cash += cur*qn;
     if (ps.q === 0) delete L.pos[k];
@@ -385,13 +481,16 @@ function drawHist(){
     const d = new Date(2000+ +r.d.slice(0,2), +r.d.slice(2,4)-1, +r.d.slice(4,6));
     return d >= cutoff;
   });
-  if (rows.length < 2) {
+  if (!rows.length) {
     el.innerHTML = `<div style="font-size:12px;color:var(--dim);text-align:center;padding:28px 0;">기록이 쌓이는 중이에요 — 접속·거래할 때마다 그날의 총자산이 기록됩니다.</div>`;
     return;
   }
+  if (rows.length === 1) rows.push({ d: rows[0].d, t: rows[0].t });   // 첫날: 수평선으로 표시
   const W=760, H=190, padL=76, padR=14, padT=12, padB=24;
   const vals = rows.map(r=>r.t);
-  const mn=Math.min(...vals), mx=Math.max(...vals), rg=(mx-mn)||1;
+  let mn=Math.min(...vals), mx=Math.max(...vals);
+  if (mx === mn) { mn *= 0.98; mx *= 1.02; }   // 변동 없을 땐 선이 가운데 오도록 여유
+  const rg=(mx-mn)||1;
   const X=i=>padL+i/(rows.length-1)*(W-padL-padR), Y=v=>padT+(1-(v-mn)/rg)*(H-padT-padB);
   const xy = rows.map((r,i)=>`${X(i).toFixed(1)},${Y(r.t).toFixed(1)}`);
   let grid = "";
@@ -437,22 +536,85 @@ function drawHist(){
   svg.onmouseleave = () => { cross.style.display="none"; tip.style.display="none"; };
 }
 
+// ── 랭킹 3종 (수익률 / 총자산 / 수익금액 · 월간/전체)
+let RROWS = null;
+const RKMODE = { ret: "all", pnl: "all" };   // 카드별 월간/전체 상태
+const RKDEF = { ret: "🏆 수익률", asset: "💰 총자산", pnl: "📈 수익금액" };
+let RKTAB = "ret", RKFMODE = "all";
+
+const wonS = v => Math.round(v) === 0 ? "0원" : (v > 0 ? "+" : "-") + wonC(Math.abs(v)) + "원";
+function rkVal(r, id, mode){
+  if (id === "asset") return r.total;
+  if (id === "ret") return mode === "m" ? r.retM : r.retAll;
+  return mode === "m" ? r.pnlM : r.pnlAll;
+}
+function rkFmt(id, v){
+  if (id === "ret") return `<span class="num ${ST.cls(v)}" style="font-weight:800;">${v>=0?"+":""}${(v*100).toFixed(2)}%</span>`;
+  if (id === "asset") return `<span class="num" style="font-weight:800;color:var(--gold);">${wonC(v)}원</span>`;
+  return `<span class="num ${ST.cls(v)}" style="font-weight:800;">${wonS(v)}</span>`;
+}
+const rkName = r => `<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.av?r.av+" ":""}${(r.nick||"익명").replace(/</g,"&lt;")}</span>`;
+
+function rkCardHtml(id){
+  const hasMode = id !== "asset";
+  const mode = RKMODE[id] || "all";
+  const rows = [...RROWS].sort((a,b)=>rkVal(b,id,mode)-rkVal(a,id,mode)).slice(0,3);
+  return `<div class="card"><h3 style="display:flex;align-items:center;gap:7px;">${RKDEF[id]}
+    ${hasMode ? `<span class="chips2" style="margin-left:auto;">
+      <span class="chip ${mode==="m"?"on":""}" onclick="setRk('${id}','m')">월간</span>
+      <span class="chip ${mode==="all"?"on":""}" onclick="setRk('${id}','all')">전체</span></span>` : `<span style="margin-left:auto;"></span>`}
+    <span onclick="openRank('${id}')" style="font-size:11px;color:var(--dim);cursor:pointer;font-weight:700;flex-shrink:0;">더보기 &gt;</span></h3>
+    ${rows.length ? rows.map((r,i)=>`<div class="rkrow ${r.uid===USER.uid?"me":""}">
+      <span style="font-size:14px;flex-shrink:0;">${["🥇","🥈","🥉"][i]}</span>${rkName(r)}${rkFmt(id, rkVal(r,id,mode))}</div>`).join("")
+    : `<div style="font-size:12px;color:var(--dim);">첫 참가자가 되어보세요!</div>`}</div>`;
+}
+function renderRkCards(){
+  const el = document.getElementById("rkcards");
+  if (!el || !RROWS) return;
+  el.innerHTML = rkCardHtml("ret") + rkCardHtml("asset") + rkCardHtml("pnl");
+}
+window.setRk = (id, m) => { RKMODE[id] = m; renderRkCards(); };
+
+// 세부 랭킹 팝업
+window.openRank = id => {
+  RKTAB = id;
+  RKFMODE = id === "asset" ? "all" : (RKMODE[id] || "all");
+  document.getElementById("rankmodal").style.display = "flex";
+  drawRankFull();
+};
+window.setRkTab = id => { RKTAB = id; if (id === "asset") RKFMODE = "all"; drawRankFull(); };
+window.setRkFmode = m => { RKFMODE = m; drawRankFull(); };
+function drawRankFull(){
+  document.getElementById("rktabs").innerHTML = Object.keys(RKDEF).map(id=>
+    `<span class="chip ${RKTAB===id?"on":""}" onclick="setRkTab('${id}')">${RKDEF[id].slice(3)}</span>`).join("");
+  document.getElementById("rkmodes").innerHTML = RKTAB === "asset" ? "" :
+    `<span class="chip ${RKFMODE==="m"?"on":""}" onclick="setRkFmode('m')">월간</span>
+     <span class="chip ${RKFMODE==="all"?"on":""}" onclick="setRkFmode('all')">전체</span>`;
+  const rows = [...RROWS].sort((a,b)=>rkVal(b,RKTAB,RKFMODE)-rkVal(a,RKTAB,RKFMODE)).slice(0,50);
+  document.getElementById("rankfull").innerHTML = rows.map((r,i)=>`
+    <div class="rkrow ${r.uid===USER.uid?"me":""}">
+      <span class="rank">${i<3?["🥇","🥈","🥉"][i]:i+1}</span>${rkName(r)}${rkFmt(RKTAB, rkVal(r,RKTAB,RKFMODE))}</div>`).join("")
+    || `<div style="font-size:12px;color:var(--dim);">아직 참가자가 없습니다.</div>`;
+}
+
 async function loadRanks(){
-  const el = document.getElementById("ranks");
-  if (!el) return;
   try {
-    const snap = await firebase.firestore().collection("league").limit(50).get();
-    const rows = [];
-    snap.forEach(d => { const v = d.data(); rows.push({ uid:d.id, ...v, total: totalOf(v), seed: seedOf(v) }); });
-    rows.sort((a,b)=>(b.total/b.seed)-(a.total/a.seed));
-    el.innerHTML = rows.map((r,i)=>{
-      const rr = (r.total/r.seed-1)*100;
-      return `<div class="rkrow ${r.uid===USER.uid?"me":""}">
-        <span class="rank">${i<3?["🥇","🥈","🥉"][i]:i+1}</span>
-        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.av?r.av+" ":""}${(r.nick||"익명").replace(/</g,"&lt;")}</span>
-        <span class="num ${ST.cls(rr)}" style="font-weight:800;">${rr>=0?"+":""}${rr.toFixed(2)}%</span></div>`;}).join("")
-      || `<div style="font-size:12px;color:var(--dim);">첫 참가자가 되어보세요!</div>`;
-  } catch(e) { el.innerHTML = `<div style="font-size:12px;color:var(--dim);">랭킹을 불러오지 못했습니다.</div>`; }
+    const snap = await firebase.firestore().collection("league").limit(100).get();
+    RROWS = [];
+    snap.forEach(d => {
+      const v = d.data();
+      const total = totalOf(v), seed = seedOf(v);
+      const mS = v.mStart || seed;   // 월간 기준점 없으면 누적 지급액으로 대체
+      RROWS.push({ uid: d.id, nick: v.nick, av: v.av, total, seed,
+        retAll: total/seed - 1, retM: mS ? total/mS - 1 : 0,
+        pnlAll: total - seed, pnlM: total - mS });
+    });
+    renderRkCards();
+    if (document.getElementById("rankmodal").style.display === "flex") drawRankFull();
+  } catch(e) {
+    const el = document.getElementById("rkcards");
+    if (el) el.innerHTML = `<div class="card" style="font-size:12px;color:var(--dim);">랭킹을 불러오지 못했습니다.</div>`;
+  }
 }
 
 document.addEventListener("st-auth", e => { ready = true; USER = e.detail; load(); });
