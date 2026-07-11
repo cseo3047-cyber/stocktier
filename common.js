@@ -168,7 +168,7 @@ window.ST = (function () {
       const ref = firebase.firestore().collection("watchlists").doc(fbUser.uid);
       const snap = await ref.get();
       const d = snap.exists ? snap.data() : {};
-      window.ST_PROFILE = { nick: d.nick || "", avatar: d.avatar || "" };
+      window.ST_PROFILE = { nick: d.nick || "", avatar: d.avatar || "", photo: d.photo || "" };
       const local = watchGet();
       const cloud = d.items || [];
       const seen = new Set(local.map(w => w[0] + "|" + w[1]));
@@ -193,7 +193,11 @@ window.ST = (function () {
     if (fbUser) {
       const p = window.ST_PROFILE || {};
       const nm = p.nick || fbUser.displayName || fbUser.email.split("@")[0];
-      b.textContent = (p.avatar ? p.avatar + " " : "") + nm + " ▾";
+      if (p.photo) {
+        b.innerHTML = `<img src="${p.photo}" style="width:19px;height:19px;border-radius:50%;object-fit:cover;vertical-align:-4px;margin-right:6px;">${nm} ▾`;
+      } else {
+        b.textContent = (p.avatar ? p.avatar + " " : "") + nm + " ▾";
+      }
       b.style.borderColor = "var(--gold-dim)"; b.style.color = "var(--gold)";
     } else {
       b.textContent = "로그인";
