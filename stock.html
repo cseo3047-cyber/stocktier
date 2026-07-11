@@ -468,7 +468,7 @@ if (!s) {
       <text x="${vX(i).toFixed(1)}" y="${(vY(v)-5).toFixed(1)}" text-anchor="middle" fill="${i===0?"#f0c948":"#8fd6b8"}" font-size="8.5" font-weight="700">${fmtVol(v)}</text>
       <text x="${vX(i).toFixed(1)}" y="${VH-7}" text-anchor="middle" fill="#5a737d" font-size="9.5">${lb}</text>`).join("");
     const colW = (VW-vpL-vpR)/volDefs.length;
-    return `<svg viewBox="0 0 ${VW} ${VH}" preserveAspectRatio="none" style="width:100%;height:100%;min-height:190px;display:block;">
+    return `<svg viewBox="0 0 ${VW} ${VH}" preserveAspectRatio="none" style="width:100%;height:100%;min-height:150px;display:block;">
       <defs><linearGradient id="vgr" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#0f7a56"/><stop offset="1" stop-color="#4cd7a5"/></linearGradient>
       <linearGradient id="vgrToday" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#8a6f1e"/><stop offset="1" stop-color="#f0c948"/></linearGradient></defs>
       ${grid}${bars}
