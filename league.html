@@ -91,7 +91,7 @@ const SEED = 100000000;                 // 시작 1억
 const BASE_GRANT = 20000000;            // 매월 기본 2천만
 const PT_BONUS = 1000000;               // 포인트당 +100만
 const MONTH = 30 * 864e5;
-const FX = (window.STOCK_MARKET && window.STOCK_MARKET.fx) || 1350;   // 전일 기준 환율
+const FX = (window.STOCK_MARKET && window.STOCK_MARKET.fx) || 1500;   // 전일 기준 환율 (수집 전 기본값 1,500원)
 let USER = null, ready = false, L = null, SELK = null, MYPTS = 0;
 
 function locked(){
@@ -122,6 +122,10 @@ async function load(){
   const p = window.ST_PROFILE || {};
   L = snap.exists ? snap.data() : { cash: SEED, pos: {}, start: Date.now(), cycleStart: Date.now(), seedWon: SEED, hist: [] };
   L.pos = L.pos || {};
+  // 기존 미국 보유분 마이그레이션: 과거 매수는 고정 환율 1,350원 → 달러 평단 역산
+  for (const k of Object.keys(L.pos)) {
+    if (splitK(k)[0] === "us" && !L.pos[k].avgUsd) L.pos[k].avgUsd = L.pos[k].avg / 1350;
+  }
   L.cycleStart = L.cycleStart || L.start || Date.now();
   L.seedWon = seedOf(L);
   L.hist = L.hist || [];
@@ -223,19 +227,28 @@ function render(){
           </div>
         </div>
         <div class="card"><h3>보유 종목</h3>
-          ${posKeys.length ? `<table class="ptbl"><thead><tr><th>종목명</th><th>수량</th><th>평균단가</th><th>현재가</th><th>평가금액</th><th>손익</th></tr></thead><tbody>
+          ${posKeys.length ? `<table class="ptbl"><thead><tr><th>종목명</th><th>수량</th><th>평균단가</th><th>현재가</th><th>평가금액</th><th>손익</th><th>환손익</th></tr></thead><tbody>
             ${posKeys.map(k=>{
               const ps = L.pos[k], cur = priceOf(k) || ps.avg;
               const pl = (cur/ps.avg-1)*100;
               const [srcx, kx] = splitK(k);
+              let fxc = `<td style="color:var(--dim);">—</td>`;
+              if (srcx === "us") {
+                const aU = ps.avgUsd || ps.avg/1350;        // 매수 시점 달러 평단
+                const fx0 = ps.avg / aU;                     // 매수 시점 평균 환율
+                const fpl = (FX/fx0 - 1) * 100;              // 환율 변동 손익
+                const fxWon = Math.round(ps.q * (ST.get("us",kx)?.[2]||aU) * (FX - fx0));
+                fxc = `<td class="num ${ST.cls(fpl)}" title="매수 환율 ${wonN(fx0)}원 → 현재 ${wonN(FX)}원">${fpl>=0?"+":""}${fpl.toFixed(2)}%<div style="font-size:10px;color:var(--dim);">${fxWon>=0?"+":""}${wonN(fxWon)}원</div></td>`;
+              }
               return `<tr>
                 <td class="nm" style="cursor:pointer;" onclick="location.href='${ST.stockUrl(srcx,kx)}'">${nameOf(k)}${srcx==="us"?` <span style="color:var(--dim);font-size:10px;font-weight:500;">US</span>`:""}</td>
                 <td class="num">${wonN(ps.q)}주</td>
                 <td class="num">${wonN(ps.avg)}원</td>
                 <td class="num">${wonN(cur)}원</td>
                 <td class="num" style="font-weight:800;">${wonN(ps.q*cur)}원</td>
-                <td class="num ${ST.cls(pl)}" style="font-weight:800;">${pl>=0?"+":""}${pl.toFixed(2)}%</td></tr>`;}).join("")}
-          </tbody></table>`
+                <td class="num ${ST.cls(pl)}" style="font-weight:800;">${pl>=0?"+":""}${pl.toFixed(2)}%</td>${fxc}</tr>`;}).join("")}
+          </tbody></table>
+          <div style="font-size:10.5px;color:var(--dim);margin-top:8px;">※ 환손익: 매수 시점 대비 환율 변동에 따른 손익 (미국 종목만, 총 손익에 포함되어 있음)</div>`
           : `<div style="font-size:12.5px;color:var(--dim);text-align:center;padding:18px 0;">보유 종목이 없습니다. 위에서 첫 종목을 매수해보세요!</div>`}
           <div style="margin-top:12px;text-align:right;font-size:11px;color:var(--dim);font-weight:700;">
             ${due >= 1 ? `<button onclick="resetPlay()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;">처음부터 다시 시작</button>`
@@ -324,6 +337,11 @@ function render(){
     }
     if (!confirm(cf + "\n\n진행할까요?")) return;
     const ps = L.pos[k] || { q:0, avg:0 };
+    // 미국 종목: 환차손 계산용 달러 평단 함께 저장
+    if (splitK(k)[0] === "us") {
+      const usd = ST.get("us", splitK(k)[1])[2];
+      ps.avgUsd = (ps.q * (ps.avgUsd || ps.avg/1350) + qn * usd) / (ps.q + qn);
+    }
     ps.avg = Math.round((ps.q*ps.avg + cost) / (ps.q+qn));
     ps.q += qn;
     L.pos[k] = ps;
