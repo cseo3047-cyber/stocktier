@@ -74,6 +74,15 @@
   .evrow .tx { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .vbadge { display:inline-flex; padding:2px 10px; border-radius:7px; font-size:11px; font-weight:800; }
   .lmhead { display:flex; align-items:center; gap:8px; font-size:10.5px; color:var(--dim); font-weight:700; padding:0 2px 7px; }
+  /* 종목 토론 */
+  .cmtform textarea { width:100%; box-sizing:border-box; min-height:64px; padding:11px 13px; font-size:13px; background:var(--panel2); border:1.5px solid var(--border); border-radius:10px; color:var(--text); outline:none; resize:vertical; font-family:inherit; }
+  .cmtform textarea:focus { border-color:var(--gold-dim); }
+  .cmtrow { display:flex; gap:11px; padding:12px 2px; border-bottom:1px solid #ffffff0d; }
+  .cmtrow:last-child { border-bottom:none; }
+  .cmtav { width:34px; height:34px; border-radius:50%; background:var(--panel2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  .cmtbtn { background:transparent; border:none; color:var(--dim); font-size:11px; font-weight:700; cursor:pointer; padding:2px 6px; }
+  .cmtbtn:hover { color:var(--gold); }
+  .cmtbtn.liked { color:var(--up); }
   .b-pos { background:#13322a; color:#4cd7a5; } .b-sta { background:#22303c; color:#9db9d4; } .b-neg { background:#3a1a22; color:#f0708a; }
 </style>
 </head>
@@ -499,7 +508,10 @@ if (!s) {
     ${chartCard}
     <div style="display:flex;flex-direction:column;gap:14px;">${histCard}${newsCard}</div>
   </div>
-  ${us ? usBottom : `<div class="row2d" style="grid-template-columns:0.95fr 2.05fr;align-items:stretch;">${volCard}${flowCard}</div>`}`;
+  ${us ? usBottom : `<div class="row2d" style="grid-template-columns:0.95fr 2.05fr;align-items:stretch;">${volCard}${flowCard}</div>`}
+  <div class="card" style="margin-top:14px;"><h3>종목 토론 <span class="more" style="cursor:default;">비방 · 광고 · 투자 권유 금지</span></h3>
+    <div id="commbody"><div style="font-size:12.5px;color:var(--dim);text-align:center;padding:20px 0;">로그인 상태 확인 중...</div></div>
+  </div>`;
 
   // 거래량 비교 — 당일 막대 호버 시 기간별 증감 툴팁
   (function(){
@@ -606,6 +618,101 @@ if (!s) {
   } else {
     ["ff","fo"].forEach(draw1);
   }
+
+  // ══ 종목 토론 (읽기·쓰기 모두 로그인 필요) ══
+  const stockDoc = src + "_" + (us ? key : code);
+  const BADWORDS = ["시발","씨발","병신","좆","새끼","리딩방","추천방","단톡방","수익보장","오픈채팅"];
+  let CUSER = null, commReady = false;
+  const commEl = () => document.getElementById("commbody");
+  function commLocked(){
+    commEl().innerHTML = `<div style="text-align:center;padding:26px 0;">
+      <div style="font-size:26px;margin-bottom:10px;">🔒</div>
+      <div style="font-size:13px;font-weight:800;margin-bottom:5px;">로그인한 사용자만 볼 수 있어요</div>
+      <div style="font-size:11.5px;color:var(--dim);margin-bottom:14px;">종목 토론은 로그인 후 이용할 수 있습니다.</div>
+      <button class="btn3" style="background:transparent;border:1px solid var(--gold-dim);color:var(--gold);border-radius:9px;padding:9px 22px;font-size:12px;font-weight:800;cursor:pointer;" onclick="document.getElementById('loginbtn').click()">로그인하기</button></div>`;
+  }
+  const fmtTs = ts => { const d = new Date(ts);
+    return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; };
+  async function loadComments(){
+    if (!CUSER) { commLocked(); return; }
+    const p = window.ST_PROFILE || {};
+    const myNick = p.nick || CUSER.displayName || CUSER.email.split("@")[0];
+    const myAv = p.avatar || "";
+    let items = [];
+    try {
+      const snap = await firebase.firestore().collection("comments").doc(stockDoc)
+        .collection("posts").orderBy("ts","desc").limit(30).get();
+      snap.forEach(d => items.push({ id:d.id, ...d.data() }));
+    } catch(e) { commEl().innerHTML = `<div style="font-size:12px;color:var(--dim);text-align:center;padding:16px 0;">토론을 불러오지 못했습니다. (Firestore 규칙에 comments 항목이 필요합니다)</div>`; return; }
+    commEl().innerHTML = `
+      <div class="cmtform">
+        <textarea id="cmtin" maxlength="200" placeholder="${name}에 대한 의견을 남겨보세요 (200자 이내)"></textarea>
+        <div style="display:flex;align-items:center;margin-top:8px;">
+          <span id="cmtcnt" style="font-size:11px;color:var(--dim);">0 / 200</span>
+          <span id="cmtmsg" style="font-size:11.5px;color:#f0708a;font-weight:700;margin-left:12px;"></span>
+          <button id="cmtgo" style="margin-left:auto;background:#1d9e75;color:#fff;border:none;border-radius:9px;padding:9px 22px;font-size:12px;font-weight:800;cursor:pointer;">등록</button>
+        </div>
+      </div>
+      <div style="margin-top:14px;" id="cmtlist">
+        ${items.length ? items.map(c => {
+          const likes = c.likes || [];
+          const mine = c.uid === CUSER.uid;
+          const liked = likes.includes(CUSER.uid);
+          return `<div class="cmtrow">
+            <div class="cmtav">${c.av || (c.nick||"?")[0].toUpperCase()}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:baseline;gap:8px;">
+                <b style="font-size:12.5px;">${(c.nick||"익명").replace(/</g,"&lt;")}</b>
+                <span style="font-size:10.5px;color:var(--dim);" class="num">${fmtTs(c.ts)}</span>
+              </div>
+              <div style="font-size:13px;color:var(--muted);line-height:1.7;margin-top:3px;word-break:break-all;">${String(c.t||"").replace(/</g,"&lt;")}</div>
+              <div style="margin-top:4px;">
+                <button class="cmtbtn ${liked?"liked":""}" data-like="${c.id}">👍 ${likes.length||""}</button>
+                ${mine?`<button class="cmtbtn" data-del="${c.id}">삭제</button>`:""}
+              </div>
+            </div>
+          </div>`; }).join("")
+        : `<div style="font-size:12.5px;color:var(--dim);text-align:center;padding:18px 0;">첫 번째 의견을 남겨보세요!</div>`}
+      </div>`;
+    const tin = document.getElementById("cmtin");
+    tin.addEventListener("input", () => document.getElementById("cmtcnt").textContent = tin.value.length + " / 200");
+    const msg = t => document.getElementById("cmtmsg").textContent = t;
+    document.getElementById("cmtgo").addEventListener("click", async () => {
+      const t = tin.value.trim();
+      msg("");
+      if (!t) return;
+      if (t.length > 200) { msg("200자 이내로 작성해주세요."); return; }
+      if (BADWORDS.some(w => t.includes(w))) { msg("금칙어가 포함되어 등록할 수 없습니다."); return; }
+      const last = +(localStorage.getItem("st_lastcmt") || 0);
+      if (Date.now() - last < 30000) { msg("잠시 후 다시 작성할 수 있어요. (30초 간격)"); return; }
+      try {
+        await firebase.firestore().collection("comments").doc(stockDoc).collection("posts").add({
+          uid: CUSER.uid, nick: myNick, av: myAv, t, ts: Date.now(), likes: []
+        });
+        localStorage.setItem("st_lastcmt", String(Date.now()));
+        loadComments();
+      } catch(e) { msg("등록에 실패했습니다. 잠시 후 다시 시도해주세요."); }
+    });
+    document.querySelectorAll("#cmtlist [data-like]").forEach(b => b.addEventListener("click", async () => {
+      const ref = firebase.firestore().collection("comments").doc(stockDoc).collection("posts").doc(b.dataset.like);
+      const liked = b.classList.contains("liked");
+      try {
+        await ref.update({ likes: liked
+          ? firebase.firestore.FieldValue.arrayRemove(CUSER.uid)
+          : firebase.firestore.FieldValue.arrayUnion(CUSER.uid) });
+        loadComments();
+      } catch(e) {}
+    }));
+    document.querySelectorAll("#cmtlist [data-del]").forEach(b => b.addEventListener("click", async () => {
+      if (!confirm("이 댓글을 삭제할까요?")) return;
+      try {
+        await firebase.firestore().collection("comments").doc(stockDoc).collection("posts").doc(b.dataset.del).delete();
+        loadComments();
+      } catch(e) {}
+    }));
+  }
+  document.addEventListener("st-auth", e => { commReady = true; CUSER = e.detail; loadComments(); });
+  setTimeout(() => { if (!commReady) commLocked(); }, 4000);
 
   window.toggleWatch = function(){ ST.watchToggle(src, key); updateWatchBtn(); };
   function updateWatchBtn(){
