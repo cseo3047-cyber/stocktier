@@ -11,10 +11,16 @@
   @media (max-width:1000px){ .layout { grid-template-columns:1fr; } }
   .sumrow { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px; }
   @media (max-width:900px){ .sumrow { grid-template-columns:repeat(2,1fr); } }
-  .sumbox { background:linear-gradient(135deg,#0c3a42,#155a52); border:1px solid #2e5c47; border-radius:15px; padding:17px 19px; }
-  .sumbox .lb { font-size:11.5px; color:#9db8a9; font-weight:700; }
-  .sumbox .vl { font-size:22px; font-weight:800; margin-top:6px; white-space:nowrap; }
-  .sumbox .sumsub { font-size:11px; margin-top:4px; font-weight:700; }
+  .sumbox { background:linear-gradient(120deg,#0a2836 0%,#0d3d3d 70%,#104643 100%); border:1px solid #1c4a44; border-radius:16px; padding:18px 20px; }
+  .sumbox .lb { font-size:11.5px; color:#8fae9f; font-weight:700; letter-spacing:.2px; }
+  .sumbox .lb .dim2 { color:#5a737d; font-weight:600; }
+  .sumbox .vl { font-size:23px; font-weight:800; margin-top:7px; white-space:nowrap; letter-spacing:.2px; }
+  .sumbox .sumsub { font-size:11.5px; margin-top:5px; font-weight:700; }
+  .seasonrow { display:flex; gap:10px; align-items:stretch; flex-wrap:wrap; margin-bottom:14px; }
+  .seabox { background:linear-gradient(120deg,#0a2836,#0d3d3d); border:1px solid #1c4a44; border-radius:13px; padding:11px 16px; display:flex; align-items:center; gap:11px; }
+  .seabox .si { font-size:20px; }
+  .seabox .sl { font-size:10.5px; color:#8fae9f; font-weight:700; }
+  .seabox .sv { font-size:14.5px; font-weight:800; margin-top:2px; white-space:nowrap; }
   .rkgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px; align-items:start; }
   @media (max-width:900px){ .rkgrid { grid-template-columns:1fr; } }
   .trade { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
@@ -116,6 +122,16 @@
   </div>
 </div>
 
+<div id="tiermodal" style="position:fixed;inset:0;background:#000000aa;display:none;align-items:center;justify-content:center;z-index:314;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;width:min(480px,92vw);max-height:82vh;overflow:auto;padding:22px 24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <b style="font-size:16px;">🎖️ 리그 티어 구분</b>
+      <span style="cursor:pointer;color:var(--muted);padding:2px 6px;font-size:16px;" onclick="document.getElementById('tiermodal').style.display='none'">✕</span></div>
+    <div id="tierlist"></div>
+    <div style="font-size:10.5px;color:var(--dim);margin-top:12px;">※ 시즌은 분기(3개월)마다 진행됩니다. 조건 수치는 누적 지급액 대비 기준.</div>
+  </div>
+</div>
+
 <div id="rankmodal" style="position:fixed;inset:0;background:#000000aa;display:none;align-items:center;justify-content:center;z-index:315;" onclick="if(event.target===this)this.style.display='none'">
   <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;width:min(460px,92vw);max-height:82vh;display:flex;flex-direction:column;padding:22px 24px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -163,6 +179,57 @@ const totalOf = d => {
   return t;
 };
 const seedOf = d => d.seedWon || ((d.grants || 1) * SEED);
+
+// ── 리그 티어 (아이언 IV ~ 챌린저) : [이름, 아이콘, 색, 수익률%, 수익금액, 총자산] — 3개 중 2개 충족 시 해당 티어
+const TIERS = [
+  ["챌린저",       "🏆", "#ffd95e", 60,  2.5e8, 5e8],
+  ["그랜드마스터", "👑", "#ff6a6a", 40,  1.2e8, 3e8],
+  ["마스터",       "🔮", "#c77dff", 25,  6e7,   2e8],
+  ["다이아몬드",   "💎", "#4cc4ff", 16,  3e7,   1.6e8],
+  ["플래티넘",     "💠", "#3ddbc4", 10,  1.5e7, 1.3e8],
+  ["골드",         "🥇", "#f0c948", 6,   7e6,   1.1e8],
+  ["실버",         "🥈", "#c8d6dd", 3,   3e6,   1.05e8],
+  ["브론즈",       "🥉", "#d09a5e", 1,   1e6,   1.01e8],
+  ["아이언",       "🛡️", "#8a8f94", -1e9, -1e18, 0],
+];
+function tierOf(total, seed){
+  const ret = (total/seed - 1) * 100, pnl = total - seed;
+  for (let i = 0; i < TIERS.length; i++){
+    const [nm, ic, c, r, p, t] = TIERS[i];
+    const met = (ret >= r ? 1:0) + (pnl >= p ? 1:0) + (total >= t ? 1:0);
+    if (met >= 2 || i === TIERS.length - 1){
+      let div = "";
+      if (i >= 3){   // 다이아몬드 이하는 IV~I 세부 등급
+        const hi = TIERS[i-1][3];
+        const lo = r <= -1e8 ? -20 : r;
+        const frac = Math.max(0, Math.min(0.999, (ret - lo) / ((hi - lo) || 1)));
+        div = " " + ["IV","III","II","I"][Math.floor(frac * 4)];
+      }
+      return { nm, ic, c, div, full: nm + div };
+    }
+  }
+}
+// 시즌: 분기마다 진행 (1~3월=시즌1, 4~6월=시즌2, ...)
+const SNOW = new Date();
+const SQ = Math.floor(SNOW.getMonth() / 3);
+const SSTART = new Date(SNOW.getFullYear(), SQ*3, 1);
+const SEND = new Date(SNOW.getFullYear(), SQ*3+3, 0);
+const SLEFT = Math.max(0, Math.ceil((SEND - SNOW) / 864e5));
+const fmtSD = d => `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`;
+window.openTiers = () => {
+  const total = totalOf(L), my = tierOf(total, L.seedWon);
+  document.getElementById("tierlist").innerHTML =
+    `<div style="font-size:11.5px;color:var(--muted);line-height:1.7;margin-bottom:12px;">수익률 · 수익금액 · 총자산 <b style="color:var(--gold);">3개 조건 중 2개</b>를 충족하면 해당 티어가 됩니다. 다이아몬드 이하는 진행도에 따라 IV → I 세부 등급으로 나뉘어요.</div>
+    <div style="display:flex;font-size:10px;color:var(--dim);font-weight:700;padding:0 2px 6px;border-bottom:1px solid var(--border);"><span style="flex:1.2;">티어</span><span style="flex:1;text-align:right;">수익률</span><span style="flex:1;text-align:right;">수익금액</span><span style="flex:1;text-align:right;">총자산</span></div>`
+    + TIERS.map(([nm,ic,c,r,p,t])=>{
+      const me = my.nm === nm;
+      return `<div style="display:flex;align-items:center;font-size:12px;font-weight:700;padding:9px 2px;border-bottom:1px solid #ffffff0d;${me?"background:#3d331322;border-radius:8px;":""}">
+        <span style="flex:1.2;color:${c};">${ic} ${nm}${me?` <span style="font-size:9.5px;color:var(--gold);">← 내 티어${my.div}</span>`:""}</span>
+        <span class="num" style="flex:1;text-align:right;color:var(--muted);">${r<=-1e8?"—":"+"+r+"%"}</span>
+        <span class="num" style="flex:1;text-align:right;color:var(--muted);">${p<=-1e17?"—":"+"+wonC(p)}</span>
+        <span class="num" style="flex:1;text-align:right;color:var(--muted);">${t<=0?"—":wonC(t)}</span></div>`;}).join("");
+  document.getElementById("tiermodal").style.display = "flex";
+};
 
 // ── 공용 스타일 팝업 (confirm/alert 대체)
 function stConfirm(title, html, opt){
@@ -221,6 +288,17 @@ async function load(){
     // 출석 포인트 조회 (월 지급 보너스 계산용)
     try { const gs = await firebase.firestore().collection("games").doc(USER.uid).get();
       MYPTS = (gs.exists && gs.data().pts) || 0; } catch(e) { MYPTS = 0; }
+    // 시즌 전환 감지: 분기가 바뀌었으면 지난 시즌 최종 티어를 기록
+    const sKey = SNOW.getFullYear() + "-" + (SQ + 1);
+    let seasonEnded = null;
+    if (L.season && L.season !== sKey) {
+      const t0 = totalOf(L);
+      const tr0 = tierOf(t0, L.seedWon);
+      L.lastSeason = { key: L.season, tier: tr0.full, ic: tr0.ic, c: tr0.c,
+        ret: Math.round((t0/L.seedWon - 1) * 10000) / 100 };
+      seasonEnded = L.lastSeason;
+    }
+    L.season = sKey;
     // 월간 자동 정산: 1개월(30일)이 지났으면 자동으로 지급 (기본 2,000만 + 포인트 1P당 100만)
     const due = monthsDue();
     let settled = 0;
@@ -243,12 +321,20 @@ async function load(){
     await ref.set(L, { merge: true });
     render();
     if (settled > 0) {
-      stAlert("🎉 월간 정산 완료!", `<div style="font-size:12.5px;color:var(--muted);line-height:1.9;">
+      await stAlert("🎉 월간 정산 완료!", `<div style="font-size:12.5px;color:var(--muted);line-height:1.9;">
         ${due}개월치 투자금이 자동 지급되었어요.</div>`
         + cmrow("기본 지급", wonC(BASE_GRANT) + " × " + due + "개월")
         + (MYPTS > 0 ? cmrow("출석 포인트 보너스", `${MYPTS}P × 100만 = ` + wonC(MYPTS*PT_BONUS) + " × " + due + "개월") : "")
         + cmrow("총 지급액", `<span style="color:#f0c948;">+${wonC(settled)}</span>`));
-    } else showNotice();
+    }
+    if (seasonEnded) {
+      await stAlert("🏁 지난 시즌 마감!", `<div style="font-size:12.5px;color:var(--muted);line-height:1.9;margin-bottom:6px;">
+        시즌 ${seasonEnded.key.split("-")[1]}(${seasonEnded.key.split("-")[0]}년)이 종료되었습니다.</div>`
+        + cmrow("최종 티어", `<span style="color:${seasonEnded.c};">${seasonEnded.ic} ${seasonEnded.tier}</span>`)
+        + cmrow("최종 수익률", `<span class="${ST.cls(seasonEnded.ret)}">${seasonEnded.ret>=0?"+":""}${seasonEnded.ret}%</span>`)
+        + `<div style="font-size:11.5px;color:var(--dim);margin-top:10px;">새 시즌(시즌 ${SQ+1})이 시작됐어요. 자산과 기록은 그대로 이어지고, 지난 시즌 티어는 상단에 계속 표시됩니다.</div>`);
+    }
+    if (settled <= 0 && !seasonEnded) showNotice();
   } catch(e) {
     box.innerHTML = `<div class="card" style="text-align:center;padding:40px;">
       <div style="font-size:13px;font-weight:800;margin-bottom:6px;">데이터를 불러오지 못했어요</div>
@@ -262,7 +348,7 @@ const resetAt = () => (L.lastReset || L.start || Date.now()) + MONTH;
 window.resetPlay = async () => {
   if (Date.now() < resetAt()) { stAlert("🔒 아직 초기화할 수 없어요", `<div style="font-size:12.5px;color:var(--muted);line-height:1.8;">초기화는 1개월(30일)에 한 번만 가능합니다.<br>다음 초기화 가능일까지 <b style="color:var(--gold);">D-${Math.max(0,Math.ceil((resetAt()-Date.now())/864e5))}</b></div>`); return; }
   if (!await stConfirm("🔄 처음부터 다시 시작", `<div style="font-size:12.5px;color:var(--muted);line-height:1.8;">모든 보유 종목·수익률·추이 기록이 삭제되고<br><b style="color:var(--text);">1억 원</b>부터 새로 시작합니다.<br><b style="color:#f0708a;">이 작업은 되돌릴 수 없어요.</b></div>`, { okTxt:"초기화", red:true })) return;
-  L = { cash: SEED, pos: {}, start: Date.now(), cycleStart: Date.now(), seedWon: SEED, mStart: SEED, hist: [], tr: [], nick: L.nick, av: L.av, lastReset: Date.now(), updated: Date.now() };
+  L = { cash: SEED, pos: {}, start: Date.now(), cycleStart: Date.now(), seedWon: SEED, mStart: SEED, hist: [], tr: [], nick: L.nick, av: L.av, season: L.season, lastSeason: L.lastSeason || null, lastReset: Date.now(), updated: Date.now() };
   SELK = null;
   await firebase.firestore().collection("league").doc(USER.uid).set(L, { merge: false });
   render();
@@ -274,13 +360,21 @@ const HWIN = { "1w":["1주",7], "1m":["1개월",30], "3m":["3개월",91], "6m":[
 window.setHper = p => { HPER = p; drawHist(); };
 
 // 총자산 추이 미니 스파크라인 (그라데이션)
+let SPGID = 0;
 function sparkT(w, h){
-  const vals = (L.hist||[]).slice(-15).map(r=>r.t);
-  if (vals.length < 2) return "";
+  let vals = (L.hist||[]).slice(-15).map(r=>r.t);
+  if (vals.length === 1) vals = [vals[0], vals[0]];
+  if (!vals.length) return "";
   let mn=Math.min(...vals), mx=Math.max(...vals);
   if (mx===mn){ mn*=0.99; mx*=1.01; }
-  const xy = vals.map((v,i)=>`${(i/(vals.length-1)*w).toFixed(1)},${(h-2-(v-mn)/(mx-mn)*(h-4)).toFixed(1)}`).join(" ");
-  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="flex-shrink:0;"><defs><linearGradient id="spg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0f7a56"/><stop offset="1" stop-color="#4cd7a5"/></linearGradient></defs><polyline points="${xy}" fill="none" stroke="url(#spg)" stroke-width="1.8"/></svg>`;
+  const pts = vals.map((v,i)=>[i/(vals.length-1)*w, h-3-(v-mn)/(mx-mn)*(h-8)]);
+  const xy = pts.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+  const id = "spg" + (++SPGID);
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="flex-shrink:0;display:block;">
+    <defs><linearGradient id="${id}f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4cd7a5" stop-opacity="0.28"/><stop offset="1" stop-color="#4cd7a5" stop-opacity="0"/></linearGradient>
+    <linearGradient id="${id}l" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1d9e75"/><stop offset="1" stop-color="#6fe8b8"/></linearGradient></defs>
+    <polygon points="0,${h} ${xy} ${w},${h}" fill="url(#${id}f)"/>
+    <polyline points="${xy}" fill="none" stroke="url(#${id}l)" stroke-width="1.8" stroke-linecap="round"/></svg>`;
 }
 
 function render(){
@@ -306,22 +400,29 @@ function render(){
     return `<div class="r"><span class="dot" style="background:${col};"></span><span class="lb">${s2.nm}</span><b>${pct.toFixed(1)}%</b></div>`;
   }).join("");
 
+  const myTier = tierOf(total, L.seedWon);
   box.innerHTML = `
-    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
-      <button onclick="openRules()" style="background:transparent;border:1px solid var(--gold-dim);color:var(--gold);border-radius:10px;padding:9px 22px;font-size:12.5px;font-weight:800;cursor:pointer;">📖 게임 규칙</button>
+    <div class="seasonrow">
+      <div class="seabox"><span class="si">🕐</span><div><div class="sl">시즌 ${SQ+1} 진행 중</div><div class="sv num" style="font-size:12px;color:var(--muted);">${fmtSD(SSTART)} ~ ${fmtSD(SEND)}</div></div></div>
+      <div class="seabox"><div><div class="sl">시즌 종료까지</div><div class="sv" style="color:var(--gold);">${SLEFT}일 남음</div></div></div>
+      <div class="seabox"><span class="si">${myTier.ic}</span><div><div class="sl">내 리그 티어</div><div class="sv" style="color:${myTier.c};">${myTier.full}</div></div></div>
+      ${L.lastSeason ? `<div class="seabox" style="opacity:.85;"><span class="si">${L.lastSeason.ic}</span><div><div class="sl">지난 시즌 최종 (시즌 ${L.lastSeason.key.split("-")[1]})</div><div class="sv" style="color:${L.lastSeason.c};">${L.lastSeason.tier}</div></div></div>` : ""}
+      <span style="flex:1;"></span>
+      <button onclick="openTiers()" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:9px 20px;font-size:12.5px;font-weight:800;cursor:pointer;">🎖️ 티어 구분</button>
+      <button onclick="openRules()" style="background:transparent;border:1px solid var(--gold-dim);color:var(--gold);border-radius:10px;padding:9px 20px;font-size:12.5px;font-weight:800;cursor:pointer;">📖 게임 규칙</button>
     </div>
     <div class="sumrow">
-        <div class="sumbox"><div class="lb">총 자산 <span style="color:var(--dim);">· 누적 지급 ${wonC(L.seedWon)}</span></div>
-          <div style="display:flex;align-items:center;gap:12px;"><div class="vl num">${wonN(total)}원</div><span style="margin-left:auto;">${sparkT(96,34)}</span></div></div>
-        <div class="sumbox"><div class="lb">평가손익 <span style="color:var(--dim);">· 보유 종목</span></div>
-          <div style="display:flex;align-items:center;gap:12px;"><div class="vl num ${ST.cls(evalPL)}">${evalPL>=0?"+":""}${wonN(evalPL)}원</div><span style="margin-left:auto;font-size:26px;">📈</span></div>
-          <div class="sumsub num" style="color:var(--dim);">투자원금 ${wonN(invSum)}원</div></div>
-        <div class="sumbox"><div class="lb">수익률 <span style="color:var(--dim);">· 지급액 대비</span></div>
-          <div style="display:flex;align-items:center;gap:12px;"><div class="vl num ${ST.cls(ret)}">${ret>=0?"+":""}${ret.toFixed(2)}%</div><span style="margin-left:auto;">${sparkT(96,34)}</span></div>
+        <div class="sumbox"><div class="lb">총 자산 <span class="dim2">· 누적 지급 ${wonC(L.seedWon)}</span></div>
+          <div style="display:flex;align-items:center;gap:12px;"><div class="vl num">${wonN(total)}원</div><span style="margin-left:auto;">${sparkT(104,36)}</span></div></div>
+        <div class="sumbox"><div class="lb">평가손익 <span class="dim2">· 보유 종목</span></div>
+          <div class="vl num ${ST.cls(evalPL)}">${evalPL>=0?"+":""}${wonN(evalPL)}원</div>
+          <div class="sumsub num" style="color:#5a737d;">투자원금 ${wonN(invSum)}원</div></div>
+        <div class="sumbox"><div class="lb">수익률 <span class="dim2">· 지급액 대비</span></div>
+          <div style="display:flex;align-items:center;gap:12px;"><div class="vl num ${ST.cls(ret)}">${ret>=0?"+":""}${ret.toFixed(2)}%</div><span style="margin-left:auto;">${sparkT(104,36)}</span></div>
           <div class="sumsub num ${ST.cls(ret)}">${total-L.seedWon>=0?"+":""}${wonN(total-L.seedWon)}원</div></div>
         <div class="sumbox"><div class="lb">보유 현금</div>
-          <div style="display:flex;align-items:center;gap:12px;"><div class="vl num">${wonN(L.cash)}원</div><span style="margin-left:auto;font-size:27px;">💵</span></div>
-          <div class="sumsub num" style="color:var(--dim);">${total?(L.cash/total*100).toFixed(1):0}%</div></div>
+          <div style="display:flex;align-items:center;gap:12px;"><div class="vl num">${wonN(L.cash)}원</div><span style="margin-left:auto;font-size:28px;">💵</span></div>
+          <div class="sumsub num" style="color:#5a737d;">${total?(L.cash/total*100).toFixed(1):0}%</div></div>
     </div>
       <div class="card"><h3>주문하기 <span class="more" style="cursor:default;">전일 종가 체결 · 환율 ${FX.toLocaleString("ko-KR")}원 (전일 기준)</span></h3>
         <div class="trade">
@@ -392,7 +493,7 @@ function render(){
               <td class="num">${wonN(t.p)}원</td>
               <td class="num" style="font-weight:800;">${wonN(t.q*t.p)}원</td></tr>`;}).join("")}
         </tbody></table>`
-        : `<div style="font-size:12px;color:var(--dim);text-align:center;padding:14px 0;">아직 거래 내역이 없습니다.</div>`}
+        : `<div style="font-size:12px;color:var(--dim);text-align:center;padding:14px 0;">기록된 거래 내역이 없습니다. 기록 기능 도입 이후의 매수·매도부터 여기에 표시돼요.</div>`}
       </div>
       <div id="rkcards" class="rkgrid"></div>`;
 
