@@ -63,10 +63,13 @@
   .donut .hole b { font-size:14px; }
   .donut .hole small { font-size:9px; color:var(--dim); }
   .dlegend { flex:1; min-width:0; font-size:11.5px; }
-  .dlegend .r { display:flex; align-items:center; gap:7px; padding:2.5px 0; color:var(--muted); }
+  .dlegend .r { display:flex; align-items:center; gap:7px; padding:2.5px 0; color:var(--muted); font-variant-numeric:tabular-nums; }
   .dlegend .dot { width:9px; height:9px; border-radius:3px; flex-shrink:0; }
-  .dlegend .lb { flex:1; }
-  .dlegend b { color:var(--text); font-variant-numeric:tabular-nums; }
+  .dlegend .lb { width:34px; flex:none; font-weight:700; }
+  .dlegend b { color:var(--text); width:48px; text-align:right; font-variant-numeric:tabular-nums; }
+  .dlegend .cnt { width:56px; text-align:right; color:var(--dim); font-size:10.5px; font-variant-numeric:tabular-nums; }
+  .dtotal { text-align:center; font-size:12px; color:var(--muted); font-weight:700; margin-top:12px; border-top:1px solid var(--border); padding-top:10px; }
+  .lmhead { display:flex; align-items:center; gap:8px; font-size:10.5px; color:var(--dim); font-weight:700; padding:0 2px 7px; border-bottom:1px solid var(--border); }
   .nrow2 { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid #ffffff0d; font-size:12px; font-weight:700; cursor:pointer; }
   .nrow2:last-child { border-bottom:none; }
   .nrow2:hover { color:var(--gold); }
@@ -136,6 +139,7 @@
   <div class="pmbox">
     <div class="pmhead"><b id="lmtitle"></b><span class="pmclose" onclick="document.getElementById('lmod').style.display='none'">✕</span></div>
     <div class="pmsub" id="lmsub"></div>
+    <div class="lmhead" id="lmhead"></div>
     <div id="lmbody"></div>
   </div>
 </div>
@@ -226,14 +230,16 @@ window.showList = id => {
     hot: ["관심 급증 종목", "거래 참여(거래량 배수) 급증 순", hotList,
       x=>`<b class="num" style="color:#f08a5a;">${(x.e[11]/x.e[9]).toFixed(1)}배</b>`],
   }[id];
+  const valLb = { sup:"순매수(전일)", amt:"배수 · 거래대금", hot:"거래량 배수" }[id];
   document.getElementById("lmtitle").textContent = cfg[0];
   document.getElementById("lmsub").textContent = cfg[1];
+  document.getElementById("lmhead").innerHTML = `<span style="width:18px;"></span><span style="flex:1;">종목명</span><span style="width:58px;text-align:right;">등락률</span><span style="width:104px;text-align:right;">${valLb}</span>`;
   document.getElementById("lmbody").innerHTML = cfg[2].slice(0,30).map((x,i)=>`
     <div class="nrow2" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
       <span class="rank">${i+1}</span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${logo(x)}${ST.displayName(x.src,x.key)}</span>
-      <span class="num ${ST.cls(x.e[3])}" style="font-size:11.5px;">${ST.pct2(x.e[3])}</span>
-      <span style="flex-shrink:0;">${cfg[3](x)}</span></div>`).join("")
+      <span class="num ${ST.cls(x.e[3])}" style="width:58px;text-align:right;font-size:11.5px;flex-shrink:0;">${ST.pct2(x.e[3])}</span>
+      <span style="width:104px;text-align:right;flex-shrink:0;">${cfg[3](x)}</span></div>`).join("")
     || `<div style="font-size:12px;color:var(--dim);padding:10px 0;">해당 종목이 없습니다</div>`;
   document.getElementById("lmod").style.display = "flex";
 };
@@ -379,22 +385,24 @@ function earnInfo(x){
       <span class="cm"><i style="width:${Math.max(4,CAUSE[k].length/mx*100)}%;${k==="risk"?"background:linear-gradient(90deg,#7a2822,#f0645a);":""}"></i></span>
       <span class="cp num">${Math.round(CAUSE[k].length/total*100)}%</span></div>`).join("");
   window.showCause = k => {
+    const valLb = { sup:"순매수(전일)", mom:"1주 수익률", earn:"발표일", risk:"위험도" }[k];
     document.getElementById("lmtitle").textContent = "티어 변경 사유 — " + CINFO[k][0];
     document.getElementById("lmsub").textContent = CINFO[k][1];
+    document.getElementById("lmhead").innerHTML = `<span style="width:18px;"></span><span style="flex:1;">종목명</span><span style="width:48px;text-align:center;">티어</span><span style="width:96px;text-align:right;">${valLb}</span>`;
     document.getElementById("lmbody").innerHTML = CAUSE[k].slice(0,30).map((x,i)=>`
       <div class="nrow2" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
         <span class="rank">${i+1}</span>
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${logo(x)}${ST.displayName(x.src,x.key)}</span>
-        <span class="tierb tier-${x.gNow.g}" style="font-size:10px;">${x.gNow.g}</span>
-        <span style="flex-shrink:0;">${CINFO[k][2](x)}</span></div>`).join("")
+        <span style="width:48px;text-align:center;flex-shrink:0;"><span class="tierb tier-${x.gNow.g}" style="font-size:10px;">${x.gNow.g}</span></span>
+        <span style="width:96px;text-align:right;flex-shrink:0;">${CINFO[k][2](x)}</span></div>`).join("")
       || `<div style="font-size:12px;color:var(--dim);padding:10px 0;">해당 종목이 없습니다</div>`;
     document.getElementById("lmod").style.display = "flex";
   };
 })();
 
-// ── 사이드: 티어 분포 도넛 (신용등급 9단계)
+// ── 사이드: 티어 분포 도넛 (신용등급 9단계 · 녹색 그라데이션)
 (function(){
-  const cols = {AAA:"#f0c948",AA:"#e0b64e",A:"#4cc3d7",BBB:"#4cd7a5",BB:"#a8c96a",B:"#e0a63e",CCC:"#f08a5a",C:"#f0708a",D:"#c95560"};
+  const cols = {AAA:"#d6ef7a",AA:"#a8e05a",A:"#6fd18f",BBB:"#4cd7a5",BB:"#2fb98a",B:"#1d9e75",CCC:"#177a5e",C:"#115c48",D:"#0b3f33"};
   const cnt = {};
   for (const g2 of ST.GRADES) cnt[g2.g] = 0;
   for (const x of ALL) cnt[x.gNow.g]++;
@@ -402,11 +410,13 @@ function earnInfo(x){
   const legend = ST.GRADES.map(g2=>{
     const k = g2.g, p = cnt[k]/ALL.length*100;
     segs.push(`${cols[k]||"#33413a"} ${acc}% ${acc+p}%`); acc += p;
-    return `<div class="r"><span class="dot" style="background:${cols[k]||"#33413a"};"></span><span class="lb">${k}</span><b>${p.toFixed(1)}%</b><span style="color:var(--dim);font-size:10.5px;">(${ST.num(cnt[k])})</span></div>`;
+    return `<div class="r"><span class="dot" style="background:${cols[k]||"#33413a"};"></span><span class="lb">${k}</span><b>${p.toFixed(1)}%</b><span class="cnt">(${ST.num(cnt[k])})</span></div>`;
   }).join("");
   document.getElementById("dist").innerHTML = `
-    <div class="donut" style="background:conic-gradient(${segs.join(",")});"><div class="hole"><small>총</small><b class="num">${ST.num(ALL.length)}개</b></div></div>
+    <div class="donut" style="background:conic-gradient(${segs.join(",")});"><div class="hole"></div></div>
     <div class="dlegend">${legend}</div>`;
+  document.getElementById("dist").insertAdjacentHTML("afterend",
+    `<div class="dtotal">총 <b class="num">${ST.num(ALL.length)}</b>개 종목</div>`);
 })();
 
 // ── 사이드: 오늘의 신규 AAA
