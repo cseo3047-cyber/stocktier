@@ -34,7 +34,7 @@ a { color:inherit; text-decoration:none; }
 .navdrop > a { display:inline-block; }
 .navdrop .dmenu { display:none; position:absolute; top:100%; left:0; background:var(--panel); border:1px solid var(--border); border-radius:11px; min-width:130px; padding:6px; z-index:80; box-shadow:0 10px 26px rgba(0,0,0,.45); }
 .navdrop:hover .dmenu { display:block; }
-.navdrop .dmenu a { display:block; padding:9px 13px; border-radius:8px; font-size:13px; color:var(--muted); font-weight:600; border-bottom:none !important; }
+.navdrop .dmenu a { display:block; padding:9px 13px; border-radius:8px; font-size:13px; color:var(--muted); font-weight:600; border-bottom:none !important; white-space:nowrap; }
 .navdrop .dmenu a:hover { background:var(--panel2); color:var(--text); }
 .navdrop .dmenu a.cur { color:var(--gold); }
 

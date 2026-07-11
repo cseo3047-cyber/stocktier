@@ -63,6 +63,7 @@ function locked(){
 }
 
 const wonN = v => Math.round(v).toLocaleString("ko-KR");
+const MONTH = 30 * 864e5;   // 1개월 = 30일
 const priceOf = k => { const e = ST.get("kr", k); return e ? e[2] : null; };
 const totalOf = d => {
   let t = d.cash || 0;
@@ -72,30 +73,64 @@ const totalOf = d => {
   }
   return t;
 };
+const seedOf = d => (d.grants || 1) * SEED;
 
 async function load(){
   if (!USER) { locked(); return; }
   const ref = firebase.firestore().collection("league").doc(USER.uid);
   const snap = await ref.get();
   const p = window.ST_PROFILE || {};
-  L = snap.exists ? snap.data() : { cash: SEED, pos: {}, start: Date.now() };
+  L = snap.exists ? snap.data() : { cash: SEED, pos: {}, start: Date.now(), grants: 1, cycleStart: Date.now() };
   L.pos = L.pos || {};
+  L.grants = L.grants || 1;
+  L.cycleStart = L.cycleStart || L.start || Date.now();
   L.nick = p.nick || USER.displayName || USER.email.split("@")[0];
   L.av = p.avatar || "";
   await ref.set(L, { merge: true });
   render();
 }
 
+// 1개월 경과 시: 계속 운용(+1억 지급) 또는 초기화 선택
+const monthsDue = () => Math.floor((Date.now() - L.cycleStart) / MONTH);
+window.contPlay = async () => {
+  const due = monthsDue();
+  if (due < 1) return;
+  L.grants += due;
+  L.cash += due * SEED;
+  L.cycleStart += due * MONTH;
+  L.updated = Date.now();
+  await firebase.firestore().collection("league").doc(USER.uid).set(L, { merge: false });
+  render();
+};
+window.resetPlay = async () => {
+  if (monthsDue() < 1) { alert("초기화는 1개월(30일)에 한 번만 가능해요."); return; }
+  if (!confirm("모든 보유 종목과 기록을 지우고 1억 원부터 새로 시작할까요?\n(계속 운용을 선택하면 추가 1억 원을 지급받고 이어갈 수 있어요)")) return;
+  L = { cash: SEED, pos: {}, start: Date.now(), grants: 1, cycleStart: Date.now(), nick: L.nick, av: L.av, updated: Date.now() };
+  SELK = null;
+  await firebase.firestore().collection("league").doc(USER.uid).set(L, { merge: false });
+  render();
+};
+
 function render(){
   const total = totalOf(L);
-  const ret = (total/SEED - 1) * 100;
+  const seed = seedOf(L);
+  const ret = (total/seed - 1) * 100;
+  const due = monthsDue();
+  const nextD = Math.max(0, Math.ceil((L.cycleStart + MONTH - Date.now()) / 864e5));
   const posKeys = Object.keys(L.pos).filter(k=>L.pos[k].q>0);
   box.innerHTML = `
   <div class="layout">
     <div>
+      ${due >= 1 ? `<div style="background:linear-gradient(120deg,#3d3313,#123f4b);border:1px solid #c9a83266;border-radius:13px;padding:15px 18px;margin-bottom:14px;">
+        <div style="font-size:14px;font-weight:800;margin-bottom:5px;">🎉 ${due}개월이 지났어요! 어떻게 할까요?</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">계속 운용하면 가상 투자금 <b style="color:#f0c948;">${due}억 원</b>이 추가 지급됩니다. (물타기·불타기 가능)</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="tbtn buy" onclick="contPlay()">계속 운용 (+${due}억 지급)</button>
+          <button class="tbtn" style="background:transparent;border:1px solid var(--border);color:var(--muted);" onclick="resetPlay()">초기화하고 새로 시작</button>
+        </div></div>` : ""}
       <div class="sumrow">
-        <div class="sumbox"><div class="lb">총 자산</div><div class="vl num">${wonN(total)}원</div></div>
-        <div class="sumbox"><div class="lb">수익률</div><div class="vl num ${ST.cls(ret)}">${ret>=0?"+":""}${ret.toFixed(2)}%</div></div>
+        <div class="sumbox"><div class="lb">총 자산 <span style="color:var(--dim);">· 누적 지급 ${L.grants}억</span></div><div class="vl num">${wonN(total)}원</div></div>
+        <div class="sumbox"><div class="lb">수익률 <span style="color:var(--dim);">· 지급액 대비</span></div><div class="vl num ${ST.cls(ret)}">${ret>=0?"+":""}${ret.toFixed(2)}%</div></div>
         <div class="sumbox"><div class="lb">보유 현금</div><div class="vl num">${wonN(L.cash)}원</div></div>
       </div>
       <div class="card" style="margin-bottom:14px;"><h3>주문하기 <span class="more" style="cursor:default;">전일 종가 체결 · 수수료 없음</span></h3>
@@ -122,7 +157,9 @@ function render(){
               <td class="num ${ST.cls(pl)}" style="font-weight:800;">${pl>=0?"+":""}${pl.toFixed(2)}%</td></tr>`;}).join("")}
         </tbody></table>`
         : `<div style="font-size:12.5px;color:var(--dim);text-align:center;padding:18px 0;">보유 종목이 없습니다. 위에서 첫 종목을 매수해보세요!</div>`}
-        <div style="margin-top:12px;text-align:right;"><button id="resetbtn" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;">처음부터 다시 시작</button></div>
+        <div style="margin-top:12px;text-align:right;font-size:11px;color:var(--dim);font-weight:700;">
+          ${due >= 1 ? `<button onclick="resetPlay()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;">처음부터 다시 시작</button>`
+          : `🔒 초기화·추가 지급까지 <b style="color:var(--gold);">D-${nextD}</b> (1개월마다 가능)`}</div>
       </div>
     </div>
     <div class="card" style="align-self:stretch;"><h3>🏆 수익률 랭킹</h3><div id="ranks">불러오는 중...</div></div>
@@ -185,12 +222,6 @@ function render(){
     SELK = k;
     saveRender(`${k} ${wonN(qn)}주 매도 완료 (+${wonN(cur*qn)}원)`, true);
   });
-  document.getElementById("resetbtn").addEventListener("click", () => {
-    if (!confirm("모든 보유 종목과 기록을 지우고 1억 원부터 다시 시작할까요?")) return;
-    L = { cash: SEED, pos: {}, start: Date.now(), nick: L.nick, av: L.av };
-    SELK = null;
-    saveRender("초기화 완료! 가상 1억 원이 지급되었습니다.", true);
-  });
   loadRanks();
 }
 
@@ -200,10 +231,10 @@ async function loadRanks(){
   try {
     const snap = await firebase.firestore().collection("league").limit(50).get();
     const rows = [];
-    snap.forEach(d => { const v = d.data(); rows.push({ uid:d.id, ...v, total: totalOf(v) }); });
-    rows.sort((a,b)=>b.total-a.total);
+    snap.forEach(d => { const v = d.data(); rows.push({ uid:d.id, ...v, total: totalOf(v), seed: seedOf(v) }); });
+    rows.sort((a,b)=>(b.total/b.seed)-(a.total/a.seed));
     el.innerHTML = rows.map((r,i)=>{
-      const rr = (r.total/SEED-1)*100;
+      const rr = (r.total/r.seed-1)*100;
       return `<div class="rkrow ${r.uid===USER.uid?"me":""}">
         <span class="rank">${i<3?["🥇","🥈","🥉"][i]:i+1}</span>
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.av?r.av+" ":""}${(r.nick||"익명").replace(/</g,"&lt;")}</span>

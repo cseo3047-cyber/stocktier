@@ -292,24 +292,19 @@ window.ST = (function () {
 
   // 상단 네비게이션 렌더 + 검색
   function nav(active) {
-    const items = [["tier.html","티어 랭킹"],["watchlist.html","관심종목"],["risk.html","리스크 워치"],["calendar.html","실적 캘린더"],["news.html","뉴스"],["disclosure.html","공시 충격도"],["compare.html","종목 비교"],["portfolio.html","포트폴리오 진단"],["simulator.html","시뮬레이터"]];
-    const mktOn = (active==="market.html" || active==="market_us.html") ? "on" : "";
     const flag = c => `<img src="https://flagcdn.com/w20/${c}.png" alt="" style="width:18px;height:auto;border-radius:2px;vertical-align:-2px;margin-right:7px;">`;
-    const mktDrop = `<span class="navdrop">
-      <a href="market.html" class="${mktOn}">오늘의 시장 ▾</a>
-      <span class="dmenu">
-        <a href="market.html" class="${active==="market.html"?"cur":""}">${flag("kr")}국내 시장</a>
-        <a href="market_us.html" class="${active==="market_us.html"?"cur":""}">${flag("us")}미국 시장</a>
-      </span></span>`;
-    const gameOn = ["predict.html","attend.html","league.html"].includes(active) ? "on" : "";
-    const gameDrop = `<span class="navdrop">
-      <a href="predict.html" class="${gameOn}">게임 ▾</a>
-      <span class="dmenu">
-        <a href="predict.html" class="${active==="predict.html"?"cur":""}">🎯 예측 게임</a>
-        <a href="attend.html" class="${active==="attend.html"?"cur":""}">🔥 출석 체크</a>
-        <a href="league.html" class="${active==="league.html"?"cur":""}">🏆 모의투자 리그</a>
-      </span></span>`;
-    const menu = mktDrop + items.map(([h,t]) => `<a href="${h}" class="${active===h?"on":""}">${t}</a>`).join("") + gameDrop;
+    const drop = (label, list) => {
+      const on = list.some(([h]) => h === active) ? "on" : "";
+      return `<span class="navdrop">
+        <a href="${list[0][0]}" class="${on}">${label} ▾</a>
+        <span class="dmenu">${list.map(([h,t]) => `<a href="${h}" class="${active===h?"cur":""}">${t}</a>`).join("")}</span></span>`;
+    };
+    const menu =
+      drop("오늘의 시장", [["market.html", flag("kr")+"국내 시장"], ["market_us.html", flag("us")+"미국 시장"]]) +
+      drop("종목 분석", [["tier.html","📊 티어 랭킹"], ["risk.html","⚠️ 리스크 워치"], ["compare.html","⚔️ 종목 비교"]]) +
+      drop("시장 정보", [["calendar.html","📅 실적 캘린더"], ["news.html","📰 뉴스"], ["disclosure.html","📄 공시 충격도"]]) +
+      drop("내 투자", [["watchlist.html","⭐ 관심종목"], ["portfolio.html","💼 포트폴리오 진단"], ["simulator.html","🧮 시뮬레이터"]]) +
+      drop("게임", [["predict.html","🎯 예측 게임"], ["attend.html","🔥 출석 체크"], ["league.html","🏆 모의투자 리그"]]);
     document.getElementById("nav").innerHTML = `
       <a class="brand" href="index.html"><span class="mark"><i></i><i></i><i></i></span>Stocktier</a>
       <div class="menu">${menu}</div>
