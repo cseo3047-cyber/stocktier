@@ -378,6 +378,65 @@ document.getElementById("warn").innerHTML = byRisk.slice(0,5).map((x,i)=>`
     <span class="lnm">${ST.displayName(x.src,x.key)}</span>
     <span class="heatnum">${x.rk}</span>
     <span class="lmuted" style="font-size:11px;min-width:76px;text-align:right;flex-shrink:0;">${x.e[11]/Math.max(1,x.e[9])>=1.5?"거래량 급증":Math.abs(x.e[3])>=5?"단기 급변동":"변동성 확대"}</span></div>`).join("");
+
+// ── 개인화 브리핑: 마지막 방문 이후 내 종목 변화 (로그인 + 관심종목 있을 때)
+document.addEventListener("st-auth", ev => {
+  const u = ev.detail;
+  if (!u) return;
+  try {
+    const wl = ST.watchGet().filter(w => ST.get(w[0], w[1]));
+    if (!wl.length) return;
+    const dnow = (window.STOCK_META && window.STOCK_META.date) || "";
+    const cur = {};
+    wl.forEach(([src, key]) => { cur[src+":"+key] = ST.gradeOf(ST.score(ST.get(src,key), src==="us")).g; });
+    let snap = null;
+    try { snap = JSON.parse(localStorage.getItem("st_snap") || "null"); } catch(e2) {}
+    // 실적 임박 (D-7 이내, 국내는 공시 기한 기반 예상 포함)
+    const t0 = new Date(); t0.setHours(0,0,0,0);
+    const EK = (window.STOCK_MARKET && window.STOCK_MARKET.earn) || null;
+    const EU = (window.STOCK_MARKET_US && window.STOCK_MARKET_US.earn) || null;
+    const hh = s2 => { let h=7; for (const c of String(s2)) h=(h*31+c.charCodeAt(0))>>>0; return h; };
+    let earnSoon = 0;
+    for (const [src, key] of wl) {
+      const e = ST.get(src, key), usx = src==="us";
+      let d = null;
+      const m = usx ? EU : EK;
+      const v = m && m[usx ? key : e[0]];
+      if (v) { const t = String(v);
+        const dt = t.length>=8 ? new Date(+t.slice(0,4), +t.slice(4,6)-1, +t.slice(6,8)) : new Date(t0.getFullYear(), +t.slice(0,2)-1, +t.slice(2,4));
+        if (dt >= t0) d = dt; }
+      if (!d && !usx) { const h = hh(e[0]); const dl = [[3,31],[5,15],[8,14],[11,16]];
+        for (let k=0;k<9&&!d;k++){ const dt = new Date(t0.getFullYear()+Math.floor(k/4), dl[k%4][0]-1, dl[k%4][1]);
+          dt.setDate(dt.getDate()-(h%16)); if (dt>=t0) d = dt; } }
+      if (d && Math.round((d-t0)/864e5) <= 7) earnSoon++;
+    }
+    if (snap && snap.d && snap.d !== dnow && snap.g) {
+      const gi = g2 => ST.GRADES.findIndex(x=>x.g===g2);
+      const ups = [], dns = [];
+      for (const k of Object.keys(cur)) {
+        if (snap.g[k] && snap.g[k] !== cur[k]) {
+          const nm = ST.displayName(k.split(":")[0], k.slice(k.indexOf(":")+1));
+          (gi(cur[k]) < gi(snap.g[k]) ? ups : dns).push(`${nm} ${snap.g[k]}→${cur[k]}`);
+        }
+      }
+      const parts = [];
+      if (ups.length) parts.push(`<b style="color:var(--up);">티어 상승 ${ups.length}개</b> <span style="opacity:.7;">(${ups.slice(0,2).join(", ")})</span>`);
+      if (dns.length) parts.push(`<b style="color:var(--down);">티어 하락 ${dns.length}개</b> <span style="opacity:.7;">(${dns.slice(0,2).join(", ")})</span>`);
+      if (earnSoon) parts.push(`<b style="color:var(--gold);">실적 임박 ${earnSoon}개</b>`);
+      const p = window.ST_PROFILE || {};
+      const nick = p.nick || u.displayName || u.email.split("@")[0];
+      const bn = document.createElement("div");
+      bn.style.cssText = "background:linear-gradient(120deg,#13322a,#0d2e3b);border:1px solid #2e5c47;border-radius:13px;padding:13px 18px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:#e8f0ec;";
+      bn.innerHTML = `<span style="font-size:17px;">👋</span>
+        <span style="font-weight:800;">${nick}님, 마지막 방문(${snap.d.slice(4,6)}/${snap.d.slice(6,8)} 데이터) 이후:</span>
+        <span style="font-weight:600;">${parts.length ? parts.join(" · ") : "내 종목에 큰 변화가 없어요 🙂"}</span>
+        <a href="watchlist.html" style="margin-left:auto;font-size:12px;font-weight:800;color:var(--gold);">관심종목 보기 ›</a>`;
+      const wrap = document.querySelector(".wrap");
+      wrap.insertBefore(bn, wrap.firstElementChild);
+    }
+    localStorage.setItem("st_snap", JSON.stringify({ ts: Date.now(), d: dnow, g: cur }));
+  } catch(e) {}
+});
 </script>
 </body>
 </html>
