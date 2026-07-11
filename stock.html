@@ -62,7 +62,7 @@
   .ctip { position:absolute; background:#021b27; border:1px solid var(--gold-dim); color:var(--text); font-size:11px; font-weight:600; padding:7px 10px; border-radius:8px; pointer-events:none; white-space:nowrap; transform:translate(-50%,-108%); z-index:5; font-variant-numeric:tabular-nums; line-height:1.7; display:none; }
   .histrow { display:flex; align-items:center; gap:5px; flex-wrap:wrap; row-gap:14px; justify-content:space-between; }
   .hcell { text-align:center; }
-  .hcirc { width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9.5px; font-weight:800; border:2px solid #ffffff14; }
+  .hcirc { width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; border:2.5px solid #ffffff14; letter-spacing:.3px; }
   .harr { color:var(--dim); font-size:15px; font-weight:900; flex-shrink:0; }
   .nrow { display:block; padding:6.5px 0; border-bottom:1px solid #ffffff0d; font-size:12px; color:var(--text); font-weight:600; line-height:1.45; }
   .nrow:last-child { border-bottom:none; }
@@ -162,7 +162,7 @@ if (!s) {
 
   const nvUrl = `https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock${us ? key+(mkt==="NASDAQ"?".O":mkt==="NYSE"?".N":".A") : code}.svg`;
   const tsUrl = us ? nvUrl : "https://thumb.tossinvest.com/image/resized/96x0/" + encodeURIComponent("https://static.toss.im/png-icons/securities/icn-sec-fill-"+code+".png");
-  const logoBig = `<img src="${tsUrl}" style="width:64px;height:64px;border-radius:50%;background:#fff;flex-shrink:0;" loading="lazy"
+  const logoBig = `<img src="${tsUrl}" style="width:88px;height:88px;border-radius:50%;background:#fff;flex-shrink:0;" loading="lazy"
     onerror="if(!this.dataset.f){this.dataset.f=1;this.src='${nvUrl}';}else{this.style.visibility='hidden';}">`;
 
   const shieldIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4cd7a5" stroke-width="2" stroke-linejoin="round"><path d="M12 2l8 3v6c0 4.8-3.4 8.4-8 11-4.6-2.6-8-6.2-8-11V5z"/></svg>`;
@@ -374,7 +374,7 @@ if (!s) {
   <div class="card" style="flex:1;display:flex;flex-direction:column;"><h3>티어 히스토리 <span class="more" style="cursor:default;">분기별 · 수익률 기반 근사</span></h3>
     ${hist ? (() => {
       const TFILL = {AAA:"#f0c948",AA:"#e0b64e",A:"#4cc3d7",BBB:"#4cd7a5",BB:"#a8c96a",B:"#e0a63e",CCC:"#f08a5a",C:"#f0708a",D:"#e08a94"};
-      const TDARK = {AAA:"#ffd75e",AA:"#f0c464",A:"#6adcf0",BBB:"#5ff0ba",BB:"#c2e07e",B:"#f0b954",CCC:"#ff9e6b",C:"#ff89a0",D:"#f0a0aa"};
+      const TDARK = {AAA:"#ffcc00",AA:"#f0a818",A:"#00c8f0",BBB:"#00e89a",BB:"#a3d629",B:"#ff9d00",CCC:"#ff6a2a",C:"#ff4d78",D:"#ff5560"};
       return `<div class="histrow" style="flex:1;align-content:center;">${hist.map(([d2,g2],i)=>`
       ${i>0?`<span class="harr">➜</span>`:""}
       <div class="hcell">
