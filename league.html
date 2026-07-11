@@ -117,34 +117,41 @@ const seedOf = d => d.seedWon || ((d.grants || 1) * SEED);
 
 async function load(){
   if (!USER) { locked(); return; }
-  const ref = firebase.firestore().collection("league").doc(USER.uid);
-  const snap = await ref.get();
-  const p = window.ST_PROFILE || {};
-  L = snap.exists ? snap.data() : { cash: SEED, pos: {}, start: Date.now(), cycleStart: Date.now(), seedWon: SEED, hist: [] };
-  L.pos = L.pos || {};
-  // 기존 미국 보유분 마이그레이션: 과거 매수는 고정 환율 1,350원 → 달러 평단 역산
-  for (const k of Object.keys(L.pos)) {
-    if (splitK(k)[0] === "us" && !L.pos[k].avgUsd) L.pos[k].avgUsd = L.pos[k].avg / 1350;
+  try {
+    const ref = firebase.firestore().collection("league").doc(USER.uid);
+    const snap = await ref.get();
+    const p = window.ST_PROFILE || {};
+    L = snap.exists ? snap.data() : { cash: SEED, pos: {}, start: Date.now(), cycleStart: Date.now(), seedWon: SEED, hist: [] };
+    L.pos = L.pos || {};
+    // 기존 미국 보유분 마이그레이션: 과거 매수는 고정 환율 1,350원 → 달러 평단 역산
+    for (const k of Object.keys(L.pos)) {
+      if (splitK(k)[0] === "us" && !L.pos[k].avgUsd) L.pos[k].avgUsd = L.pos[k].avg / 1350;
+    }
+    L.cycleStart = L.cycleStart || L.start || Date.now();
+    L.seedWon = seedOf(L);
+    // 총자산 추이: Firestore는 중첩 배열 미지원 → {d:날짜, t:총자산} 객체 배열로 저장
+    L.hist = (L.hist || []).filter(r => r && r.d);
+    L.nick = p.nick || USER.displayName || USER.email.split("@")[0];
+    L.av = p.avatar || "";
+    // 출석 포인트 조회 (월 지급 보너스 계산용)
+    try { const gs = await firebase.firestore().collection("games").doc(USER.uid).get();
+      MYPTS = (gs.exists && gs.data().pts) || 0; } catch(e) { MYPTS = 0; }
+    // 총자산 추이 기록 (데이터 날짜 기준 1일 1회)
+    const dk = ((window.STOCK_META && window.STOCK_META.date) || "").slice(2);
+    if (dk) {
+      const t = totalOf(L);
+      const last = L.hist[L.hist.length-1];
+      if (last && last.d === dk) last.t = t;
+      else L.hist.push({ d: dk, t: t });
+      L.hist = L.hist.slice(-400);
+    }
+    await ref.set(L, { merge: true });
+    render();
+  } catch(e) {
+    box.innerHTML = `<div class="card" style="text-align:center;padding:40px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:6px;">데이터를 불러오지 못했어요</div>
+      <div style="font-size:11px;color:var(--dim);">${String(e.message||e).replace(/</g,"&lt;")}</div></div>`;
   }
-  L.cycleStart = L.cycleStart || L.start || Date.now();
-  L.seedWon = seedOf(L);
-  L.hist = L.hist || [];
-  L.nick = p.nick || USER.displayName || USER.email.split("@")[0];
-  L.av = p.avatar || "";
-  // 출석 포인트 조회 (월 지급 보너스 계산용)
-  try { const gs = await firebase.firestore().collection("games").doc(USER.uid).get();
-    MYPTS = (gs.exists && gs.data().pts) || 0; } catch(e) { MYPTS = 0; }
-  // 총자산 추이 기록 (데이터 날짜 기준 1일 1회)
-  const dk = ((window.STOCK_META && window.STOCK_META.date) || "").slice(2);
-  if (dk) {
-    const t = totalOf(L);
-    const last = L.hist[L.hist.length-1];
-    if (last && last[0] === dk) last[1] = t;
-    else L.hist.push([dk, t]);
-    L.hist = L.hist.slice(-400);
-  }
-  await ref.set(L, { merge: true });
-  render();
 }
 
 const monthsDue = () => Math.floor((Date.now() - L.cycleStart) / MONTH);
@@ -313,7 +320,7 @@ function render(){
     L.updated = Date.now();
     const dk = ((window.STOCK_META && window.STOCK_META.date) || "").slice(2);
     if (dk) { const tt = totalOf(L); const last = L.hist[L.hist.length-1];
-      if (last && last[0]===dk) last[1]=tt; else L.hist.push([dk,tt]); }
+      if (last && last.d===dk) last.t=tt; else L.hist.push({ d: dk, t: tt }); }
     await firebase.firestore().collection("league").doc(USER.uid).set(L, { merge: false });
     render(); msg(t, ok); loadRanks();
   }
@@ -374,7 +381,8 @@ function drawHist(){
   chips.innerHTML = Object.keys(HWIN).map(p=>`<span class="chip ${HPER===p?"on":""}" onclick="setHper('${p}')">${HWIN[p][0]}</span>`).join("");
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - HWIN[HPER][1]);
   const rows = (L.hist||[]).filter(r=>{
-    const d = new Date(2000+ +r[0].slice(0,2), +r[0].slice(2,4)-1, +r[0].slice(4,6));
+    if (!r || !r.d) return false;
+    const d = new Date(2000+ +r.d.slice(0,2), +r.d.slice(2,4)-1, +r.d.slice(4,6));
     return d >= cutoff;
   });
   if (rows.length < 2) {
@@ -382,17 +390,17 @@ function drawHist(){
     return;
   }
   const W=760, H=190, padL=76, padR=14, padT=12, padB=24;
-  const vals = rows.map(r=>r[1]);
+  const vals = rows.map(r=>r.t);
   const mn=Math.min(...vals), mx=Math.max(...vals), rg=(mx-mn)||1;
   const X=i=>padL+i/(rows.length-1)*(W-padL-padR), Y=v=>padT+(1-(v-mn)/rg)*(H-padT-padB);
-  const xy = rows.map((r,i)=>`${X(i).toFixed(1)},${Y(r[1]).toFixed(1)}`);
+  const xy = rows.map((r,i)=>`${X(i).toFixed(1)},${Y(r.t).toFixed(1)}`);
   let grid = "";
   for (let gz=0; gz<=2; gz++){
     const v = mn + rg*(1-gz/2), y = padT + (H-padT-padB)*gz/2;
     grid += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#0d3a52" stroke-width="1"/>
       <text x="${padL-6}" y="${y+4}" text-anchor="end" fill="#5a737d" font-size="9.5">${wonN(v)}</text>`;
   }
-  const fD = r => `${r[0].slice(2,4)}/${r[0].slice(4,6)}`;
+  const fD = r => `${r.d.slice(2,4)}/${r.d.slice(4,6)}`;
   let xlab = "";
   for (const fr of [0, 0.5, 1]){
     const i = Math.round(fr*(rows.length-1));
@@ -414,13 +422,13 @@ function drawHist(){
     const vx = (ev.clientX - r2.left)/r2.width*W;
     let i = Math.round((vx-padL)/(W-padL-padR)*(rows.length-1));
     i = Math.max(0, Math.min(rows.length-1, i));
-    const x = X(i), y = Y(rows[i][1]);
+    const x = X(i), y = Y(rows[i].t);
     svg.querySelector(".cxv").setAttribute("x1",x); svg.querySelector(".cxv").setAttribute("x2",x);
     svg.querySelector(".cxh").setAttribute("y1",y); svg.querySelector(".cxh").setAttribute("y2",y);
     const cp = svg.querySelector(".cp"); cp.setAttribute("cx",x); cp.setAttribute("cy",y);
     cross.style.display = "";
-    const rr = (rows[i][1]/L.seedWon-1)*100;
-    tip.innerHTML = `날짜: 20${rows[i][0].slice(0,2)}.${rows[i][0].slice(2,4)}.${rows[i][0].slice(4,6)}<br>총자산: ${wonN(rows[i][1])}원<br>수익률: <b class="${ST.cls(rr)}">${rr>=0?"+":""}${rr.toFixed(2)}%</b>`;
+    const rr = (rows[i].t/L.seedWon-1)*100;
+    tip.innerHTML = `날짜: 20${rows[i].d.slice(0,2)}.${rows[i].d.slice(2,4)}.${rows[i].d.slice(4,6)}<br>총자산: ${wonN(rows[i].t)}원<br>수익률: <b class="${ST.cls(rr)}">${rr>=0?"+":""}${rr.toFixed(2)}%</b>`;
     tip.style.left = (x/W*100)+"%";
     tip.style.top = (y/H*100)+"%";
     tip.style.transform = y < H*0.45 ? "translate(-50%, 14px)" : "translate(-50%,-108%)";
