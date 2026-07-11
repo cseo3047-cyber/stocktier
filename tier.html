@@ -318,20 +318,20 @@ drawBar(); drawTbl();
 (function(){
   const kr = ALL.filter(x=>!x.us);
   const ups = kr.filter(x=>x.up).sort((a,b)=>b.sc-a.sc).slice(0,5);
-  document.getElementById("upgrades").innerHTML = ups.length ? ups.map((x,i)=>`
+  document.getElementById("upgrades").innerHTML = ups.length ? (`<div class="rrow" style="cursor:default;color:var(--dim);font-size:10.5px;font-weight:700;border-bottom:1px solid var(--border);"><span style="width:19px;text-align:center;flex-shrink:0;">순위</span><span style="flex:1;text-align:center;">종목명</span><span style="width:84px;text-align:center;">티어 변경</span><span style="width:44px;text-align:center;">상승폭</span></div>` + ups.map((x,i)=>`
     <div class="rrow" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
       <span class="rank">${i+1}</span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x.key}</span>
       <span class="tchg" style="background:#22303c;color:#9db9d4;">${x.gPast.g}</span><span style="color:var(--dim);">→</span><span class="tchg" style="background:#3d3313;color:#f0c948;">${x.gNow.g}</span>
-      <span class="num up" style="font-size:11.5px;">▲${Math.max(1,Math.round((x.e[14]||0)*0.9))}점</span></div>`).join("")
+      <span class="num up" style="font-size:11.5px;">▲${Math.max(1,Math.round((x.e[14]||0)*0.9))}점</span></div>`).join(""))
   : `<div style="font-size:12px;color:var(--dim);padding:10px 0;">오늘 등급 상향 종목이 없습니다</div>`;
 
   const ind = {};
   for (const x of kr) if (x.sc>=85 && x.e.length>20 && x.e[20]) ind[x.e[20]] = (ind[x.e[20]]||0)+1;
   const inds = Object.entries(ind).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const mx = inds.length ? inds[0][1] : 1;
-  document.getElementById("indbars").innerHTML = inds.length ? inds.map(([nm,c])=>`
-    <div class="hbar"><span class="lb2">${nm}</span><div class="m"><i style="width:${Math.max(8,c/mx*100)}%"></i></div><b>${c}</b></div>`).join("")
+  document.getElementById("indbars").innerHTML = inds.length ? (`<div class="hbar" style="color:var(--dim);font-size:10.5px;font-weight:700;border-bottom:1px solid var(--border);padding-bottom:6px;"><span class="lb2" style="text-align:center;">업종</span><span style="flex:1;text-align:center;">AAA 수</span></div>` + inds.map(([nm,c])=>`
+    <div class="hbar"><span class="lb2">${nm}</span><div class="m"><i style="width:${Math.max(8,c/mx*100)}%"></i></div><b>${c}</b></div>`).join(""))
   : `<div style="font-size:12px;color:var(--dim);padding:10px 0;">업종 데이터 수집 후 표시됩니다</div>`;
 
 })();
@@ -376,8 +376,8 @@ function earnInfo(x){
   };
   const mx = Math.max(...Object.values(CAUSE).map(a=>a.length), 1);
   document.getElementById("causes").innerHTML =
-    `<div class="crow" style="cursor:default;color:var(--dim);font-size:10.5px;font-weight:700;">
-      <span class="clb" style="font-weight:700;">변경 사유</span><span class="cn">종목 수</span><span class="cm" style="border:none;background:none;"></span><span class="cp">비중</span></div>` +
+    `<div class="crow" style="cursor:default;color:var(--dim);font-size:10.5px;font-weight:700;border-bottom:1px solid var(--border);">
+      <span class="clb" style="font-weight:700;text-align:center;">변경 사유</span><span class="cn" style="text-align:center;">종목 수</span><span class="cm" style="border:none;background:none;"></span><span class="cp" style="text-align:center;">비중</span></div>` +
     Object.keys(CINFO).map(k=>`
     <div class="crow" onclick="showCause('${k}')">
       <span class="clb">${CINFO[k][0]}</span>
