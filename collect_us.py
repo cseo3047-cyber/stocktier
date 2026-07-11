@@ -168,6 +168,7 @@ def fetch_one(st):
         int(sum(rv) / len(rv)), vols[-2], vols[-1],
         days, None, ret(6), ret(21), ret(len(rc)),
         st["en"], spk,
+        st.get("industry") or "",   # [19] 업종 (한글)
     ]
     return st, entry, last_date
 
