@@ -35,7 +35,7 @@
   .r-low { background:#13322a; color:#4cd7a5; } .r-med { background:#3d3313; color:#f0c948; } .r-high { background:#3a1a22; color:#f0708a; }
   .morebtn { display:block; margin:12px auto 0; background:var(--panel2); border:1px solid var(--border); color:var(--muted); border-radius:9px; padding:8px 26px; font-size:12px; font-weight:800; cursor:pointer; }
   .morebtn:hover { color:var(--gold); border-color:var(--gold-dim); }
-  .row3b { display:grid; grid-template-columns:1fr 1fr 1.2fr; gap:14px; margin-top:14px; }
+  .row3b { display:grid; grid-template-columns:1.3fr 1fr 1fr; gap:14px; margin-top:14px; }
   @media (max-width:1000px){ .row3b { grid-template-columns:1fr; } }
   .rrow { display:flex; align-items:center; gap:9px; padding:8px 2px; border-bottom:1px solid #ffffff0d; font-size:12.5px; font-weight:700; cursor:pointer; }
   .rrow:last-child { border-bottom:none; }
@@ -119,7 +119,7 @@
       <div class="row3b">
         <div class="card"><h3>등급 상향 TOP 5</h3><div id="upgrades"></div></div>
         <div class="card"><h3>업종별 AAA 수</h3><div id="indbars"></div></div>
-        <div class="card"><h3>티어 변경 사유 분석</h3><div id="causes"></div></div>
+        <div class="card"><h3>티어 변경 사유</h3><div id="causes"></div></div>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;height:100%;">
@@ -318,7 +318,7 @@ drawBar(); drawTbl();
 (function(){
   const kr = ALL.filter(x=>!x.us);
   const ups = kr.filter(x=>x.up).sort((a,b)=>b.sc-a.sc).slice(0,5);
-  document.getElementById("upgrades").innerHTML = ups.length ? (`<div class="rrow" style="cursor:default;color:var(--dim);font-size:10.5px;font-weight:700;border-bottom:1px solid var(--border);"><span style="width:19px;text-align:center;flex-shrink:0;">순위</span><span style="flex:1;text-align:center;">종목명</span><span style="width:84px;text-align:center;">티어 변경</span><span style="width:44px;text-align:center;">상승폭</span></div>` + ups.map((x,i)=>`
+  document.getElementById("upgrades").innerHTML = ups.length ? (`<div class="rrow" style="cursor:default;color:var(--dim);font-size:10.5px;font-weight:700;border-bottom:1px solid var(--border);"><span style="width:19px;text-align:center;flex-shrink:0;white-space:nowrap;">순위</span><span style="flex:1;text-align:center;">종목명</span><span style="width:84px;text-align:center;">티어 변경</span><span style="width:44px;text-align:center;">상승폭</span></div>` + ups.map((x,i)=>`
     <div class="rrow" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
       <span class="rank">${i+1}</span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x.key}</span>
