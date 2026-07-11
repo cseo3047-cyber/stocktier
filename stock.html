@@ -246,7 +246,7 @@ if (!s) {
           <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;"><b style="font-size:19px;">${name}</b><span style="color:var(--dim);font-size:12px;">${code}</span><span style="font-size:10px;background:var(--panel2);border:1px solid var(--border);border-radius:5px;padding:1.5px 7px;color:var(--muted);font-weight:700;">${mkt}</span></div>
           <div style="display:flex;align-items:baseline;gap:10px;margin-top:8px;flex-wrap:wrap;">
             <span class="num" style="font-size:31px;font-weight:800;">${ST.priceStr(price,us)}</span>
-            <span class="num" style="font-size:15px;font-weight:800;color:${upCol};">${chg>0?"▲":chg<0?"▼":"—"} ${ST.pct2(chg)}</span>
+            <span class="num" style="font-size:15px;font-weight:800;color:${upCol};">${chg>0?"▲":chg<0?"▼":"—"} ${us?Math.abs(price-price/(1+chg/100)).toFixed(2):wonN(Math.abs(price-price/(1+chg/100)))} <span style="margin-left:2px;">${ST.pct2(chg)}</span></span>
           </div>
           <div class="num" style="font-size:11.5px;color:var(--dim);margin-top:8px;">거래량 ${ST.num(volToday)}주 · 거래대금 ${amtStr}</div>
         </div>
@@ -265,22 +265,25 @@ if (!s) {
   const tierCard = `
   <div class="scard">
     <div class="hd"><span class="hic">${shieldIcon}</span>종합 티어</div>
-    <div style="display:flex;align-items:center;gap:9px;">
-      <span style="font-size:25px;font-weight:800;color:#f0c948;">${g.g} <span style="font-size:14px;">티어</span></span>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:29px;font-weight:800;color:#f0c948;">${g.g} <span style="font-size:15px;">티어</span></span>
       <span class="vbadge ${outlook[1]}">${outlook[0]}</span></div>
-    <div style="font-size:11px;color:var(--muted);line-height:1.75;margin-top:auto;padding-top:9px;">${tierDesc}</div>
+    <div style="font-size:11.5px;color:var(--muted);line-height:1.85;margin-top:auto;padding-top:10px;">${tierDesc}</div>
   </div>`;
 
   const earnCard = `
   <div class="scard">
     <div class="hd"><span class="hic">${calIcon}</span>실적 발표</div>
-    ${earnD ? `<div class="num" style="font-size:34px;font-weight:800;color:${dd(earnD)<=7?"#f0c948":"var(--text)"};line-height:1;margin-top:2px;">D-${dd(earnD)}</div>
-      <div style="font-size:11.5px;color:var(--muted);margin-top:auto;padding-top:10px;line-height:1.6;">${fmtYMD(earnD)}<br>실적 발표 (${earnEst?"예상":"예정"})</div>`
-    : `<div style="font-size:34px;font-weight:800;color:var(--dim);line-height:1;margin-top:2px;">-</div>
-      <div style="font-size:11.5px;color:var(--dim);margin-top:auto;padding-top:10px;line-height:1.6;">공시 데이터<br>수집 대기</div>`}
+    ${earnD ? `<div class="num" style="font-size:39px;font-weight:800;color:${dd(earnD)<=7?"#f0c948":"var(--text)"};line-height:1;margin-top:2px;">D-${dd(earnD)}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:auto;padding-top:12px;line-height:1.7;">${fmtYMD(earnD)}<br>실적 발표 (${earnEst?"예상":"예정"})</div>`
+    : `<div style="font-size:39px;font-weight:800;color:var(--dim);line-height:1;margin-top:2px;">-</div>
+      <div style="font-size:12px;color:var(--dim);margin-top:auto;padding-top:12px;line-height:1.7;">공시 데이터<br>수집 대기</div>`}
   </div>`;
 
   // ══ 종합 상세 정보 + 오늘의 알림 ══
+  const themeChips = [];
+  if (s.length>20 && s[20]) themeChips.push(`<span class="tchip gold" style="font-size:11px;padding:4px 10px;">${s[20]}</span>`);
+  if (s.length>21 && s[21]) themeChips.push(`<span class="tchip" style="font-size:11px;padding:4px 10px;">${s[21]}</span>`);
   const barRow = (lb,v,cls2) => `<div class="irow"><span class="lb">${lb}</span><div class="m"><i class="${cls2||""}" style="width:${clip(v)}%"></i></div><span class="vv num">${clip(v)}</span></div>`;
   const plainRow = (lb,v,tt) => `<div class="irow plain"><span class="lb">${lb}</span><span class="vv num" ${tt?`title="${tt}"`:""}>${v}</span></div>`;
   const detail = `
@@ -288,12 +291,12 @@ if (!s) {
     <div class="dgrid">
       <div>
         ${barRow("종합점수", sc, "gold")}
-        <div class="irow plain"><span class="lb">전망</span><span class="vv"><span class="vbadge ${outlook[1]}">${outlook[0]}</span></span></div>
         ${barRow("수급", supply)}
         ${barRow("모멘텀", momentum)}
         ${barRow("밸류에이션", value)}
         ${barRow("펀더멘털", funda)}
         ${barRow("리스크 (안정성)", 100-rk, "amber")}
+        <div class="irow plain"><span class="lb">전망</span><span class="vv"><span class="vbadge ${outlook[1]}">${outlook[0]}</span></span></div>
         ${plainRow("최근 1개월 수익률", `<span class="${ST.cls(r1m||0)}">${ST.pct(r1m)}</span>`)}
         ${plainRow("거래대금(당일)", amtStr)}
         ${us ? plainRow("거래소", mkt) : plainRow("외국인 순매수(전일)", `<span class="${ST.cls(s[17]||0)}">${buyStr(s[17])}</span>`)}
@@ -311,7 +314,11 @@ if (!s) {
         ${plainRow("거래량 배율", surge.toFixed(2)+"배")}
         ${plainRow("위험도", `<span style="color:${rk>=70?"var(--down)":rk>=40?"var(--gold)":"var(--up)"};">${rk} / 100</span>`)}
         ${us ? plainRow("한글명", name, name) : plainRow("외국인 지분율", forn!=null?forn.toFixed(1)+"%":"-")}
-        ${plainRow("업종", (s.length>20 && s[20]) ? s[20] : `<span style="color:var(--dim);">수집 중</span>`, (s.length>20&&s[20])?s[20]:"")}
+        <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:11px;">
+          <div style="display:flex;align-items:center;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:9px;">관련 업종·테마
+            <a href="tier.html" style="margin-left:auto;color:var(--dim);font-size:11px;font-weight:700;">더보기 ›</a></div>
+          <div class="tchips" style="gap:6px;">${themeChips.length?themeChips.join(""):`<span style="font-size:12px;color:var(--dim);">일일 데이터 수집 후 표시됩니다</span>`}</div>
+        </div>
       </div>
     </div>
   </div>`;
@@ -338,11 +345,6 @@ if (!s) {
     </div>
   </div>`;
 
-  const chips = [];
-  if (s.length>20 && s[20]) chips.push(`<span class="tchip gold">${s[20]}</span>`);
-  if (s.length>21 && s[21]) chips.push(`<span class="tchip">${s[21]}</span>`);
-  const sideTheme = `<div class="card" style="padding:14px 18px;"><h3 style="margin-bottom:8px;">관련 업종·테마 <span class="more" onclick="location.href='tier.html'">더보기 ›</span></h3>
-    <div class="tchips" style="gap:6px;">${chips.length?chips.map(c=>c.replace('class="tchip','style="font-size:11px;padding:4px 10px;" class="tchip')).join(""):`<span style="font-size:12px;color:var(--dim);">일일 데이터 수집 후 표시됩니다</span>`}</div></div>`;
 
   // ══ 하단 1행: 주가 차트 + (티어 히스토리 / 뉴스) ══
   const chartCard = `
@@ -367,12 +369,14 @@ if (!s) {
   })();
   const histCard = `
   <div class="card" style="flex:1;display:flex;flex-direction:column;"><h3>티어 히스토리 <span class="more" style="cursor:default;">분기별 · 수익률 기반 근사</span></h3>
-    ${hist ? `<div class="histrow" style="flex:1;align-content:center;">${hist.map(([d2,g2],i)=>`
+    ${hist ? (() => {
+      const TCOL = {AAA:"#f0c948",AA:"#e0b64e",A:"#4cc3d7",BBB:"#4cd7a5",BB:"#a8c96a",B:"#e0a63e",CCC:"#f08a5a",C:"#f0708a",D:"#e08a94"};
+      return `<div class="histrow" style="flex:1;align-content:center;">${hist.map(([d2,g2],i)=>`
       ${i>0?`<span class="harr">➜</span>`:""}
       <div class="hcell">
-        <span class="hcirc tier-${g2}">${g2}</span>
+        <span class="hcirc" style="background:${TCOL[g2]||"#8fa5ad"}26;border-color:${TCOL[g2]||"#8fa5ad"};color:${TCOL[g2]||"#8fa5ad"};">${g2}</span>
         <div style="font-size:9px;color:var(--dim);margin-top:4px;" class="num">${d2}</div>
-      </div>`).join("")}</div>`
+      </div>`).join("")}</div>`; })()
     : `<div style="font-size:12px;color:var(--dim);padding:8px 0;">장기 시세 수집 후 표시됩니다</div>`}
   </div>`;
 
@@ -427,7 +431,7 @@ if (!s) {
       <div class="cards3">${priceCard}${tierCard}${earnCard}</div>
       ${detail}
     </div>
-    <div style="display:flex;flex-direction:column;gap:14px;height:100%;">${sideScore}${sideTheme}</div>
+    <div style="display:flex;flex-direction:column;gap:14px;height:100%;">${sideScore}</div>
   </div>
   <div class="row2c">
     ${chartCard}
@@ -451,12 +455,17 @@ if (!s) {
 
   // ── 수급 차트 (실데이터 있으면 일별 순매수 막대, 없으면 주가 추이 폴백)
   if (FLOWS) {
-    const FP = { ff:{sel:"3m", idx:1, col:"#4cd7a5"}, fo:{sel:"3m", idx:2, col:"#f0c948"} };
+    // 기간 버튼은 실제 수집된 기간까지만 표시
+    const FOPT = [["1w","1주",5],["1m","1개월",20],["3m","3개월",60],["6m","6개월",120]].filter(o=>FLOWS.length>=o[2]);
+    if (!FOPT.length) FOPT.push(["1w","전체",FLOWS.length]);
+    const FDEF = FOPT[FOPT.length-1][0];
+    const FP = { ff:{sel:FDEF, idx:1, col:"#4cd7a5"}, fo:{sel:FDEF, idx:2, col:"#f0c948"} };
     window.setFper = (id, sel) => { FP[id].sel = sel; drawFlow(id); };
     function drawFlow(id){
       const c = FP[id];
-      const n = Math.min({ "1w":5, "1m":20, "3m":60, "6m":120 }[c.sel] || 60, FLOWS.length);
-      document.getElementById(id+"chips").innerHTML = [["1w","1주"],["1m","1개월"],["3m","3개월"],["6m","6개월"]].map(([k,t])=>
+      const opt = FOPT.find(o=>o[0]===c.sel) || FOPT[FOPT.length-1];
+      const n = Math.min(opt[2], FLOWS.length);
+      document.getElementById(id+"chips").innerHTML = FOPT.map(([k,t])=>
         `<span class="chip ${c.sel===k?"on":""}" onclick="setFper('${id}','${k}')">${t}</span>`).join("");
       const rows = FLOWS.slice(-n);
       const el = document.getElementById(id+"box"), tip = document.getElementById(id+"tip");
