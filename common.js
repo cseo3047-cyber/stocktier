@@ -161,7 +161,7 @@ window.ST = (function () {
       firebase.auth().onAuthStateChanged(async u => {
         fbUser = u;
         updateLoginBtn();
-        if (u) await cloudSync();
+        if (u) { await cloudSync(); await judgePreds(u); }
         else window.ST_PROFILE = null;
         updateLoginBtn();
         document.dispatchEvent(new CustomEvent("st-auth", { detail: u }));
@@ -192,6 +192,54 @@ window.ST = (function () {
         .set({ items: list, updated: Date.now() }, { merge: true }).catch(() => {});
     }
   }
+  // ── 예측 게임 채점: 로그인 시 어느 페이지에서든 자동 채점 + 결과 팝업 ──
+  async function judgePreds(u) {
+    try {
+      const DD = (window.STOCK_META && window.STOCK_META.date) || "";
+      if (!DD || !window.firebase) return;
+      const ref = firebase.firestore().collection("games").doc(u.uid);
+      const snap = await ref.get();
+      if (!snap.exists) return;
+      const G = snap.data();
+      if (!G.preds) return;
+      const judged = [];
+      let hit = G.hit || 0, total = G.total || 0;
+      for (const dk of Object.keys(G.preds)) {
+        const pd = G.preds[dk];
+        if (pd.done || dk >= DD) continue;
+        for (const code of Object.keys(pd.picks || {})) {
+          const key2 = Object.keys(KR).find(k => KR[k][0] === code);
+          if (!key2) continue;
+          const cur = KR[key2][2];
+          const ok = (cur > pd.price0[code]) === (pd.picks[code] === "up");
+          hit += ok ? 1 : 0; total += 1;
+          judged.push({ name: key2, pick: pd.picks[code], ok, p0: pd.price0[code], p1: cur, d: dk });
+        }
+        pd.done = true;
+      }
+      if (!judged.length) return;
+      G.hit = hit; G.total = total; G.lastJudged = judged;
+      await ref.set(G, { merge: true });
+      const okN = judged.filter(j => j.ok).length;
+      const pm = document.createElement("div");
+      pm.style.cssText = "position:fixed;inset:0;background:#000000aa;display:flex;align-items:center;justify-content:center;z-index:320;";
+      pm.innerHTML = `<div style="background:var(--panel);border:1px solid var(--gold-dim);border-radius:16px;width:min(360px,92vw);padding:24px;">
+        <div style="font-size:17px;font-weight:800;margin-bottom:4px;">🎯 예측 결과 도착!</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">지난 예측 ${judged.length}개 중 <b style="color:${okN>judged.length/2?"var(--up)":"var(--down)"};">${okN}개 적중</b> · 누적 적중률 ${Math.round(hit/total*100)}%</div>
+        ${judged.map(j => `<div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid #ffffff0d;font-size:13px;">
+          <span style="font-size:16px;">${j.ok ? "⭕" : "❌"}</span>
+          <b style="flex:1;">${j.name}</b>
+          <span style="color:var(--muted);font-size:12px;">${j.pick === "up" ? "📈 오른다" : "📉 내린다"} 예측</span>
+          <span class="num" style="color:var(--dim);font-size:11px;">${num(j.p0)}→${num(j.p1)}</span></div>`).join("")}
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <button onclick="location.href='predict.html'" style="flex:1;padding:11px;border-radius:10px;border:none;background:#1d9e75;color:#fff;font-weight:800;font-size:13px;cursor:pointer;">오늘의 예측하러 가기</button>
+          <button onclick="this.closest('div[style*=fixed]').remove()" style="padding:11px 18px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-weight:800;font-size:13px;cursor:pointer;">닫기</button>
+        </div></div>`;
+      pm.addEventListener("click", e => { if (e.target === pm) pm.remove(); });
+      document.body.appendChild(pm);
+    } catch (e) { console.warn("예측 채점 실패", e); }
+  }
+
   function updateLoginBtn() {
     const b = document.getElementById("loginbtn");
     if (!b) return;

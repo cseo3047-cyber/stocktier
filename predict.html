@@ -33,7 +33,7 @@
 <div class="wrap">
   <span class="asof" id="asof"></span>
   <div class="page-title">🎯 오늘의 예측 게임</div>
-  <div class="page-sub">내일 이 종목, 오를까 내릴까? 다음 거래일 종가로 정답이 공개됩니다. (재미용)</div>
+  <div class="page-sub">내일 이 종목, 오를까 내릴까? 다음 거래일 종가로 정답이 공개됩니다.</div>
   <div id="body"><div class="card" style="text-align:center;padding:40px;color:var(--muted);">로그인 상태 확인 중...</div></div>
   <div class="footer"></div>
 </div>
@@ -78,23 +78,9 @@ async function load(){
   G.hit = G.hit || 0; G.total = G.total || 0;
   G.nick = p.nick || USER.displayName || USER.email.split("@")[0];
   G.av = p.avatar || "";
-
-  // ── 지난 예측 채점 (데이터 날짜가 예측일보다 뒤면 정답 확정)
-  let judgedNow = [];
-  for (const dk of Object.keys(G.preds)) {
-    const pd = G.preds[dk];
-    if (pd.done || dk >= DDATE) continue;
-    for (const code of Object.keys(pd.picks || {})) {
-      const st = ST.all().find(x=>x.src==="kr" && x.e[0]===code);
-      if (!st) continue;
-      const ok = (st.e[2] > pd.price0[code]) === (pd.picks[code] === "up");
-      G.hit += ok ? 1 : 0; G.total += 1;
-      judgedNow.push({ code, name: st.key, pick: pd.picks[code], ok, p0: pd.price0[code], p1: st.e[2], d: dk });
-    }
-    pd.done = true;
-  }
   await ref.set(G, { merge: true });
-  render(judgedNow);
+  // 채점은 로그인 시 공용 로직에서 자동 수행 — 여기선 최근 결과만 표시
+  render(G.lastJudged || []);
 }
 
 function render(judgedNow){

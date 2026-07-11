@@ -38,11 +38,34 @@
 <nav class="nav" id="nav"></nav>
 <div class="wrap">
   <span class="asof" id="asof"></span>
-  <div class="page-title">🏆 모의투자 리그</div>
-  <div class="page-sub">가상 자금 1억 원으로 시작하는 모의투자. 전일 종가 기준으로 체결됩니다. (재미용)</div>
+  <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:220px;">
+      <div class="page-title">🏆 모의투자 리그</div>
+      <div class="page-sub">가상 자금 1억 원으로 시작하는 모의투자. 국내·미국 주식 모두 전일 종가 기준으로 체결됩니다.</div>
+    </div>
+    <button id="rulebtn" style="background:transparent;border:1px solid var(--gold-dim);color:var(--gold);border-radius:9px;padding:9px 18px;font-size:12px;font-weight:800;cursor:pointer;margin-top:4px;">📖 게임 규칙</button>
+  </div>
   <div id="body"><div class="card" style="text-align:center;padding:40px;color:var(--muted);">로그인 상태 확인 중...</div></div>
   <div class="footer"></div>
 </div>
+
+<div id="rulemodal" style="position:fixed;inset:0;background:#000000aa;display:none;align-items:center;justify-content:center;z-index:300;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;width:min(440px,92vw);max-height:80vh;overflow:auto;padding:22px 24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <b style="font-size:16px;">📖 모의투자 리그 규칙</b>
+      <span style="cursor:pointer;color:var(--muted);padding:2px 6px;" onclick="document.getElementById('rulemodal').style.display='none'">✕</span></div>
+    <div style="font-size:13px;color:var(--muted);line-height:2.0;">
+      <div>💰 <b style="color:var(--text);">시작 자금</b> — 가상 투자금 1억 원으로 시작합니다.</div>
+      <div>📅 <b style="color:var(--text);">월간 지급</b> — 1개월(30일)마다 가상 1억 원이 추가 지급됩니다. 물타기·불타기에 활용하세요.</div>
+      <div>🔄 <b style="color:var(--text);">초기화</b> — 1개월에 한 번, 계속 운용 또는 초기화를 선택할 수 있습니다. 그 전엔 초기화가 잠깁니다.</div>
+      <div>🌎 <b style="color:var(--text);">대상 종목</b> — 국내 전 종목 + 미국 전 종목. 미국 주식은 환율 <b>1,350원 고정</b>으로 원화 환산됩니다.</div>
+      <div>⚡ <b style="color:var(--text);">체결 가격</b> — 전일 종가 기준, 수수료·세금 없음. 시세는 매일 저녁 갱신됩니다.</div>
+      <div>🏆 <b style="color:var(--text);">랭킹</b> — 수익률 = 총자산 ÷ 누적 지급액. 지급받은 금액이 달라도 공정하게 비교됩니다.</div>
+    </div>
+    <div style="font-size:10.5px;color:var(--dim);margin-top:12px;">※ 실제 투자가 아닌 가상 시뮬레이션입니다.</div>
+  </div>
+</div>
+<script>document.addEventListener("DOMContentLoaded",()=>{});</script>
 
 <script src="data.js"></script>
 <script src="data_us.js"></script>
@@ -64,7 +87,12 @@ function locked(){
 
 const wonN = v => Math.round(v).toLocaleString("ko-KR");
 const MONTH = 30 * 864e5;   // 1개월 = 30일
-const priceOf = k => { const e = ST.get("kr", k); return e ? e[2] : null; };
+const FX = 1350;            // 미국 주식 원화 환산 환율 (고정)
+const splitK = pk => pk.includes(":") ? [pk.slice(0, pk.indexOf(":")), pk.slice(pk.indexOf(":")+1)] : ["kr", pk];
+const priceOf = pk => { const [src, k] = splitK(pk); const e = ST.get(src, k);
+  return e ? (src === "us" ? Math.round(e[2] * FX) : e[2]) : null; };
+const nameOf = pk => { const [src, k] = splitK(pk); return ST.displayName(src, k); };
+document.getElementById("rulebtn").addEventListener("click", () => document.getElementById("rulemodal").style.display = "flex");
 const totalOf = d => {
   let t = d.cash || 0;
   for (const k of Object.keys(d.pos || {})) {
@@ -135,7 +163,7 @@ function render(){
       </div>
       <div class="card" style="margin-bottom:14px;"><h3>주문하기 <span class="more" style="cursor:default;">전일 종가 체결 · 수수료 없음</span></h3>
         <div class="trade">
-          <div class="sbox"><input id="tq" placeholder="종목명 검색 (국내)" autocomplete="off"><span class="mag">⌕</span><div class="suggest" id="tsug"></div></div>
+          <div class="sbox"><input id="tq" placeholder="종목명 검색 (국내·미국)" autocomplete="off"><span class="mag">⌕</span><div class="suggest" id="tsug"></div></div>
           <input class="qty" id="tqty" type="number" min="1" placeholder="수량">
           <button class="tbtn buy" id="buybtn">매수</button>
           <button class="tbtn sell" id="sellbtn">매도</button>
@@ -148,8 +176,9 @@ function render(){
           ${posKeys.map(k=>{
             const ps = L.pos[k], cur = priceOf(k) || ps.avg;
             const pl = (cur/ps.avg-1)*100;
+            const [srcx, kx] = splitK(k);
             return `<tr>
-              <td class="nm" style="cursor:pointer;" onclick="location.href='${ST.stockUrl("kr",k)}'">${k}</td>
+              <td class="nm" style="cursor:pointer;" onclick="location.href='${ST.stockUrl(srcx,kx)}'">${nameOf(k)}${srcx==="us"?` <span style="color:var(--dim);font-size:10px;font-weight:500;">US</span>`:""}</td>
               <td class="num">${wonN(ps.q)}주</td>
               <td class="num">${wonN(ps.avg)}원</td>
               <td class="num">${wonN(cur)}원</td>
@@ -170,23 +199,24 @@ function render(){
   const info = () => {
     const el = document.getElementById("selinfo");
     if (!SELK) { el.textContent = ""; return; }
+    const [srcx] = splitK(SELK);
     const cur = priceOf(SELK), held = L.pos[SELK];
-    el.innerHTML = `<b>${SELK}</b> · 현재가 <b class="num">${wonN(cur)}원</b>${held&&held.q>0?` · 보유 <b class="num">${wonN(held.q)}주</b> (평단 ${wonN(held.avg)}원)`:""} · 최대 <b class="num">${wonN(Math.floor(L.cash/cur))}주</b> 매수 가능`;
+    el.innerHTML = `<b>${nameOf(SELK)}</b>${srcx==="us"?` <span style="color:var(--dim);font-size:10.5px;">미국 · 환율 ${FX.toLocaleString("ko-KR")}원 환산</span>`:""} · 현재가 <b class="num">${wonN(cur)}원</b>${held&&held.q>0?` · 보유 <b class="num">${wonN(held.q)}주</b> (평단 ${wonN(held.avg)}원)`:""} · 최대 <b class="num">${wonN(Math.floor(L.cash/cur))}주</b> 매수 가능`;
   };
   tin.addEventListener("input", () => {
     const q = tin.value.trim();
     if (!q) { sug.style.display="none"; return; }
-    const hits = ST.suggestions(q, 10).filter(([src])=>src==="kr").slice(0,7);
+    const hits = ST.suggestions(q, 8);
     if (!hits.length) { sug.style.display="none"; return; }
-    sug.innerHTML = hits.map(([,k])=>`<div data-k="${encodeURIComponent(k)}">${k}<span class="code">${ST.get("kr",k)[0]}</span></div>`).join("");
+    sug.innerHTML = hits.map(([src,k])=>`<div data-k="${encodeURIComponent(src+":"+k)}">${ST.displayName(src,k)}<span class="code">${ST.get(src,k)[0]} · ${ST.get(src,k)[1]}</span></div>`).join("");
     sug.style.display="block";
     sug.querySelectorAll("div[data-k]").forEach(el=>el.addEventListener("click",()=>{
       SELK = decodeURIComponent(el.dataset.k);
-      tin.value = SELK; sug.style.display="none"; info();
+      tin.value = nameOf(SELK); sug.style.display="none"; info();
     }));
   });
   document.addEventListener("click", e => { if (!e.target.closest(".sbox")) sug.style.display="none"; });
-  if (SELK) { tin.value = SELK; info(); }
+  if (SELK) { tin.value = nameOf(SELK); info(); }
   const msg = (t, ok) => { const m=document.getElementById("tmsg"); m.textContent=t; m.style.color = ok?"#4cd7a5":"#f0708a"; };
 
   async function saveRender(t, ok){
@@ -194,10 +224,15 @@ function render(){
     await firebase.firestore().collection("league").doc(USER.uid).set(L, { merge: false });
     render(); msg(t, ok); loadRanks();
   }
+  const pickPk = () => {
+    if (SELK) return SELK;
+    const h = ST.findStock(tin.value.trim());
+    return h ? h[0] + ":" + h[1] : null;
+  };
   document.getElementById("buybtn").addEventListener("click", () => {
-    const k = SELK || (ST.findStock(tin.value.trim())||[])[1];
+    const k = pickPk();
     const qn = Math.floor(+document.getElementById("tqty").value);
-    if (!k || !priceOf(k)) { msg("국내 종목을 검색해서 선택해주세요."); return; }
+    if (!k || !priceOf(k)) { msg("종목을 검색해서 선택해주세요."); return; }
     if (!qn || qn<1) { msg("수량을 입력해주세요."); return; }
     const cur = priceOf(k), cost = cur*qn;
     if (cost > L.cash) { msg(`현금이 부족해요. (필요 ${wonN(cost)}원 / 보유 ${wonN(L.cash)}원)`); return; }
@@ -207,10 +242,10 @@ function render(){
     L.pos[k] = ps;
     L.cash -= cost;
     SELK = k;
-    saveRender(`${k} ${wonN(qn)}주 매수 완료 (${wonN(cost)}원)`, true);
+    saveRender(`${nameOf(k)} ${wonN(qn)}주 매수 완료 (${wonN(cost)}원)`, true);
   });
   document.getElementById("sellbtn").addEventListener("click", () => {
-    const k = SELK || (ST.findStock(tin.value.trim())||[])[1];
+    const k = pickPk();
     const qn = Math.floor(+document.getElementById("tqty").value);
     const ps = k && L.pos[k];
     if (!ps || ps.q<1) { msg("보유하지 않은 종목입니다."); return; }
@@ -220,7 +255,7 @@ function render(){
     L.cash += cur*qn;
     if (ps.q === 0) delete L.pos[k];
     SELK = k;
-    saveRender(`${k} ${wonN(qn)}주 매도 완료 (+${wonN(cur*qn)}원)`, true);
+    saveRender(`${nameOf(k)} ${wonN(qn)}주 매도 완료 (+${wonN(cur*qn)}원)`, true);
   });
   loadRanks();
 }
