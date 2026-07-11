@@ -162,13 +162,18 @@ def fetch_one(st):
         return None
 
     last_date = str(chart[-1].get("localDate") or "")
+    def vavg(n):
+        w = vols[-n:] if len(vols) > n else vols
+        return int(sum(w) / len(w)) if w else 0
+
     entry = [
         st["sym"], st["ex"], round(closes[-1], 2), days[0], per, pbr,
         round(div, 1), roe, st["cap"],
         int(sum(rv) / len(rv)), vols[-2], vols[-1],
         days, None, ret(6), ret(21), ret(len(rc)),
         st["en"], spk,
-        st.get("industry") or "",   # [19] 업종 (한글)
+        st.get("industry") or "",                      # [19] 업종 (한글)
+        vavg(126), vavg(252), vavg(756), vavg(9999),   # [20~23] 6개월/1년/3년/5년 평균 거래량
     ]
     return st, entry, last_date
 

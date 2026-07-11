@@ -567,11 +567,18 @@ def main():
         if vol_prev is None:
             vol_prev = vol3m
 
+        def vavg(n):
+            if not vols:
+                return vol3m
+            w = vols[-n:] if len(vols) > n else vols
+            return int(sum(w) / len(w)) if w else vol3m
+
         out[st["name"]] = [
             st["code"], st["mkt"], st["price"], days[0], per, pbr, div, roe,
             st["cap"], vol3m, vol_prev, st["volToday"], days, forn,
             r1w, r1m, r3m, fbuy, obuy, spk,
             ind_map.get(st["code"], ""), thm_map.get(st["code"], ""),
+            vavg(126), vavg(252), vavg(756), vavg(9999),   # [22~25] 6개월/1년/3년/5년 평균 거래량
         ]
         if (i + 1) % 200 == 0:
             print(f"{i+1}/{len(stocks)} 처리, fchart 성공 {fchart_ok}", flush=True)
