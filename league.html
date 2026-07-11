@@ -448,10 +448,10 @@ function render(){
           <div class="sumsub num" style="color:#5a737d;">투자원금 ${wonN(invSum)}원</div></div>
         <div class="sumbox"><div class="lb">평가손익 <span class="dim2">· 보유 종목</span></div>
           <div style="display:flex;align-items:center;gap:12px;"><div class="vl num ${ST.cls(evalPL)}">${evalPL>=0?"+":""}${wonN(evalPL)}원</div><span style="margin-left:auto;">${sparkT(104,36,"e")}</span></div>
-          <div class="sumsub num ${ST.cls(fxPL)}">환손익 ${fxPL>=0?"+":""}${wonN(fxPL)}원</div></div>
+          <div class="sumsub num" style="color:#5a737d;">환손익 ${fxPL>=0?"+":""}${wonN(fxPL)}원</div></div>
         <div class="sumbox"><div class="lb">수익률 <span class="dim2">· 지급액 대비</span></div>
           <div style="display:flex;align-items:center;gap:12px;"><div class="vl num ${ST.cls(ret)}">${ret>=0?"+":""}${ret.toFixed(2)}%</div><span style="margin-left:auto;">${sparkT(104,36)}</span></div>
-          <div class="sumsub num ${ST.cls(ret)}">${total-L.seedWon>=0?"+":""}${wonN(total-L.seedWon)}원</div></div>
+          <div class="sumsub num" style="color:#5a737d;">${total-L.seedWon>=0?"+":""}${wonN(total-L.seedWon)}원</div></div>
         <div class="sumbox"><div class="lb">보유 현금</div>
           <div style="display:flex;align-items:center;gap:12px;"><div class="vl num">${wonN(L.cash)}원</div><span style="margin-left:auto;display:inline-flex;">${CASH_ICON}</span></div>
           <div class="sumsub num" style="color:#5a737d;">${total?(L.cash/total*100).toFixed(1):0}%</div></div>
