@@ -157,6 +157,9 @@ window.ST = (function () {
         fbUser = u;
         updateLoginBtn();
         if (u) await cloudSync();
+        else window.ST_PROFILE = null;
+        updateLoginBtn();
+        document.dispatchEvent(new CustomEvent("st-auth", { detail: u }));
       });
     } catch (e) { console.warn("Firebase 초기화 실패", e); }
   }
@@ -164,12 +167,14 @@ window.ST = (function () {
     try {
       const ref = firebase.firestore().collection("watchlists").doc(fbUser.uid);
       const snap = await ref.get();
+      const d = snap.exists ? snap.data() : {};
+      window.ST_PROFILE = { nick: d.nick || "", avatar: d.avatar || "" };
       const local = watchGet();
-      const cloud = snap.exists ? (snap.data().items || []) : [];
+      const cloud = d.items || [];
       const seen = new Set(local.map(w => w[0] + "|" + w[1]));
       const merged = local.concat(cloud.filter(w => !seen.has(w[0] + "|" + w[1])));
       localStorage.setItem("st_watch", JSON.stringify(merged));
-      await ref.set({ items: merged, updated: Date.now() });
+      await ref.set({ items: merged, updated: Date.now() }, { merge: true });
       if (merged.length !== local.length && !sessionStorage.getItem("st_synced")) {
         sessionStorage.setItem("st_synced", "1");
         location.reload();   // 클라우드 목록을 화면에 반영
@@ -179,14 +184,16 @@ window.ST = (function () {
   function cloudPush(list) {
     if (fbUser && window.firebase) {
       firebase.firestore().collection("watchlists").doc(fbUser.uid)
-        .set({ items: list, updated: Date.now() }).catch(() => {});
+        .set({ items: list, updated: Date.now() }, { merge: true }).catch(() => {});
     }
   }
   function updateLoginBtn() {
     const b = document.getElementById("loginbtn");
     if (!b) return;
     if (fbUser) {
-      b.textContent = (fbUser.displayName || fbUser.email.split("@")[0]) + " ▾";
+      const p = window.ST_PROFILE || {};
+      const nm = p.nick || fbUser.displayName || fbUser.email.split("@")[0];
+      b.textContent = (p.avatar ? p.avatar + " " : "") + nm + " ▾";
       b.style.borderColor = "var(--gold-dim)"; b.style.color = "var(--gold)";
     } else {
       b.textContent = "로그인";
@@ -236,14 +243,38 @@ window.ST = (function () {
     };
     document.getElementById("emaillogin").addEventListener("click", doEmail);
     document.getElementById("lmpw").addEventListener("keydown", e => { if (e.key === "Enter") doEmail(); });
+    // 로그인 상태 드롭다운 메뉴 (마이페이지 / 관심종목 / 로그아웃)
+    const ud = document.createElement("div");
+    ud.id = "userdrop";
+    ud.style.cssText = "position:fixed;display:none;background:var(--panel);border:1px solid var(--border);border-radius:11px;min-width:158px;padding:6px;z-index:310;box-shadow:0 10px 26px rgba(0,0,0,.45);";
+    ud.innerHTML = `
+      <div class="udit" data-act="my" style="padding:9px 13px;border-radius:8px;font-size:13px;color:var(--text);font-weight:600;cursor:pointer;">👤 마이페이지</div>
+      <div class="udit" data-act="watch" style="padding:9px 13px;border-radius:8px;font-size:13px;color:var(--text);font-weight:600;cursor:pointer;">★ 관심종목</div>
+      <div style="height:1px;background:var(--border);margin:5px 8px;"></div>
+      <div class="udit" data-act="out" style="padding:9px 13px;border-radius:8px;font-size:13px;color:#f0708a;font-weight:600;cursor:pointer;">로그아웃</div>`;
+    document.body.appendChild(ud);
+    const uds = document.createElement("style");
+    uds.textContent = "#userdrop .udit:hover{background:var(--panel2);}";
+    document.head.appendChild(uds);
+    ud.addEventListener("click", e => {
+      const act = e.target.dataset && e.target.dataset.act;
+      ud.style.display = "none";
+      if (act === "my") location.href = "mypage.html";
+      else if (act === "watch") location.href = "watchlist.html";
+      else if (act === "out") { sessionStorage.removeItem("st_synced"); firebase.auth().signOut(); }
+    });
+    document.addEventListener("click", e => {
+      if (!e.target.closest("#userdrop") && !e.target.closest("#loginbtn")) ud.style.display = "none";
+    });
     document.getElementById("loginbtn").addEventListener("click", () => {
       if (!fbOn()) { alert("로그인 기능은 준비 중입니다."); return; }
       if (!window.firebase) { alert("로그인 모듈을 불러오는 중입니다. 잠시 후 다시 눌러주세요."); return; }
       if (fbUser) {
-        if (confirm("로그아웃 할까요?\n(관심종목은 계정에 저장되어 있습니다)")) {
-          sessionStorage.removeItem("st_synced");
-          firebase.auth().signOut();
-        }
+        if (ud.style.display === "block") { ud.style.display = "none"; return; }
+        const r = document.getElementById("loginbtn").getBoundingClientRect();
+        ud.style.top = (r.bottom + 6) + "px";
+        ud.style.right = Math.max(8, window.innerWidth - r.right) + "px";
+        ud.style.display = "block";
       } else {
         err(""); lm.style.display = "flex";
       }

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stocktier — 마이페이지</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap { max-width:860px; }
+  .prow { display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .bigav { width:84px; height:84px; border-radius:50%; background:var(--panel2); border:2px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:40px; flex-shrink:0; overflow:hidden; }
+  .bigav img { width:100%; height:100%; object-fit:cover; }
+  .avgrid { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .avopt { width:44px; height:44px; border-radius:50%; background:var(--panel2); border:2px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:22px; cursor:pointer; }
+  .avopt:hover { border-color:var(--gold-dim); }
+  .avopt.on { border-color:var(--gold); background:#3d331333; }
+  .frow { display:flex; align-items:center; gap:10px; margin-top:14px; flex-wrap:wrap; }
+  .frow label { width:70px; font-size:12.5px; color:var(--muted); font-weight:700; flex-shrink:0; }
+  .frow input { flex:1; min-width:180px; max-width:280px; padding:10px 13px; font-size:13px; background:var(--panel2); border:1.5px solid var(--border); border-radius:9px; color:var(--text); outline:none; }
+  .frow input:focus { border-color:var(--gold-dim); }
+  .btn2 { background:#1d9e75; color:#fff; border:none; border-radius:9px; padding:10px 20px; font-size:12.5px; font-weight:800; cursor:pointer; }
+  .btn2:hover { background:#24b586; }
+  .btn3 { background:transparent; color:var(--muted); border:1px solid var(--border); border-radius:9px; padding:10px 18px; font-size:12.5px; font-weight:800; cursor:pointer; }
+  .btn3:hover { color:var(--gold); border-color:var(--gold-dim); }
+  .btn3.danger:hover { color:#f0708a; border-color:#7a2822; }
+  .irow { display:flex; justify-content:space-between; gap:10px; padding:9px 2px; border-bottom:1px solid #ffffff0d; font-size:13px; }
+  .irow:last-child { border-bottom:none; }
+  .irow .lb { color:var(--muted); font-weight:600; }
+  .irow b { font-variant-numeric:tabular-nums; }
+  .msg { font-size:12px; margin-top:10px; min-height:16px; font-weight:700; }
+  .layout2 { display:grid; grid-template-columns:1.4fr 1fr; gap:14px; align-items:start; }
+  @media (max-width:800px){ .layout2 { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<div class="wrap">
+  <div class="page-title">마이페이지</div>
+  <div class="page-sub">프로필과 계정을 관리하세요.</div>
+  <div id="body"><div class="card" style="text-align:center;padding:44px;color:var(--muted);">로그인 정보를 확인하는 중...</div></div>
+  <div class="footer"></div>
+</div>
+
+<script src="data.js"></script>
+<script src="data_us.js"></script>
+<script src="common.js"></script>
+<script>
+ST.nav("");
+const box = document.getElementById("body");
+const AVS = ["🐯","🦁","🐻","🐰","🦊","🐼","🐸","🦄","🐳","🦉","🚀","💎"];
+let USER = null, NICK = "", AV = "";
+
+function showLoginNeeded(){
+  box.innerHTML = `<div class="card" style="text-align:center;padding:56px;">
+    <div style="font-size:18px;font-weight:800;margin-bottom:8px;">로그인이 필요합니다</div>
+    <div style="font-size:13px;color:var(--muted);">우측 상단의 로그인 버튼을 눌러 로그인해주세요.</div></div>`;
+}
+
+function avatarHtml(){
+  if (AV) return AV;
+  if (USER.photoURL) return `<img src="${USER.photoURL}" referrerpolicy="no-referrer">`;
+  return (NICK || USER.displayName || USER.email)[0].toUpperCase();
+}
+
+function render(){
+  const p = window.ST_PROFILE || {};
+  NICK = p.nick || USER.displayName || "";
+  AV = p.avatar || "";
+  const meta = USER.metadata || {};
+  const fmt = s => s ? new Date(s).toLocaleDateString("ko-KR") : "-";
+  const isEmail = USER.providerData.some(x=>x.providerId==="password");
+  const wl = ST.watchGet();
+
+  box.innerHTML = `
+  <div class="layout2">
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card"><h3>프로필</h3>
+        <div class="prow">
+          <div class="bigav" id="bigav">${avatarHtml()}</div>
+          <div style="flex:1;min-width:200px;">
+            <div style="font-size:17px;font-weight:800;">${NICK || USER.email.split("@")[0]}</div>
+            <div style="font-size:12px;color:var(--dim);margin-top:3px;">${USER.email}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:18px;">아바타 선택 <span style="color:var(--dim);font-weight:500;">(선택 안 하면 ${USER.photoURL?"구글 프로필 사진":"이니셜"} 사용)</span></div>
+        <div class="avgrid" id="avgrid"></div>
+        <div class="frow">
+          <label>닉네임</label>
+          <input id="nickin" maxlength="12" placeholder="12자 이내" value="${NICK}">
+          <button class="btn2" id="savebtn">저장</button>
+        </div>
+        <div class="msg" id="pmsg"></div>
+      </div>
+
+      <div class="card"><h3>계정 관리</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          ${isEmail ? `<button class="btn3" id="pwbtn">비밀번호 재설정 메일 보내기</button>` : ""}
+          <button class="btn3" id="outbtn">로그아웃</button>
+          <button class="btn3 danger" id="delbtn">계정 삭제</button>
+        </div>
+        <div class="msg" id="amsg"></div>
+        <div style="font-size:11px;color:var(--dim);line-height:1.8;margin-top:6px;">계정을 삭제하면 저장된 관심종목과 프로필이 모두 지워지며 복구할 수 없습니다.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card"><h3>계정 정보</h3>
+        <div class="irow"><span class="lb">로그인 방식</span><b>${USER.providerData.map(x=>x.providerId==="google.com"?"Google":"이메일").join(", ")}</b></div>
+        <div class="irow"><span class="lb">가입일</span><b>${fmt(meta.creationTime)}</b></div>
+        <div class="irow"><span class="lb">마지막 로그인</span><b>${fmt(meta.lastSignInTime)}</b></div>
+      </div>
+      <div class="card"><h3>내 관심종목 <span class="more" onclick="location.href='watchlist.html'">더보기 ›</span></h3>
+        <div class="irow"><span class="lb">저장된 종목</span><b>${wl.length}개</b></div>
+        ${wl.slice(0,5).map(([src,key])=>`<div class="irow"><span class="lb" style="color:var(--text);cursor:pointer;" onclick="location.href='${ST.stockUrl(src,key)}'">${ST.displayName(src,key)}</span><b style="color:var(--dim);font-size:11px;">${src==="us"?"미국":"국내"}</b></div>`).join("")}
+      </div>
+    </div>
+  </div>`;
+
+  // 아바타 그리드
+  const grid = document.getElementById("avgrid");
+  grid.innerHTML = `<div class="avopt ${!AV?"on":""}" data-av="">✕</div>` +
+    AVS.map(a=>`<div class="avopt ${AV===a?"on":""}" data-av="${a}">${a}</div>`).join("");
+  grid.querySelectorAll(".avopt").forEach(el => el.addEventListener("click", () => {
+    AV = el.dataset.av;
+    grid.querySelectorAll(".avopt").forEach(o=>o.classList.toggle("on", o===el));
+    document.getElementById("bigav").innerHTML = avatarHtml();
+  }));
+
+  const pmsg = (t,ok) => { const m=document.getElementById("pmsg"); m.textContent=t; m.style.color = ok?"#4cd7a5":"#f0708a"; };
+  const amsg = (t,ok) => { const m=document.getElementById("amsg"); m.textContent=t; m.style.color = ok?"#4cd7a5":"#f0708a"; };
+
+  // 저장
+  document.getElementById("savebtn").addEventListener("click", async () => {
+    const nick = document.getElementById("nickin").value.trim();
+    if (nick.length > 12) { pmsg("닉네임은 12자 이내로 해주세요."); return; }
+    try {
+      await firebase.firestore().collection("watchlists").doc(USER.uid)
+        .set({ nick, avatar: AV }, { merge: true });
+      if (nick) await USER.updateProfile({ displayName: nick });
+      window.ST_PROFILE = { nick, avatar: AV };
+      NICK = nick;
+      pmsg("저장되었습니다.", true);
+      const b = document.getElementById("loginbtn");
+      if (b) b.textContent = (AV ? AV + " " : "") + (nick || USER.email.split("@")[0]) + " ▾";
+    } catch(e) { pmsg("저장에 실패했습니다. 잠시 후 다시 시도해주세요."); }
+  });
+
+  // 비밀번호 재설정
+  const pwbtn = document.getElementById("pwbtn");
+  if (pwbtn) pwbtn.addEventListener("click", () => {
+    firebase.auth().sendPasswordResetEmail(USER.email)
+      .then(()=>amsg("재설정 메일을 보냈습니다. 메일함을 확인해주세요.", true))
+      .catch(()=>amsg("메일 발송에 실패했습니다."));
+  });
+
+  // 로그아웃
+  document.getElementById("outbtn").addEventListener("click", () => {
+    sessionStorage.removeItem("st_synced");
+    firebase.auth().signOut().then(()=>location.href="index.html");
+  });
+
+  // 계정 삭제
+  document.getElementById("delbtn").addEventListener("click", async () => {
+    if (!confirm("정말 계정을 삭제할까요?\n저장된 관심종목과 프로필이 모두 지워지며 복구할 수 없습니다.")) return;
+    if (!confirm("마지막 확인입니다. 삭제를 진행할까요?")) return;
+    try {
+      await firebase.firestore().collection("watchlists").doc(USER.uid).delete();
+      await USER.delete();
+      localStorage.removeItem("st_watch");
+      alert("계정이 삭제되었습니다. 이용해주셔서 감사합니다.");
+      location.href = "index.html";
+    } catch(e) {
+      if (e.code === "auth/requires-recent-login")
+        amsg("보안을 위해 로그아웃 후 다시 로그인한 뒤 삭제를 시도해주세요.");
+      else amsg("삭제에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    }
+  });
+}
+
+// 로그인 상태 대기 (common.js가 Firebase를 초기화하면 st-auth 이벤트 발생)
+let waited = false;
+document.addEventListener("st-auth", e => {
+  waited = true;
+  USER = e.detail;
+  if (USER) render(); else showLoginNeeded();
+});
+setTimeout(() => { if (!waited) showLoginNeeded(); }, 4000);
+</script>
+</body>
+</html>
