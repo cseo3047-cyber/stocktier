@@ -431,7 +431,42 @@ if (!s) {
     <div style="font-size:10px;color:var(--dim);margin-top:8px;">${FLOWS?"* 순매수 이력은 매일 누적되어 최대 3개월(60거래일)까지 표시됩니다.":"* 순매수 추이 데이터 수집 후 일별 수급 차트로 자동 전환됩니다."}</div>
   </div>`;
 
-  // ══ 미국 전용: 동종 업종 비교 + 거래량 3종 비교 ══
+  // ══ 거래량 비교 (국내·미국 공통 · 세로 막대 6종) ══
+  const vBase = us ? 20 : 22;
+  const volDefs = [["당일", volToday], ["전일", volPrev]];
+  ["6개월","1년","3년","5년"].forEach((lb, i) => {
+    const v = (s.length > vBase + i && s[vBase + i]) ? s[vBase + i] : null;
+    if (v) volDefs.push([lb, v]);
+  });
+  const fmtVol = v => v >= 1e8 ? (v/1e8).toFixed(1)+"억" : v >= 1e4 ? Math.round(v/1e4).toLocaleString("ko-KR")+"만" : ST.num(v);
+  const VW=420, VH=210, vpL=52, vpR=10, vpT=16, vpB=22;
+  const vMx = Math.max(...volDefs.map(d=>d[1]), 1);
+  const vX = i => vpL + (i+0.5)/volDefs.length*(VW-vpL-vpR);
+  const vY = v => vpT + (1-v/vMx)*(VH-vpT-vpB);
+  const volChart = (() => {
+    const bw = (VW-vpL-vpR)/volDefs.length*0.52;
+    let grid = "";
+    for (let gz=0; gz<=2; gz++){
+      const v = vMx*(1-gz/2), y = vY(v);
+      grid += `<line x1="${vpL}" y1="${y}" x2="${VW-vpR}" y2="${y}" stroke="#0d3a52" stroke-width="1"/>
+        <text x="${vpL-6}" y="${y+4}" text-anchor="end" fill="#5a737d" font-size="9">${fmtVol(v)}</text>`;
+    }
+    const bars = volDefs.map(([lb,v],i)=>`
+      <rect x="${(vX(i)-bw/2).toFixed(1)}" y="${vY(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${(VH-vpB-vY(v)).toFixed(1)}" rx="3" fill="url(#vgr)"/>
+      <text x="${vX(i).toFixed(1)}" y="${(vY(v)-5).toFixed(1)}" text-anchor="middle" fill="#8fd6b8" font-size="8.5" font-weight="700">${fmtVol(v)}</text>
+      <text x="${vX(i).toFixed(1)}" y="${VH-7}" text-anchor="middle" fill="#5a737d" font-size="9.5">${lb}</text>`).join("");
+    const colW = (VW-vpL-vpR)/volDefs.length;
+    return `<svg viewBox="0 0 ${VW} ${VH}" preserveAspectRatio="none" style="width:100%;height:100%;min-height:190px;display:block;">
+      <defs><linearGradient id="vgr" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#0f7a56"/><stop offset="1" stop-color="#4cd7a5"/></linearGradient></defs>
+      ${grid}${bars}
+      <rect id="todayzone" x="${(vX(0)-colW/2).toFixed(1)}" y="${vpT}" width="${colW.toFixed(1)}" height="${VH-vpT-vpB}" fill="transparent" style="cursor:pointer;"/></svg>`;
+  })();
+  const volCard = `
+  <div class="card" style="display:flex;flex-direction:column;"><h3>거래량 비교</h3>
+    <div class="chartbox" style="flex:1;"><div id="volbox" style="height:100%;">${volChart}</div><div class="ctip" id="voltip"></div></div>
+  </div>`;
+
+  // ══ 미국 전용: 동종 업종 비교 ══
   let usBottom = "";
   if (us) {
     const usInd = (s.length>19 && typeof s[19]==="string" && s[19]) ? s[19] : null;
@@ -449,42 +484,6 @@ if (!s) {
         <span class="num" style="width:76px;text-align:right;color:var(--muted);font-size:11.5px;">${ST.priceStr(x.e[2],true)}</span>
         <span class="num ${ST.cls(x.e[3])}" style="width:58px;text-align:right;font-weight:800;">${ST.pct2(x.e[3])}</span></div>`).join("")}
     </div>`;
-    // 거래량 비교 (세로 막대 6종: 당일·전일·6개월·1년·3년·5년 평균)
-    const vBase = us ? 20 : 22;
-    const volDefs = [["당일", volToday], ["전일", volPrev]];
-    const longLbs = ["6개월", "1년", "3년", "5년"];
-    let hasLong = false;
-    longLbs.forEach((lb, i) => {
-      const v = (s.length > vBase + i && s[vBase + i]) ? s[vBase + i] : null;
-      if (v) { volDefs.push([lb, v]); hasLong = true; }
-    });
-    const fmtVol = v => v >= 1e8 ? (v/1e8).toFixed(1)+"억" : v >= 1e4 ? Math.round(v/1e4).toLocaleString("ko-KR")+"만" : ST.num(v);
-    const volChart = (() => {
-      const W=420, H=200, padL=52, padR=10, padT=16, padB=22;
-      const mxV = Math.max(...volDefs.map(d=>d[1]), 1);
-      const bw = (W-padL-padR)/volDefs.length*0.52;
-      const X = i => padL + (i+0.5)/volDefs.length*(W-padL-padR);
-      const Y = v => padT + (1-v/mxV)*(H-padT-padB);
-      let grid = "";
-      for (let gz=0; gz<=2; gz++){
-        const v = mxV*(1-gz/2), y = Y(v);
-        grid += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#0d3a52" stroke-width="1"/>
-          <text x="${padL-6}" y="${y+4}" text-anchor="end" fill="#5a737d" font-size="9">${fmtVol(v)}</text>`;
-      }
-      const bars = volDefs.map(([lb,v],i)=>`
-        <rect x="${(X(i)-bw/2).toFixed(1)}" y="${Y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${(H-padB-Y(v)).toFixed(1)}" rx="3" fill="url(#vgr)"/>
-        <text x="${X(i).toFixed(1)}" y="${(Y(v)-5).toFixed(1)}" text-anchor="middle" fill="#8fd6b8" font-size="8.5" font-weight="700">${fmtVol(v)}</text>
-        <text x="${X(i).toFixed(1)}" y="${H-7}" text-anchor="middle" fill="#5a737d" font-size="9.5">${lb}</text>`).join("");
-      return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:200px;display:block;">
-        <defs><linearGradient id="vgr" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#0f7a56"/><stop offset="1" stop-color="#4cd7a5"/></linearGradient></defs>
-        ${grid}${bars}</svg>`;
-    })();
-    const volCard = `
-    <div class="card"><h3>거래량 비교 <span class="more" style="cursor:default;">3개월 평균 대비 ${surge.toFixed(2)}배</span></h3>
-      ${volChart}
-      <div style="font-size:11px;color:${surge>=2?"var(--down)":surge>=1.5?"var(--gold)":"var(--dim)"};font-weight:700;margin-top:6px;">
-        ${surge>=2?"⚠ 평소 대비 거래 급증 — 과열 주의":surge>=1.5?"거래 참여 증가 중":"거래량 평이한 수준"}${hasLong?"":" · 장기 평균은 데이터 수집 후 표시됩니다"}</div>
-    </div>`;
     usBottom = `<div class="row2d" style="grid-template-columns:0.8fr 1.3fr 1fr;">${evCard}${indCard}${volCard}</div>`;
   }
 
@@ -500,7 +499,27 @@ if (!s) {
     ${chartCard}
     <div style="display:flex;flex-direction:column;gap:14px;">${histCard}${newsCard}</div>
   </div>
-  ${us ? usBottom : `<div class="row2d">${evCard}${flowCard}</div>`}`;
+  ${us ? usBottom : `<div class="row2d" style="grid-template-columns:0.95fr 2.05fr;align-items:stretch;">${volCard}${flowCard}</div>`}`;
+
+  // 거래량 비교 — 당일 막대 호버 시 기간별 증감 툴팁
+  (function(){
+    const el = document.getElementById("volbox"), tip = document.getElementById("voltip");
+    if (!el || !tip) return;
+    const zone = el.querySelector("#todayzone");
+    if (!zone) return;
+    const lines = volDefs.slice(1).map(([lb,v])=>{
+      const diff = volToday - v, pct = (volToday/v-1)*100, up = diff >= 0;
+      return `<div>${lb} 대비 <b style="color:${up?"var(--up)":"var(--down)"};">${up?"+":"-"}${fmtVol(Math.abs(diff))}주 (${up?"+":""}${pct.toFixed(1)}%) ${up?"증가":"감소"}</b></div>`;
+    }).join("");
+    zone.addEventListener("mouseenter", () => {
+      tip.innerHTML = `<div style="font-weight:800;margin-bottom:2px;">당일 거래량 ${fmtVol(volToday)}주</div>` + lines;
+      tip.style.left = (vX(0)/VW*100) + "%";
+      tip.style.top = (vY(volToday)/VH*100) + "%";
+      tip.style.transform = "translate(6px,-100%)";
+      tip.style.display = "block";
+    });
+    zone.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+  })();
 
   // 차트 4개 초기화
   CH.top  = { per:"5y", keys:["1w","1m","3m","6m","1y","3y","5y"], cfg:{ pts:PTS, W:340, H:96, px:96, col:"#4cd7a5", col2:"#0f7a56", xlab:true } };
