@@ -165,8 +165,8 @@ def detail(code):
     return per, pbr, div, roe, forn, prevs, vol_prev, fbuy, obuy, flows
 
 
-def scrape_frgn(code, pages=3):
-    """PC 매매동향 페이지에서 과거 수급 소급 (약 20거래일/페이지) → [[YYMMDD, 외인억, 기관억] 과거→최신]"""
+def scrape_frgn(code, pages=6):
+    """PC 매매동향 페이지에서 과거 수급 소급 (약 20거래일/페이지 × 6 ≈ 6개월) → [[YYMMDD, 외인억, 기관억] 과거→최신]"""
     rows = {}
     for page in range(1, pages + 1):
         try:
@@ -507,7 +507,7 @@ def main():
     market = market_extra()
     ind_map, thm_map = build_group_maps()
 
-    # 이전 수급 이력(flows.js) 로드 — 최근 60거래일 누적 유지
+    # 이전 수급 이력(flows.js) 로드 — 최근 120거래일(약 6개월) 누적 유지
     prev_flows = {}
     try:
         with open("flows.js", encoding="utf-8") as f:
@@ -520,7 +520,7 @@ def main():
     # 첫 실행(누적 데이터가 거의 없을 때)에만 과거 3개월 소급 스크래핑
     BACKFILL = len(prev_flows) < 100
     if BACKFILL:
-        print("수급 소급 스크래핑 시작 (첫 실행 · 종목당 약 60거래일)", flush=True)
+        print("수급 소급 스크래핑 시작 (첫 실행 · 종목당 약 120거래일)", flush=True)
 
     out = {}
     fchart_ok = 0
@@ -530,7 +530,7 @@ def main():
             continue
         per, pbr, div, roe, forn, prevs, vol_prev, fbuy, obuy, flows = d
 
-        # 수급 이력 병합 (날짜 기준 중복 제거, 최근 60거래일 유지)
+        # 수급 이력 병합 (날짜 기준 중복 제거, 최근 120거래일 유지)
         byd = {r[0]: r for r in prev_flows.get(st["code"], [])}
         if BACKFILL:
             for r in scrape_frgn(st["code"]):
@@ -538,7 +538,7 @@ def main():
         for r in flows:
             byd[r[0]] = r
         if byd:
-            new_flows[st["code"]] = [byd[k] for k in sorted(byd.keys())][-60:]
+            new_flows[st["code"]] = [byd[k] for k in sorted(byd.keys())][-120:]
 
         closes, vols = history(st["code"])
         spk = None

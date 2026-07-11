@@ -27,7 +27,7 @@
   .dgrid { display:grid; grid-template-columns:1.1fr 0.9fr; gap:0 26px; }
   @media (max-width:800px){ .dgrid { grid-template-columns:1fr; } }
   .irow { display:flex; align-items:center; gap:10px; padding:7.5px 2px; border-bottom:1px solid #ffffff0d; font-size:12.5px; }
-  .irow .lb { width:106px; color:var(--muted); font-weight:600; flex-shrink:0; }
+  .irow .lb { width:134px; color:var(--muted); font-weight:600; flex-shrink:0; white-space:nowrap; }
   .irow .m { flex:1; height:7px; background:var(--panel2); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
   .irow .m i { display:block; height:100%; background:linear-gradient(90deg,#0f7a56,#4cd7a5); border-radius:4px; }
   .irow .m i.gold { background:linear-gradient(90deg,#8a6f1e,#f0c948); }
@@ -60,7 +60,10 @@
   @media (max-width:1000px){ .row2d { grid-template-columns:1fr; } }
   .chartbox { position:relative; }
   .ctip { position:absolute; background:#021b27; border:1px solid var(--gold-dim); color:var(--text); font-size:11px; font-weight:600; padding:7px 10px; border-radius:8px; pointer-events:none; white-space:nowrap; transform:translate(-50%,-108%); z-index:5; font-variant-numeric:tabular-nums; line-height:1.7; display:none; }
-  .histrow { display:flex; gap:6px; flex-wrap:wrap; }
+  .histrow { display:flex; align-items:center; gap:5px; flex-wrap:wrap; row-gap:14px; justify-content:space-between; }
+  .hcell { text-align:center; }
+  .hcirc { width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9.5px; font-weight:800; border:2px solid #ffffff14; }
+  .harr { color:var(--dim); font-size:15px; font-weight:900; flex-shrink:0; }
   .nrow { display:block; padding:6.5px 0; border-bottom:1px solid #ffffff0d; font-size:12px; color:var(--text); font-weight:600; line-height:1.45; }
   .nrow:last-child { border-bottom:none; }
   .nrow .tm { color:var(--dim); font-size:10.5px; font-weight:500; }
@@ -159,7 +162,7 @@ if (!s) {
 
   const nvUrl = `https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock${us ? key+(mkt==="NASDAQ"?".O":mkt==="NYSE"?".N":".A") : code}.svg`;
   const tsUrl = us ? nvUrl : "https://thumb.tossinvest.com/image/resized/96x0/" + encodeURIComponent("https://static.toss.im/png-icons/securities/icn-sec-fill-"+code+".png");
-  const logoBig = `<img src="${tsUrl}" style="width:52px;height:52px;border-radius:50%;background:#fff;flex-shrink:0;" loading="lazy"
+  const logoBig = `<img src="${tsUrl}" style="width:64px;height:64px;border-radius:50%;background:#fff;flex-shrink:0;" loading="lazy"
     onerror="if(!this.dataset.f){this.dataset.f=1;this.src='${nvUrl}';}else{this.style.visibility='hidden';}">`;
 
   const shieldIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4cd7a5" stroke-width="2" stroke-linejoin="round"><path d="M12 2l8 3v6c0 4.8-3.4 8.4-8 11-4.6-2.6-8-6.2-8-11V5z"/></svg>`;
@@ -237,15 +240,15 @@ if (!s) {
   const priceCard = `
   <div class="scard">
     <div style="display:flex;gap:14px;align-items:stretch;">
-      <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
+      <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:0;">
         ${logoBig}
         <div style="min-width:0;">
-          <div style="display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;"><b style="font-size:16px;">${name}</b><span style="color:var(--dim);font-size:11px;">${code}</span><span style="font-size:9.5px;background:var(--panel2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;color:var(--muted);font-weight:700;">${mkt}</span></div>
-          <div style="display:flex;align-items:baseline;gap:9px;margin-top:6px;flex-wrap:wrap;">
-            <span class="num" style="font-size:26px;font-weight:800;">${ST.priceStr(price,us)}</span>
-            <span class="num" style="font-size:13px;font-weight:800;color:${upCol};">${chg>0?"▲":chg<0?"▼":"—"} ${ST.pct2(chg)}</span>
+          <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;"><b style="font-size:19px;">${name}</b><span style="color:var(--dim);font-size:12px;">${code}</span><span style="font-size:10px;background:var(--panel2);border:1px solid var(--border);border-radius:5px;padding:1.5px 7px;color:var(--muted);font-weight:700;">${mkt}</span></div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-top:8px;flex-wrap:wrap;">
+            <span class="num" style="font-size:31px;font-weight:800;">${ST.priceStr(price,us)}</span>
+            <span class="num" style="font-size:15px;font-weight:800;color:${upCol};">${chg>0?"▲":chg<0?"▼":"—"} ${ST.pct2(chg)}</span>
           </div>
-          <div class="num" style="font-size:10.5px;color:var(--dim);margin-top:5px;">거래량 ${ST.num(volToday)}주 · 거래대금 ${amtStr}</div>
+          <div class="num" style="font-size:11.5px;color:var(--dim);margin-top:8px;">거래량 ${ST.num(volToday)}주 · 거래대금 ${amtStr}</div>
         </div>
       </div>
       <div style="width:52%;min-width:180px;flex-shrink:0;display:flex;flex-direction:column;">
@@ -313,68 +316,63 @@ if (!s) {
     </div>
   </div>`;
 
-  const alerts = [];
-  if (!us && s[17]!=null) alerts.push([`외국인 ${s[17]>=0?"순매수":"순매도"} ${buyStr(s[17])} (전일)`, s[17]>=0?"↑":"↓", s[17]>=0?"var(--up)":"var(--down)"]);
-  if (!us && s[18]!=null) alerts.push([`기관 ${s[18]>=0?"순매수":"순매도"} ${buyStr(s[18])} (전일)`, s[18]>=0?"↑":"↓", s[18]>=0?"var(--up)":"var(--down)"]);
-  alerts.push([`당일 거래대금 ${amtStr}`, "=", "var(--muted)"]);
-  if (surge>=2) alerts.push([`거래량 평균 대비 ${surge.toFixed(1)}배 급증`, "!", "var(--gold)"]);
-  if (hi52) alerts.push([`52주 신고가 대비 ${((price/hi52-1)*100).toFixed(1)}%`, "=", "var(--muted)"]);
-  if (earnD) alerts.push([`실적 발표 D-${dd(earnD)}${earnEst?" (예상)":""}`, "📅", "var(--gold)"]);
-  if ((r1w||0)<=-5) alerts.push([`최근 1주 ${ST.pct(r1w)} 조정`, "↓", "var(--down)"]);
-  else if ((r1w||0)>=5) alerts.push([`최근 1주 ${ST.pct(r1w)} 상승`, "↑", "var(--up)"]);
-  const alertCard = `<div class="card" style="margin-bottom:0;"><h3>오늘의 알림</h3>
-    ${alerts.slice(0,7).map(([t,a,c])=>`<div class="alrow"><span class="tx">${t}</span><span class="ar" style="color:${c};">${a}</span></div>`).join("")}</div>`;
 
   // ══ 사이드 ══
   const gcol = sc>=65?"#4cd7a5":sc>=45?"#f0c948":"#f0645a";
   const scLbl = sc>=85?"매우 우수":sc>=65?"양호":sc>=45?"보통":"주의";
   const sideScore = `
-  <div class="card"><h3>종목 종합 점수</h3>
+  <div class="card" style="flex:1;display:flex;flex-direction:column;"><h3>종목 종합 점수</h3>
     <div class="ring" style="background:conic-gradient(${gcol} 0% ${sc}%, #ffffff12 ${sc}% 100%);">
       <div class="hole"><b class="num">${sc}<span style="font-size:13px;color:var(--dim);font-weight:600;">/100</span></b><small style="color:${gcol};">${scLbl}</small></div></div>
     <div class="sbars">
       ${[["수급",supply,0],["모멘텀",momentum,0],["밸류에이션",value,0],["펀더멘털",funda,0],["리스크",100-rk,1]].map(([lb,v,w])=>
         `<div class="r"><span class="lb">${lb}</span><div class="m"><i class="${w?"warn":""}" style="width:${clip(v)}%"></i></div><b>${clip(v)}</b></div>`).join("")}
     </div>
+    <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:8px;font-size:12px;">
+      ${[["현재 티어", `<span class="tierb tier-${g.g}" style="font-size:10.5px;">${g.g}</span>`],
+         ["위험도", `<span style="color:${rk>=70?"var(--down)":rk>=40?"var(--gold)":"var(--up)"};font-weight:800;">${rk} / 100</span>`],
+         ["1개월 수익률", `<span class="${ST.cls(r1m||0)}" style="font-weight:800;">${ST.pct(r1m)}</span>`],
+         ["52주 고점 대비", hi52?`<span class="num" style="font-weight:800;">${((price/hi52-1)*100).toFixed(1)}%</span>`:"-"],
+         ["거래량 배율", `<span class="num" style="font-weight:800;">${surge.toFixed(2)}배</span>`]].map(([lb,v])=>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:5.5px 0;border-bottom:1px solid #ffffff0d;"><span style="color:var(--muted);font-weight:600;">${lb}</span>${v}</div>`).join("")}
+    </div>
   </div>`;
 
   const chips = [];
   if (s.length>20 && s[20]) chips.push(`<span class="tchip gold">${s[20]}</span>`);
   if (s.length>21 && s[21]) chips.push(`<span class="tchip">${s[21]}</span>`);
-  const sideTheme = `<div class="card" style="flex:1;"><h3>관련 업종·테마</h3>
-    <div class="tchips">${chips.length?chips.join(""):`<span style="font-size:12px;color:var(--dim);">일일 데이터 수집 후 표시됩니다</span>`}</div>
-    <div style="margin-top:12px;"><a href="tier.html" style="font-size:11.5px;color:var(--muted);font-weight:700;">관련 티어 더보기 ›</a></div></div>`;
+  const sideTheme = `<div class="card" style="padding:14px 18px;"><h3 style="margin-bottom:8px;">관련 업종·테마 <span class="more" onclick="location.href='tier.html'">더보기 ›</span></h3>
+    <div class="tchips" style="gap:6px;">${chips.length?chips.map(c=>c.replace('class="tchip','style="font-size:11px;padding:4px 10px;" class="tchip')).join(""):`<span style="font-size:12px;color:var(--dim);">일일 데이터 수집 후 표시됩니다</span>`}</div></div>`;
 
   // ══ 하단 1행: 주가 차트 + (티어 히스토리 / 뉴스) ══
   const chartCard = `
-  <div class="card"><h3>주가 차트 <span class="chips2" id="mainchips" style="margin-left:auto;"></span></h3>
-    <div class="chartbox"><div id="mainbox"></div><div class="ctip" id="maintip"></div></div>
-    <div style="font-size:10px;color:var(--dim);margin-top:6px;">* 차트는 종가 기준이며, 제공 데이터 간격상 근사치입니다.</div>
+  <div class="card" style="display:flex;flex-direction:column;"><h3>주가 차트 <span class="chips2" id="mainchips" style="margin-left:auto;"></span></h3>
+    <div class="chartbox" style="flex:1;"><div id="mainbox" style="height:100%;"></div><div class="ctip" id="maintip"></div></div>
   </div>`;
 
-  // 티어 히스토리 (월별 근사)
+  // 티어 히스토리 (분기별 근사 · 과거 → 현재)
   const hist = (() => {
     if (!spk) return null;
     const out = [];
-    for (let i=0;i<10;i++){
-      const back = Math.round(i*1.667);
+    for (let i=7;i>=0;i--){   // 8개 분기 (약 2년)
+      const back = i*5;       // 1분기 ≈ 5포인트
       const v = spk[spk.length-1-back];
-      if (!v) break;
+      if (!v) continue;
       const ret = (1000/v-1)*100;
       const pSc = clip(sc - ret*0.35);
-      const d = new Date(); d.setMonth(d.getMonth()-i);
+      const d = new Date(); d.setMonth(d.getMonth()-i*3);
       out.push([`${String(d.getFullYear()).slice(2)}.${String(d.getMonth()+1).padStart(2,"0")}`, ST.gradeOf(pSc).g]);
     }
-    return out;
+    return out.length ? out : null;
   })();
   const histCard = `
-  <div class="card" style="flex:1;"><h3>티어 히스토리 <span class="more" style="cursor:default;">월별 · 수익률 기반 근사</span></h3>
-    ${hist ? `<div class="histrow">${hist.map(([d2,g2])=>`
-      <div style="text-align:center;">
-        <span class="tierb tier-${g2}" style="font-size:10px;min-width:32px;">${g2}</span>
-        <div style="font-size:9px;color:var(--dim);margin-top:3px;" class="num">${d2}</div>
-      </div>`).join("")}</div>
-    <div style="font-size:11px;color:var(--muted);margin-top:10px;">● 최근 10개월</div>`
+  <div class="card" style="flex:1;display:flex;flex-direction:column;"><h3>티어 히스토리 <span class="more" style="cursor:default;">분기별 · 수익률 기반 근사</span></h3>
+    ${hist ? `<div class="histrow" style="flex:1;align-content:center;">${hist.map(([d2,g2],i)=>`
+      ${i>0?`<span class="harr">➜</span>`:""}
+      <div class="hcell">
+        <span class="hcirc tier-${g2}">${g2}</span>
+        <div style="font-size:9px;color:var(--dim);margin-top:4px;" class="num">${d2}</div>
+      </div>`).join("")}</div>`
     : `<div style="font-size:12px;color:var(--dim);padding:8px 0;">장기 시세 수집 후 표시됩니다</div>`}
   </div>`;
 
@@ -383,7 +381,7 @@ if (!s) {
   const newsTitle = newsHit.length ? "관련 뉴스" : "시장 주요 뉴스";
   if (!newsHit.length) newsHit = MKN;
   const newsCard = `<div class="card" style="flex:1;display:flex;flex-direction:column;"><h3>${newsTitle} <span class="more" onclick="location.href='news.html'">뉴스 더보기 ›</span></h3>
-    ${newsHit.length ? newsHit.slice(0,3).map(n=>`<a class="nrow" href="${n[3]}" target="_blank" rel="noopener">
+    ${newsHit.length ? newsHit.slice(0,2).map(n=>`<a class="nrow" href="${n[3]}" target="_blank" rel="noopener">
       <span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">· ${n[0]}</span>
       <span class="tm">${n[1]}${n[2]?" · "+n[2]:""}</span></a>`).join("")
     : `<div style="font-size:12px;color:var(--dim);">뉴스 수집 대기 중</div>`}</div>`;
@@ -427,7 +425,7 @@ if (!s) {
   <div class="layout">
     <div>
       <div class="cards3">${priceCard}${tierCard}${earnCard}</div>
-      <div class="midgrid">${detail}${alertCard}</div>
+      ${detail}
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;height:100%;">${sideScore}${sideTheme}</div>
   </div>
@@ -438,7 +436,7 @@ if (!s) {
   <div class="row2d">${evCard}${flowCard}</div>`;
 
   // 차트 4개 초기화
-  CH.top  = { per:"1w", keys:["1w","3m","1y","5y"], cfg:{ pts:PTS, W:300, H:86, px:86, col:upCol, col2:upCol==="#4cd7a5"?"#0f7a56":"#7a2822", xlab:true } };
+  CH.top  = { per:"1w", keys:["1w","1m","3m","6m","1y","3y","5y"], cfg:{ pts:PTS, W:300, H:96, px:96, col:"#4cd7a5", col2:"#0f7a56", xlab:true } };
   CH.main = { per:"5y", keys:["1w","1m","3m","6m","1y","3y","5y"], cfg:{ pts:PTS, W:600, H:230, px:230, col:"#4cd7a5", axis:true, badge:true } };
   CH.ff   = { per:"5y", keys:["3m","1y","3y","5y"], cfg:{ pts:PTS, W:420, H:130, px:130, col:"#4cd7a5", axis:true } };
   CH.fo   = { per:"5y", keys:["3m","1y","3y","5y"], cfg:{ pts:PTS, W:420, H:130, px:130, col:"#f0c948", col2:"#8a6f1e", axis:true } };
@@ -457,8 +455,8 @@ if (!s) {
     window.setFper = (id, sel) => { FP[id].sel = sel; drawFlow(id); };
     function drawFlow(id){
       const c = FP[id];
-      const n = Math.min(c.sel==="1m" ? 20 : 60, FLOWS.length);
-      document.getElementById(id+"chips").innerHTML = [["1m","1개월"],["3m","3개월"]].map(([k,t])=>
+      const n = Math.min({ "1w":5, "1m":20, "3m":60, "6m":120 }[c.sel] || 60, FLOWS.length);
+      document.getElementById(id+"chips").innerHTML = [["1w","1주"],["1m","1개월"],["3m","3개월"],["6m","6개월"]].map(([k,t])=>
         `<span class="chip ${c.sel===k?"on":""}" onclick="setFper('${id}','${k}')">${t}</span>`).join("");
       const rows = FLOWS.slice(-n);
       const el = document.getElementById(id+"box"), tip = document.getElementById(id+"tip");
