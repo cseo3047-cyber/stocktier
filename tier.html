@@ -252,7 +252,7 @@ window.showList = id => {
 })();
 
 // ── 필터 + 랭킹 테이블
-let CAT = "all", SORT = "sc", MKT = "all", SHOW = 30, Q = "";
+let CAT = "all", SORT = "sc", MKT = "all", SHOW = 15, Q = "";
 const CATS = [["all","전체"],["big","대형주"],["mid","중형주"],["grow","성장주"],["div","배당주"],["value","가치주"],["theme","테마주"]];
 const catFn = {
   all: x => true,
@@ -288,10 +288,10 @@ function drawBar(){
         <option value="cap" ${SORT==="cap"?"selected":""}>시가총액</option>
         <option value="rk" ${SORT==="rk"?"selected":""}>안정성</option></select></span></span>`;
 }
-window.setCat = k => { CAT = k; SHOW = 30; drawBar(); drawTbl(); };
-window.setSort = v => { SORT = v; SHOW = 30; drawTbl(); };
-window.setMkt = v => { MKT = v; SHOW = 30; drawBar(); drawTbl(); };
-document.getElementById("tierq").addEventListener("input", e => { Q = e.target.value.trim(); SHOW = 30; drawTbl(); });
+window.setCat = k => { CAT = k; SHOW = 15; drawBar(); drawTbl(); };
+window.setSort = v => { SORT = v; SHOW = 15; drawTbl(); };
+window.setMkt = v => { MKT = v; SHOW = 15; drawBar(); drawTbl(); };
+document.getElementById("tierq").addEventListener("input", e => { Q = e.target.value.trim(); SHOW = 15; drawTbl(); });
 function drawTbl(){
   const p = pool();
   document.getElementById("tbody").innerHTML = p.slice(0,SHOW).map((x,i)=>`
@@ -311,7 +311,7 @@ function drawTbl(){
     </tr>`).join("");
   document.getElementById("morebtn").style.display = p.length > SHOW ? "block" : "none";
 }
-document.getElementById("morebtn").addEventListener("click", () => { SHOW += 30; drawTbl(); });
+document.getElementById("morebtn").addEventListener("click", () => { SHOW += 15; drawTbl(); });
 drawBar(); drawTbl();
 
 // ── 하단 3분할
@@ -422,12 +422,14 @@ function earnInfo(x){
 // ── 사이드: 오늘의 신규 AAA
 (function(){
   const list = ALL.filter(x=>!x.us && x.gNow.g==="AAA" && x.gPast.g!=="AAA").sort((a,b)=>b.sc-a.sc).slice(0,5);
-  document.getElementById("newS").innerHTML = list.length ? list.map((x,i)=>`
+  document.getElementById("newS").innerHTML = list.length ?
+    `<div class="lmhead"><span style="width:18px;"></span><span style="flex:1;">종목명</span><span style="width:104px;text-align:center;">등급 변동</span><span style="width:64px;text-align:right;">사유</span></div>` +
+    list.map((x,i)=>`
     <div class="nrow2" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
       <span class="rank">${i+1}</span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x.key}</span>
-      <span class="tchg" style="background:#22303c;color:#9db9d4;">${x.gPast.g}</span><span style="color:var(--dim);">→</span><span class="tchg" style="background:#3d3313;color:#f0c948;">AAA</span>
-      <span class="sub2">${x.momentum>=70?"모멘텀 강화":x.supply>=70?"수급 급증":"지표 개선"}</span></div>`).join("")
+      <span style="width:104px;text-align:center;flex-shrink:0;white-space:nowrap;"><span class="tchg" style="background:#22303c;color:#9db9d4;">${x.gPast.g}</span> <span style="color:var(--dim);">→</span> <span class="tchg" style="background:#3d3313;color:#f0c948;">AAA</span></span>
+      <span class="sub2" style="width:64px;text-align:right;">${x.momentum>=70?"모멘텀 강화":x.supply>=70?"수급 급증":"지표 개선"}</span></div>`).join("")
   : `<div style="font-size:12px;color:var(--dim);padding:8px 0;">오늘 신규 AAA가 없습니다</div>`;
 })();
 
