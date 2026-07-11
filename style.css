@@ -73,9 +73,9 @@ a { color:inherit; text-decoration:none; }
 .tierb { display:inline-flex; align-items:center; justify-content:center; min-width:34px; padding:3px 8px; border-radius:7px; font-size:12px; font-weight:800; }
 .tier-S { background:#3d3313; color:var(--tier-s); }
 .tier-A { background:#132f3d; color:var(--tier-a); }
-.tier-B { background:#13322a; color:var(--tier-b); }
-.tier-C { background:#272c2c; color:var(--tier-c); }
-.tier-D { background:#3a1a22; color:var(--tier-d); }
+.tier-B { background:#3d2f13; color:#e0a63e; }
+.tier-C { background:#3a1a22; color:#f0708a; }
+.tier-D { background:#2c1215; color:#c95560; }
 
 /* 테이블 */
 .tbl { width:100%; border-collapse:collapse; font-size:13px; }
@@ -110,6 +110,13 @@ a { color:inherit; text-decoration:none; }
 /* 공지/푸터 */
 .notice { background:#2c2416; border:1px solid #5c4a1e; color:var(--gold); font-size:12px; border-radius:10px; padding:10px 14px; margin-bottom:16px; }
 .footer { text-align:center; color:var(--muted); font-size:12px; font-weight:600; letter-spacing:.5px; margin-top:44px; line-height:1.8; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:13px 18px; }
+
+/* 채권 신용등급 티어 뱃지 (AAA~D) */
+.tier-AAA { background:#3d3313; color:#f0c948; }
+.tier-AA  { background:#3a2f16; color:#e0b64e; }
+.tier-BBB { background:#13322a; color:#4cd7a5; }
+.tier-BB  { background:#2c3a20; color:#a8c96a; }
+.tier-CCC { background:#3a2213; color:#f08a5a; }
 .hidden { display:none; }
 
 @media (max-width:760px) {

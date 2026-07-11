@@ -24,12 +24,17 @@ window.ST = (function () {
   const ALIAS = window.KO_ALIAS || { "애플": "AAPL" };
   const isReal = { kr: !!window.STOCK_DB, us: !!window.STOCK_DB_US };
 
+  // 채권 신용등급 방식 티어 (AAA~BBB 투자적격 · BB~D 투기등급)
   const GRADES = [
-    { g:"S", min:80, label:"챌린저급 대장주" },
-    { g:"A", min:65, label:"다이아급 우량주" },
-    { g:"B", min:50, label:"플래티넘급 중견주" },
-    { g:"C", min:35, label:"골드급 존버주" },
-    { g:"D", min:0,  label:"브론즈급 기도주" }
+    { g:"AAA", min:85, label:"안정성 최고 수준의 대장주" },
+    { g:"AA",  min:75, label:"매우 우수한 우량주" },
+    { g:"A",   min:65, label:"양호한 우량주" },
+    { g:"BBB", min:55, label:"보통 · 최저 투자적격급" },
+    { g:"BB",  min:45, label:"변동성 큰 투기등급 시작" },
+    { g:"B",   min:35, label:"체력 취약 · 요주의" },
+    { g:"CCC", min:25, label:"불확실성 상존 · 고위험" },
+    { g:"C",   min:10, label:"신용위험 매우 높음" },
+    { g:"D",   min:0,  label:"지표 최하위 · 부도급" }
   ];
 
   function score(s, us) {

@@ -217,11 +217,11 @@ const miniBars = (id,c1,c2,seed,desc) => { let b="";
     b+=`<rect x="${i*9.5}" y="${36-h}" width="6.5" height="${h}" rx="2" fill="url(#${id})"/>`; }
   return `<svg class="mini" width="78" height="36" viewBox="0 0 78 36"><defs><linearGradient id="${id}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>${b}</svg>`; };
 (function(){
-  const sUp = A.filter(x=>x.sc>=80 && x.e[3]>0).length;
+  const sUp = A.filter(x=>x.sc>=85 && x.e[3]>0).length;
   const avgR = TBL.length ? TBL.reduce((a,o)=>a+o.r,0)/TBL.length : 0;
   const dipN = A.filter(x=>(x.e[15]||0)<=-10).length;
   document.getElementById("cards").innerHTML = `
-    <div class="scard"><span class="ic">${upIcon}</span><div class="l"><div class="lb">오늘 S티어 상승 종목</div><div class="vl num">${sUp}<small> 개</small></div><div class="sub">S티어 & 당일 상승</div></div>${miniLine("sg1","#1d9e75","#4cd7a5",sUp*13+9)}</div>
+    <div class="scard"><span class="ic">${upIcon}</span><div class="l"><div class="lb">오늘 AAA 상승 종목</div><div class="vl num">${sUp}<small> 개</small></div><div class="sub">AAA 티어 & 당일 상승</div></div>${miniLine("sg1","#1d9e75","#4cd7a5",sUp*13+9)}</div>
     <div class="scard"><span class="ic">${barsUpIcon}</span><div class="l"><div class="lb">시뮬레이션 평균 수익률</div><div class="vl num ${avgR>=0?"up":"down"}">${avgR>=0?"+":""}${avgR.toFixed(1)}<small> %</small></div><div class="sub">TOP 5 · ${PERIODS[PER][0]} 기준</div></div>${miniLine("sg2","#1d9e75","#8fd6b8",Math.abs(Math.round(avgR))*7+11)}</div>
     <div class="scard"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${warnIcon}</span><div class="l"><div class="lb">물타기 대상 종목</div><div class="vl num">${ST.num(dipN)}<small> 개</small></div><div class="sub">1개월 -10% 이하</div></div>${miniBars("sg3","#7a2822","#f0645a",dipN+7)}</div>
     <div class="scard"><span class="ic">${cycIcon}</span><div class="l"><div class="lb">손익분기 단축 효과</div><div class="vl num" id="cardBE">-</div><div class="sub">물타기 계산기 연동</div></div>${miniBars("sg4","#0f7a56","#4cd7a5",29,true)}</div>`;
@@ -454,8 +454,8 @@ function side(){
   const dot = (t,bg,c) => `<span class="dot2" style="background:${bg};color:${c};">${t}</span>`;
   const pts = [];
   if (TBL[0]) pts.push([dot("!","#3d3313","#f0c948"), `${TBL[0].x.key}, ${PERIODS[PER][0]} 수익률 ${TBL[0].r>=0?"+":""}${TBL[0].r.toFixed(1)}% 1위`]);
-  const upT = A.filter(x=>x.sc>=80 && x.e[3]>0).length;
-  if (upT) pts.push([dot("S","#13322a","#4cd7a5"), `S티어 상승 종목 ${upT}개 — 티어 랭킹 확인`]);
+  const upT = A.filter(x=>x.sc>=85 && x.e[3]>0).length;
+  if (upT) pts.push([dot("★","#13322a","#4cd7a5"), `AAA 티어 상승 종목 ${upT}개 — 티어 랭킹 확인`]);
   if ((SEL.e[15]||0)<0) pts.push([dot("↓","#3a1a22","#f0708a"), `${SEL.key}, 1개월 ${ST.pct(SEL.e[15])} — 물타기 시뮬 참고`]);
   pts.push([dot("✓","#13322a","#4cd7a5"), "물타기 후 손익분기 변화는 계산기에서 즉시 확인"]);
   pts.push([dot("!","#3a1a22","#f0708a"), "실적 발표 전 변동성 확대 종목 주의"]);

@@ -70,6 +70,19 @@
   .gbar .m i { display:block; height:100%; background:linear-gradient(90deg,#8a6f1e,#f0c948); border-radius:4px; }
   .gbar b { width:34px; text-align:right; color:var(--text); }
   .mag { position:absolute; right:11px; top:0; bottom:0; display:flex; align-items:center; color:var(--muted); font-size:15px; font-weight:700; pointer-events:none; }
+  /* 팝업 */
+  .pmod { position:fixed; inset:0; background:#000000aa; display:none; align-items:center; justify-content:center; z-index:300; }
+  .pmbox { background:var(--panel); border:1px solid var(--border); border-radius:16px; width:min(460px,92vw); max-height:80vh; overflow:auto; padding:18px 20px; }
+  .pmbox.wide { width:min(640px,94vw); }
+  .pmhead { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+  .pmhead b { font-size:15px; }
+  .pmclose { cursor:pointer; color:var(--muted); font-size:16px; padding:2px 6px; }
+  .pmclose:hover { color:var(--text); }
+  .pmsub { font-size:11px; color:var(--dim); margin-bottom:10px; }
+  .rt { width:100%; border-collapse:collapse; font-size:12px; }
+  .rt th { text-align:left; color:var(--dim); font-size:11px; font-weight:700; padding:8px 8px; border-bottom:1px solid var(--border); }
+  .rt td { padding:9px 8px; border-bottom:1px solid #ffffff0d; color:var(--muted); line-height:1.65; vertical-align:top; }
+  .rt tr:last-child td { border-bottom:none; }
 </style>
 </head>
 <body>
@@ -94,13 +107,13 @@
       </div>
       <div class="row3b">
         <div class="card"><h3>등급 상향 TOP 5</h3><div id="upgrades"></div></div>
-        <div class="card"><h3>업종별 S티어 수</h3><div id="indbars"></div></div>
+        <div class="card"><h3>업종별 AAA 수</h3><div id="indbars"></div></div>
         <div class="card"><h3>오늘의 한줄 해설</h3><ul class="bullets2" id="notes"></ul></div>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;height:100%;">
-      <div class="card"><h3>티어 분포</h3><div class="dwrap" id="dist"></div></div>
-      <div class="card"><h3>오늘의 신규 S 티어</h3><div id="newS"></div></div>
+      <div class="card"><h3>티어 분포 <span class="more" onclick="document.getElementById('rmod').style.display='flex'">더보기 ›</span></h3><div class="dwrap" id="dist"></div></div>
+      <div class="card"><h3>오늘의 신규 AAA</h3><div id="newS"></div></div>
       <div class="card" style="flex:1;"><h3>평가 기준</h3>
         <div id="crit"></div>
         <div style="font-size:10.5px;color:var(--dim);margin-top:10px;">Stocktier 종합 점수는 100점 기준으로 산출됩니다.</div>
@@ -109,6 +122,36 @@
   </div>
 
   <div class="footer"></div>
+</div>
+
+<div class="pmod" id="lmod" onclick="if(event.target===this)this.style.display='none'">
+  <div class="pmbox">
+    <div class="pmhead"><b id="lmtitle"></b><span class="pmclose" onclick="document.getElementById('lmod').style.display='none'">✕</span></div>
+    <div class="pmsub" id="lmsub"></div>
+    <div id="lmbody"></div>
+  </div>
+</div>
+
+<div class="pmod" id="rmod" onclick="if(event.target===this)this.style.display='none'">
+  <div class="pmbox wide">
+    <div class="pmhead"><b>📊 티어 등급표 (신용등급 방식)</b><span class="pmclose" onclick="document.getElementById('rmod').style.display='none'">✕</span></div>
+    <div class="pmsub">종합점수(100점 만점)를 채권 신용등급 방식으로 구분합니다.</div>
+    <table class="rt">
+      <thead><tr><th style="width:64px;">등급</th><th style="width:64px;">점수</th><th>등급 정의</th><th style="width:76px;">분류</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tierb tier-AAA">AAA</span></td><td class="num">85~100</td><td>수급·펀더멘털·모멘텀이 최고 수준이며 안정성이 매우 높음</td><td><b style="color:#4cd7a5;">투자적격</b></td></tr>
+        <tr><td><span class="tierb tier-AA">AA</span></td><td class="num">75~84</td><td>지표가 매우 우수하나 AAA보다는 상대적으로 환경 변화의 영향을 받을 가능성 있음</td><td><b style="color:#4cd7a5;">투자적격</b></td></tr>
+        <tr><td><span class="tierb tier-A">A</span></td><td class="num">65~74</td><td>지표가 양호하나, 경기 불황 등에 따라 저하될 가능성 있음</td><td><b style="color:#4cd7a5;">투자적격</b></td></tr>
+        <tr><td><span class="tierb tier-BBB">BBB</span></td><td class="num">55~64</td><td>지표가 보통이나, 향후 여건에 따라 위험이 커질 수 있어 주의가 필요한 최저 투자적격 등급</td><td><b style="color:#4cd7a5;">투자적격</b></td></tr>
+        <tr><td><span class="tierb tier-BB">BB</span></td><td class="num">45~54</td><td>지표 유지는 가능하나, 경기 및 산업 여건에 따라 위험 변동성이 매우 큼 (투기등급 시작)</td><td><b style="color:#f0708a;">투기등급</b></td></tr>
+        <tr><td><span class="tierb tier-B">B</span></td><td class="num">35~44</td><td>지표 체력이 취약하여 접근 시 요주의 대상</td><td><b style="color:#f0708a;">투기등급</b></td></tr>
+        <tr><td><span class="tierb tier-CCC">CCC</span></td><td class="num">25~34</td><td>지표 개선 가능성이 낮고 위험이 매우 높아 불확실성이 상존함 (CCC~CC)</td><td><b style="color:#f0708a;">투기등급</b></td></tr>
+        <tr><td><span class="tierb tier-C">C</span></td><td class="num">10~24</td><td>지표 부진이 매우 심한 상태</td><td><b style="color:#f0708a;">투기등급</b></td></tr>
+        <tr><td><span class="tierb tier-D">D</span></td><td class="num">0~9</td><td>지표 최하위 (부도급) 상태</td><td><b style="color:#f0708a;">투기등급</b></td></tr>
+      </tbody>
+    </table>
+    <div style="font-size:10.5px;color:var(--dim);margin-top:10px;">※ 실제 신용평가사의 채권 등급이 아닌, 재미용 지표를 신용등급 형식으로 표현한 것입니다.</div>
+  </div>
 </div>
 
 <script src="data.js"></script>
@@ -128,7 +171,10 @@ const ALL = ST.all().map(x => {
   const wins = e[12].filter(d=>d>0).length;
   const outlook = (wins>=4 || (e[14]||0)>5) ? ["Positive","b-pos"] : (wins<=1 ? ["Negative","b-neg"] : ["Stable","b-sta"]);
   const gNow = ST.gradeOf(sc), gPast = ST.gradeOf(clip(sc - (e[14]||0)*0.9));
-  return { ...x, us, sc, rk, supply:clip(supply), momentum, value, outlook, gNow, gPast, up: gNow.min > gPast.min };
+  // 등급 변동: 등급이 실제로 바뀌고 + 1주 ±3% 이상 움직인 경우만 (노이즈 제거)
+  const up = gNow.min > gPast.min && (e[14]||0) >= 3;
+  const down = gNow.min < gPast.min && (e[14]||0) <= -3;
+  return { ...x, us, sc, rk, supply:clip(supply), momentum, value, outlook, gNow, gPast, up, down };
 });
 
 // ── 상단 카드 (아이콘 + 그라데이션 미니 그래프)
@@ -153,15 +199,42 @@ const logo = x => {
     onerror="if(!this.dataset.f){this.dataset.f=1;this.src='${nv}';}else{this.style.visibility='hidden';}">`;
 };
 
+// ── 상단 카드: 전체 커버 + 수급 개선 / 거래대금 폭발 / 관심 급증 (클릭 시 리스트 팝업)
+const supList = ALL.filter(x=>!x.us && x.e.length>18 && x.e[17]!=null && x.e[17]>0 && x.e[18]>0)
+  .sort((a,b)=>(b.e[17]+b.e[18])*b.e[2]-(a.e[17]+a.e[18])*a.e[2]);
+const amtList = ALL.filter(x=>x.e[9]>0 && x.e[11]/x.e[9]>=2 && x.e[11]*x.e[2]>0)
+  .sort((a,b)=>b.e[11]*b.e[2]-a.e[11]*a.e[2]);
+const hotList = ALL.filter(x=>x.e[9]>0 && x.e[11]/x.e[9]>=1.5)
+  .sort((a,b)=>b.e[11]/b.e[9]-a.e[11]/a.e[9]);
+const amtStr2 = x => { const v = x.e[2]*x.e[11];
+  return x.us ? (v>=1e9?"$"+(v/1e9).toFixed(1)+"B":"$"+(v/1e6).toFixed(0)+"M")
+              : (v>=1e12?(v/1e12).toFixed(1)+"조":Math.round(v/1e8).toLocaleString("ko-KR")+"억"); };
+window.showList = id => {
+  const cfg = {
+    sup: ["수급 개선 종목", "외국인·기관 동반 순매수 (전일)", supList,
+      x=>`<b class="num up">+${Math.round((x.e[17]+x.e[18])*x.e[2]/1e8).toLocaleString("ko-KR")}억</b>`],
+    amt: ["거래대금 폭발 종목", "평소(3개월 평균) 대비 2배 이상 · 거래대금 순", amtList,
+      x=>`<b class="num" style="color:#f0c948;">${(x.e[11]/x.e[9]).toFixed(1)}배</b> <span class="num" style="color:var(--dim);font-size:11px;">${amtStr2(x)}</span>`],
+    hot: ["관심 급증 종목", "거래 참여(거래량 배수) 급증 순", hotList,
+      x=>`<b class="num" style="color:#f08a5a;">${(x.e[11]/x.e[9]).toFixed(1)}배</b>`],
+  }[id];
+  document.getElementById("lmtitle").textContent = cfg[0];
+  document.getElementById("lmsub").textContent = cfg[1];
+  document.getElementById("lmbody").innerHTML = cfg[2].slice(0,30).map((x,i)=>`
+    <div class="nrow2" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
+      <span class="rank">${i+1}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${logo(x)}${ST.displayName(x.src,x.key)}</span>
+      <span class="num ${ST.cls(x.e[3])}" style="font-size:11.5px;">${ST.pct2(x.e[3])}</span>
+      <span style="flex-shrink:0;">${cfg[3](x)}</span></div>`).join("")
+    || `<div style="font-size:12px;color:var(--dim);padding:10px 0;">해당 종목이 없습니다</div>`;
+  document.getElementById("lmod").style.display = "flex";
+};
 (function(){
-  const sN = ALL.filter(x=>x.sc>=80).length;
-  const upN = ALL.filter(x=>x.up).length;
-  const wN = ALL.filter(x=>x.rk>=70).length;
   document.getElementById("cards").innerHTML = `
     <div class="scard"><span class="ic">${listIcon}</span><div class="l"><div class="lb">전체 커버 종목</div><div class="vl num">${ST.num(ALL.length)}<small> 개</small></div><div class="sub">국내 + 미국</div></div>${miniLine("tg1","#1d9e75","#4cd7a5",ALL.length%97+11)}</div>
-    <div class="scard"><span class="ic" style="background:#f0c9481a;border-color:#c9a83255;">${shieldSIcon}</span><div class="l"><div class="lb">S 티어 종목</div><div class="vl num">${ST.num(sN)}<small> 개</small></div><div class="sub">종합점수 80 이상</div></div>${miniBars("tg2","#8a6f1e","#f0c948",sN%37+13)}</div>
-    <div class="scard"><span class="ic">${trendIcon}</span><div class="l"><div class="lb">등급 상향 종목</div><div class="vl num">${ST.num(upN)}<small> 개</small></div><div class="sub">최근 1주 기준</div></div>${miniBars("tg3","#0f7a56","#4cd7a5",upN%41+7)}</div>
-    <div class="scard"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${warnIcon}</span><div class="l"><div class="lb">위험 경고 종목</div><div class="vl num">${ST.num(wN)}<small> 개</small></div><div class="sub">과열 · 수급 이탈</div></div>${miniBars("tg4","#7a2822","#f0645a",wN%43+9)}</div>`;
+    <div class="scard" style="cursor:pointer;" onclick="showList('sup')"><span class="ic">${trendIcon}</span><div class="l"><div class="lb">수급 개선</div><div class="vl num">${ST.num(supList.length)}<small> 개</small></div><div class="sub">외국인·기관 순매수 전환 종목</div></div>${miniBars("tg2","#0f7a56","#4cd7a5",supList.length%41+7)}</div>
+    <div class="scard" style="cursor:pointer;" onclick="showList('amt')"><span class="ic" style="background:#f0c9481a;border-color:#c9a83255;">${shieldSIcon}</span><div class="l"><div class="lb">거래대금 폭발</div><div class="vl num">${ST.num(amtList.length)}<small> 개</small></div><div class="sub">평소 대비 거래대금 급증 종목</div></div>${miniBars("tg3","#8a6f1e","#f0c948",amtList.length%37+13)}</div>
+    <div class="scard" style="cursor:pointer;" onclick="showList('hot')"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${warnIcon}</span><div class="l"><div class="lb">관심 급증 종목</div><div class="vl num">${ST.num(hotList.length)}<small> 개</small></div><div class="sub">거래 참여가 급증한 종목</div></div>${miniBars("tg4","#7a2822","#f0645a",hotList.length%43+9)}</div>`;
 })();
 
 // ── 필터 + 랭킹 테이블
@@ -240,14 +313,14 @@ drawBar(); drawTbl();
   : `<div style="font-size:12px;color:var(--dim);padding:10px 0;">오늘 등급 상향 종목이 없습니다</div>`;
 
   const ind = {};
-  for (const x of kr) if (x.sc>=80 && x.e.length>20 && x.e[20]) ind[x.e[20]] = (ind[x.e[20]]||0)+1;
+  for (const x of kr) if (x.sc>=85 && x.e.length>20 && x.e[20]) ind[x.e[20]] = (ind[x.e[20]]||0)+1;
   const inds = Object.entries(ind).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const mx = inds.length ? inds[0][1] : 1;
   document.getElementById("indbars").innerHTML = inds.length ? inds.map(([nm,c])=>`
     <div class="hbar"><span class="lb2">${nm}</span><div class="m"><i style="width:${Math.max(8,c/mx*100)}%"></i></div><b>${c}</b></div>`).join("")
   : `<div style="font-size:12px;color:var(--dim);padding:10px 0;">업종 데이터 수집 후 표시됩니다</div>`;
 
-  const sTop = kr.filter(x=>x.sc>=80).sort((a,b)=>b.sc-a.sc);
+  const sTop = kr.filter(x=>x.sc>=85).sort((a,b)=>b.sc-a.sc);
   const notes = [];
   if (inds.length) notes.push(`${inds.slice(0,2).map(x2=>x2[0]).join("·")} 중심으로 상위 티어 집중`);
   if (sTop.length) notes.push(`${sTop[0].key} 종합점수 ${sTop[0].sc}점으로 전체 1위`);
@@ -257,32 +330,33 @@ drawBar(); drawTbl();
   document.getElementById("notes").innerHTML = notes.slice(0,5).map(n=>`<li>${n}</li>`).join("");
 })();
 
-// ── 사이드: 티어 분포 도넛
+// ── 사이드: 티어 분포 도넛 (신용등급 9단계)
 (function(){
-  const cnt = {S:0,A:0,B:0,C:0,D:0};
+  const cols = {AAA:"#f0c948",AA:"#e0b64e",A:"#4cc3d7",BBB:"#4cd7a5",BB:"#a8c96a",B:"#e0a63e",CCC:"#f08a5a",C:"#f0708a",D:"#c95560"};
+  const cnt = {};
+  for (const g2 of ST.GRADES) cnt[g2.g] = 0;
   for (const x of ALL) cnt[x.gNow.g]++;
-  const cols = {S:"#f0c948",A:"#4cc3d7",B:"#4cd7a5",C:"#8fa5ad",D:"#d6564a"};
   let acc = 0; const segs = [];
-  const legend = Object.keys(cnt).map(k=>{
-    const p = cnt[k]/ALL.length*100;
-    segs.push(`${cols[k]} ${acc}% ${acc+p}%`); acc += p;
-    return `<div class="r"><span class="dot" style="background:${cols[k]};"></span><span class="lb">${k} 티어</span><b>${p.toFixed(1)}%</b><span style="color:var(--dim);font-size:10.5px;">(${ST.num(cnt[k])})</span></div>`;
+  const legend = ST.GRADES.map(g2=>{
+    const k = g2.g, p = cnt[k]/ALL.length*100;
+    segs.push(`${cols[k]||"#33413a"} ${acc}% ${acc+p}%`); acc += p;
+    return `<div class="r"><span class="dot" style="background:${cols[k]||"#33413a"};"></span><span class="lb">${k}</span><b>${p.toFixed(1)}%</b><span style="color:var(--dim);font-size:10.5px;">(${ST.num(cnt[k])})</span></div>`;
   }).join("");
   document.getElementById("dist").innerHTML = `
     <div class="donut" style="background:conic-gradient(${segs.join(",")});"><div class="hole"><small>총</small><b class="num">${ST.num(ALL.length)}개</b></div></div>
     <div class="dlegend">${legend}</div>`;
 })();
 
-// ── 사이드: 오늘의 신규 S 티어
+// ── 사이드: 오늘의 신규 AAA
 (function(){
-  const list = ALL.filter(x=>!x.us && x.gNow.g==="S" && x.gPast.g!=="S").sort((a,b)=>b.sc-a.sc).slice(0,5);
+  const list = ALL.filter(x=>!x.us && x.gNow.g==="AAA" && x.gPast.g!=="AAA").sort((a,b)=>b.sc-a.sc).slice(0,5);
   document.getElementById("newS").innerHTML = list.length ? list.map((x,i)=>`
     <div class="nrow2" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
       <span class="rank">${i+1}</span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x.key}</span>
-      <span class="tchg" style="background:#22303c;color:#9db9d4;">${x.gPast.g}</span><span style="color:var(--dim);">→</span><span class="tchg" style="background:#3d3313;color:#f0c948;">S</span>
+      <span class="tchg" style="background:#22303c;color:#9db9d4;">${x.gPast.g}</span><span style="color:var(--dim);">→</span><span class="tchg" style="background:#3d3313;color:#f0c948;">AAA</span>
       <span class="sub2">${x.momentum>=70?"모멘텀 강화":x.supply>=70?"수급 급증":"지표 개선"}</span></div>`).join("")
-  : `<div style="font-size:12px;color:var(--dim);padding:8px 0;">오늘 신규 S 티어가 없습니다</div>`;
+  : `<div style="font-size:12px;color:var(--dim);padding:8px 0;">오늘 신규 AAA가 없습니다</div>`;
 })();
 
 // ── 사이드: 평가 기준
