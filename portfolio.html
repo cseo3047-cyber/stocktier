@@ -100,7 +100,9 @@ ST.nav("portfolio.html");
 document.getElementById("asof").textContent = "업데이트: " + ST.asofText();
 
 const clip = v => Math.max(0, Math.min(100, Math.round(v)));
-const list = ST.pfGet().filter(w => ST.get(w[0],w[1]));
+// 포트폴리오 저장소(관심종목과 별개) — common.js 버전과 무관하게 직접 읽기
+const PF_GET = () => { try { return JSON.parse(localStorage.getItem("st_pf")||"[]"); } catch(e){ return []; } };
+const list = PF_GET().filter(w => ST.get(w[0],w[1]));
 const box = document.getElementById("body");
 
 if (!list.length) {

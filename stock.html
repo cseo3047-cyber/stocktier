@@ -730,11 +730,18 @@ if (!s) {
     else { b.textContent = "☆ 관심종목"; b.style.color = ""; b.style.borderColor = ""; }
   }
   updateWatchBtn();
-  // 포트폴리오(내 투자) — 관심종목과 별개
-  window.togglePf = function(){ ST.pfToggle(src, key); updatePfBtn(); };
+  // 포트폴리오(내 투자) — 관심종목과 별개. common.js 버전과 무관하게 직접 localStorage 처리
+  const pfGetL = () => { try { return JSON.parse(localStorage.getItem("st_pf")||"[]"); } catch(e){ return []; } };
+  const pfHasL = (s,k) => pfGetL().some(w=>w[0]===s&&w[1]===k);
+  window.togglePf = function(){
+    let l = pfGetL();
+    if (pfHasL(src,key)) l = l.filter(w=>!(w[0]===src&&w[1]===key)); else l.push([src,key]);
+    localStorage.setItem("st_pf", JSON.stringify(l));
+    updatePfBtn();
+  };
   function updatePfBtn(){
     const b = document.getElementById("pfbtn");
-    if (ST.pfHas(src,key)) { b.textContent = "✓ 포트폴리오 담김"; b.style.color = "#4cd7a5"; b.style.borderColor = "#2e5c47"; }
+    if (pfHasL(src,key)) { b.textContent = "✓ 포트폴리오 담김"; b.style.color = "#4cd7a5"; b.style.borderColor = "#2e5c47"; }
     else { b.textContent = "＋ 포트폴리오"; b.style.color = ""; b.style.borderColor = ""; }
   }
   updatePfBtn();
