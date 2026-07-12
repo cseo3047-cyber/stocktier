@@ -1,0 +1,19 @@
+# Netlify 보안 헤더 — 이 파일을 배포(publish) 폴더 루트에 두세요.
+# 아래 헤더는 사이트를 깨뜨리지 않는 안전한 항목이라 바로 켜도 됩니다.
+
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=()
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+
+# ── Content-Security-Policy (선택) ──────────────────────────────
+# CSP는 리소스 출처를 제한해 XSS를 줄여주지만, 출처를 하나라도 빠뜨리면
+# Firebase 로그인·reCAPTCHA·종목 로고 등이 막힐 수 있어요.
+# 켜려면: 아래 줄 맨 앞의 '# ' 를 지우고(주석 해제) 배포한 뒤,
+#   stocktier.kr 에서 로그인·댓글·이미지가 정상인지, 콘솔(F12)에 CSP 오류가 없는지 확인하세요.
+# 문제가 생기면 이 줄만 다시 주석 처리하면 원상복구됩니다.
+#
+#   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.google.com https://apis.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firebaseinstallations.googleapis.com https://content-firebaseappcheck.googleapis.com; frame-src https://stocktier-10c96.firebaseapp.com https://www.google.com https://accounts.google.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'
