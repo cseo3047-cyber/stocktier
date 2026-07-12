@@ -68,6 +68,21 @@
   .gbar .m { flex:1; height:7px; background:var(--panel2); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
   .gbar .m i { display:block; height:100%; background:linear-gradient(90deg,#8a6f1e,#f0c948); border-radius:4px; }
   .gbar b { width:34px; text-align:right; color:var(--text); }
+  /* 상단 카드 클릭 + 호버 초록 테두리 */
+  .scard.clickable { cursor:pointer; transition:border-color .15s, transform .1s; }
+  .scard.clickable:hover { border-color:#4cd7a5; transform:translateY(-1px); }
+  /* 위젯 컬럼 헤더 (가운데 정렬) */
+  .chd2 { display:flex; align-items:center; gap:8px; padding:0 2px 7px; margin-bottom:5px; border-bottom:1px solid var(--border); font-size:10px; color:var(--dim); font-weight:700; }
+  .chd2 span { text-align:center; white-space:nowrap; }
+  /* 카드 상세 모달 */
+  .wmodal { position:fixed; inset:0; background:#000000aa; display:none; align-items:center; justify-content:center; z-index:130; }
+  .wmodal.on { display:flex; }
+  .wmbox { background:var(--panel); border:1px solid var(--border); border-radius:16px; width:min(560px,92vw); max-height:82vh; display:flex; flex-direction:column; padding:20px 22px; }
+  .wmhd { display:flex; align-items:center; gap:10px; padding:0 2px 8px; border-bottom:1px solid var(--border); font-size:10.5px; color:var(--dim); font-weight:700; }
+  .wmhd span { text-align:center; }
+  .wmrow { display:flex; align-items:center; gap:10px; padding:9px 2px; border-bottom:1px solid #ffffff0d; font-size:12.5px; cursor:pointer; }
+  .wmrow:last-child { border-bottom:none; }
+  .wmrow:hover { background:var(--panel2); }
 </style>
 </head>
 <body>
@@ -174,10 +189,10 @@ const gcol = surv>=65?"#4cd7a5":surv>=45?"#f0c948":"#f0645a";
 
 const cards = `
 <div class="cards4">
-  <div class="scard"><span class="ic">${listIcon}</span><div class="l"><div class="lb">전체 관심종목</div><div class="vl num">${n}<small> 개</small></div><div class="sub">저장 종목 수</div></div>${miniLine("wg1","#1d9e75","#4cd7a5",n*17+5)}</div>
-  <div class="scard"><span class="ic" style="background:#f0c9481a;border-color:#c9a83255;">${shieldUp}</span><div class="l"><div class="lb">오늘 티어 상승</div><div class="vl num">${upN}<small> 개</small></div><div class="sub">최근 1주 기준</div></div>${miniBars("wg2","#8a6f1e","#f0c948",upN*9+13)}</div>
-  <div class="scard"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${warnIcon}</span><div class="l"><div class="lb">위험 신호 종목</div><div class="vl num">${riskN}<small> 개</small></div><div class="sub">과열 · 수급 이탈</div></div>${miniBars("wg3","#7a2822","#f0645a",riskN*7+9)}</div>
-  <div class="scard"><span class="ic">${calIcon}</span><div class="l"><div class="lb">실적 임박 종목</div><div class="vl num">${earnN}<small> 개</small></div><div class="sub">D-7 이내 · 예상 포함</div></div>${miniBars("wg4","#1d9e75","#8fd6b8",earnN*9+21)}</div>
+  <div class="scard clickable" onclick="openWlModal('all')"><span class="ic">${listIcon}</span><div class="l"><div class="lb">전체 관심종목</div><div class="vl num">${n}<small> 개</small></div><div class="sub">저장 종목 수</div></div>${miniLine("wg1","#1d9e75","#4cd7a5",n*17+5)}</div>
+  <div class="scard clickable" onclick="openWlModal('up')"><span class="ic" style="background:#f0c9481a;border-color:#c9a83255;">${shieldUp}</span><div class="l"><div class="lb">오늘 티어 상승</div><div class="vl num">${upN}<small> 개</small></div><div class="sub">최근 1주 기준</div></div>${miniBars("wg2","#8a6f1e","#f0c948",upN*9+13)}</div>
+  <div class="scard clickable" onclick="openWlModal('risk')"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${warnIcon}</span><div class="l"><div class="lb">위험 신호 종목</div><div class="vl num">${riskN}<small> 개</small></div><div class="sub">과열 · 수급 이탈</div></div>${miniBars("wg3","#7a2822","#f0645a",riskN*7+9)}</div>
+  <div class="scard clickable" onclick="openWlModal('earn')"><span class="ic">${calIcon}</span><div class="l"><div class="lb">실적 임박 종목</div><div class="vl num">${earnN}<small> 개</small></div><div class="sub">D-7 이내 · 예상 포함</div></div>${miniBars("wg4","#1d9e75","#8fd6b8",earnN*9+21)}</div>
 </div>`;
 
 // ── 리스트 (필터 + 정렬)
@@ -250,7 +265,7 @@ const secMap = {};
 items.forEach(x => { const s = sectorOf(x); if(!secMap[s]) secMap[s]={cnt:0,scSum:0}; secMap[s].cnt++; secMap[s].scSum += x.sc; });
 const secList = Object.entries(secMap).map(([nm,v])=>({nm, cnt:v.cnt, score: clip(Math.round(v.scSum/v.cnt)*0.7 + Math.min(30, v.cnt*11))})).sort((a,b)=>b.score-a.score).slice(0,5);
 const divScore = clip(28 + Object.keys(secMap).length*12);
-const interestCard = `<div class="card"><h3>업종별 관심도 <span class="more" style="cursor:default;">관심종목 기준</span></h3>
+const interestCard = `<div class="card"><h3>업종별 관심도 <span class="more" style="cursor:default;">관심종목 기준</span></h3><div class="chd2"><span style="width:20px;">순위</span><span style="width:78px;">업종</span><span style="flex:1;">관심도</span><span style="width:26px;">점수</span></div>
   ${secList.length ? secList.map((s,i)=>`<div style="display:flex;align-items:center;gap:9px;padding:7px 0;font-size:12.5px;">
     <span style="width:20px;height:20px;border-radius:6px;background:var(--panel2);border:1px solid var(--border);color:var(--muted);font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${i+1}</span>
     <span style="width:78px;flex-shrink:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.nm}</span>
@@ -263,7 +278,7 @@ for (const x of items) { const o = earnInfo(x); if (o && dday(o.d)<=45) evList.p
 for (const e2 of (ST.EVENTS||[])) { const d = new Date(e2[0]+"T00:00:00"); if (d>=today0 && dday(d)<=45) evList.push([d, e2[1]+" "+e2[3], e2[2]]); }
 evList.sort((a,b)=>a[0]-b[0]);
 const typeStyle = t => t==="실적" ? "background:#13322a;color:#4cd7a5;" : t==="금리" ? "background:#3d3313;color:#f0c948;" : "background:#13303d;color:#4cc3d7;";
-const evCard = `<div class="card"><h3>실적 / 일정 체크</h3>
+const evCard = `<div class="card"><h3>실적 / 일정 체크</h3><div class="chd2"><span style="width:46px;">날짜</span><span style="flex:1;">일정</span><span style="width:40px;">구분</span></div>
   ${evList.slice(0,6).map(([d,t,ty])=>`<div class="evrow">
     <span class="dt">${dday(d)===0?"오늘":"D-"+dday(d)}</span>
     <span class="tx">${t}</span>
@@ -275,8 +290,8 @@ if (secList[1]) brief.push(["🤖", `${secList[1].nm} 강세 · 관심 비중 2�
 if (earnN) brief.push(["📅", `실적 시즌 대비 · 발표 임박 ${earnN}개 종목 변동성 확대 점검`]);
 brief.push(["👥", `외인·기관 수급 유입 종목 중심으로 관심 유지 확인`]);
 brief.push([riskN?"⚠️":"✅", riskN?`단기 과열 경계 · 위험 신호 ${riskN}개 종목 추격 매수 자제`:`과열·위험 신호 없는 안정적 구성 유지`]);
-const briefCard = `<div class="card"><h3>오늘의 전략 브리핑 <span class="more" style="cursor:default;">핵심 체크 포인트</span></h3>
-  ${brief.slice(0,5).map(([ic,t])=>`<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #ffffff0d;font-size:12.5px;color:var(--muted);font-weight:600;line-height:1.55;"><span style="flex-shrink:0;">${ic}</span><span>${t}</span></div>`).join("")}</div>`;
+const briefCard = `<div class="card"><h3>오늘의 전략 브리핑 <span class="more" style="cursor:default;">핵심 체크 포인트</span></h3><div class="chd2" style="justify-content:center;"><span>핵심 전략 체크포인트</span></div>
+  ${brief.slice(0,5).map(([ic,t])=>`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #ffffff0d;font-size:12.5px;color:var(--muted);font-weight:600;"><span style="flex-shrink:0;">${ic}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t}</span></div>`).join("")}</div>`;
 
 // ── 사이드
 const sideSurv = `
@@ -304,7 +319,7 @@ items.forEach(x => {
   if (msg) flows.push({x, msg, ar, col, tag, w: Math.abs(x.e[14]||0)*2 + x.momentum/5});
 });
 flows.sort((a,b)=>b.w-a.w);
-const flowCard = `<div class="card"><h3>오늘의 자금 흐름 요약 <span class="more" style="cursor:default;">최근 3거래일 기준</span></h3>
+const flowCard = `<div class="card"><h3>오늘의 자금 흐름 요약 <span class="more" style="cursor:default;">최근 3거래일 기준</span></h3><div class="chd2"><span style="width:18px;">순위</span><span style="flex:1;">종목 · 흐름</span><span style="width:56px;">태그</span></div>
   ${flows.length ? flows.slice(0,5).map((f,i)=>`<div class="nrow2" style="cursor:pointer;flex-wrap:wrap;" onclick="location.href='${ST.stockUrl(f.x.src,f.x.key)}'">
     <span class="rank">${i+1}</span>
     <span class="tx"><b style="color:var(--text);">${ST.displayName(f.x.src,f.x.key)}</b> <span style="color:var(--dim);font-weight:500;font-size:11px;">${f.msg}</span></span>
@@ -321,7 +336,7 @@ const acts = items.map(x => {
   else { act=["관찰","#33202c","#d68ab0"]; reason="지표 혼조 · 추이 관찰"; }
   return {x, act, reason, w: Math.abs(x.momentum-50)+x.rk+x.sc/5};
 }).sort((a,b)=>b.w-a.w);
-const rebalCard = `<div class="card"><h3>리밸런싱 액션 제안 <span class="more" style="cursor:default;">현재 관심종목 기준</span></h3>
+const rebalCard = `<div class="card"><h3>리밸런싱 액션 제안 <span class="more" style="cursor:default;">현재 관심종목 기준</span></h3><div class="chd2"><span style="width:32px;">액션</span><span style="flex:1;">종목 · 사유</span></div>
   ${acts.slice(0,4).map(a=>`<div class="nrow2" style="cursor:pointer;" onclick="location.href='${ST.stockUrl(a.x.src,a.x.key)}'">
     <span class="tchg" style="background:${a.act[1]};color:${a.act[2]};flex-shrink:0;min-width:32px;text-align:center;">${a.act[0]}</span>
     <span class="tx"><b style="color:var(--text);">${ST.displayName(a.x.src,a.x.key)}</b>: <span style="color:var(--dim);font-weight:500;font-size:11.5px;">${a.reason}</span></span></div>`).join("")}</div>`;
@@ -335,7 +350,7 @@ const drops = items.map(x => {
   else if (x.value<38) { reason="밸류 부담"; st=["후보","#33202c","#d68ab0"]; }
   return reason ? {x, reason, st, w:(100-x.sc)+x.rk} : null;
 }).filter(Boolean).sort((a,b)=>b.w-a.w).slice(0,5);
-const dropCard = `<div class="card" style="flex:1;"><h3>관심 해제 후보 점검</h3>
+const dropCard = `<div class="card" style="flex:1;"><h3>관심 해제 후보 점검</h3><div class="chd2"><span style="flex:1;">종목 · 사유</span><span style="width:48px;">상태</span></div>
   ${drops.length ? drops.map(d=>`<div class="nrow2" style="cursor:pointer;" onclick="location.href='${ST.stockUrl(d.x.src,d.x.key)}'">
     <span class="tx"><b style="color:var(--text);">${ST.displayName(d.x.src,d.x.key)}</b> <span style="color:var(--dim);font-weight:500;font-size:11px;">${d.reason}</span></span>
     <span class="tchg" style="background:${d.st[1]};color:${d.st[2]};flex-shrink:0;">${d.st[0]}</span></div>`).join("")
@@ -349,7 +364,44 @@ box.innerHTML = `
   <div style="display:flex;flex-direction:column;gap:14px;height:100%;">${sideSurv}${flowCard}${rebalCard}${dropCard}</div>
 </div>`;
 drawBar(); drawTbl();
+
+// ── 상단 카드 클릭 → 종목 리스트 모달 ──
+const WLSETS = {
+  all:  ["전체 관심종목", "저장한 모든 관심종목", () => items.slice().sort((a,b)=>b.sc-a.sc)],
+  up:   ["오늘 티어 상승", "최근 1주 티어가 오른 종목", () => items.filter(x=>x.up).sort((a,b)=>b.sc-a.sc)],
+  risk: ["위험 신호 종목", "위험도 70 이상 · 과열·수급 이탈", () => items.filter(x=>x.rk>=70).sort((a,b)=>b.rk-a.rk)],
+  earn: ["실적 임박 종목", "실적 발표 D-7 이내", () => items.filter(x=>{const o=earnInfo(x);return o&&dday(o.d)<=7;}).sort((a,b)=>{const oa=earnInfo(a),ob=earnInfo(b);return dday(oa.d)-dday(ob.d);})],
+};
+window.openWlModal = k => {
+  const s = WLSETS[k]; if (!s) return;
+  const arr = s[2]();
+  document.getElementById("wm_title").textContent = s[0];
+  document.getElementById("wm_sub").textContent = s[1] + " · 총 " + arr.length + "종목";
+  document.getElementById("wm_list").innerHTML = arr.length ? arr.map((x,i)=>{
+    const ev = eventOf(x);
+    return `<div class="wmrow" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
+      <span class="num" style="width:26px;text-align:center;color:var(--dim);flex-shrink:0;">${i+1}</span>
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;">${logo(x)}${ST.displayName(x.src,x.key)}</span>
+      <span style="width:56px;text-align:center;flex-shrink:0;"><span class="tierb tier-${x.gNow.g}">${x.gNow.g}</span></span>
+      <span class="num" style="width:48px;text-align:center;flex-shrink:0;font-weight:800;">${x.sc}</span>
+      <span style="width:130px;flex-shrink:0;font-size:11px;color:${ev[1]};font-weight:700;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ev[0]}</span></div>`;
+  }).join("") : `<div style="padding:26px;text-align:center;color:var(--dim);font-size:12.5px;">해당 종목이 없습니다</div>`;
+  document.getElementById("wmodal").classList.add("on");
+};
+window.closeWlModal = () => document.getElementById("wmodal").classList.remove("on");
+document.addEventListener("keydown", e => { if (e.key==="Escape") window.closeWlModal(); });
 }
 </script>
+
+<div class="wmodal" id="wmodal" onclick="if(event.target===this)closeWlModal()">
+  <div class="wmbox">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;">
+      <div><div id="wm_title" style="font-size:16px;font-weight:800;"></div>
+        <div id="wm_sub" style="font-size:11.5px;color:var(--muted);margin-top:3px;"></div></div>
+      <span onclick="closeWlModal()" style="cursor:pointer;color:var(--dim);font-size:20px;font-weight:800;padding:0 3px;">✕</span></div>
+    <div class="wmhd"><span style="width:26px;">순위</span><span style="flex:1;">종목명</span><span style="width:56px;">티어</span><span style="width:48px;">종합</span><span style="width:130px;">최근 이벤트</span></div>
+    <div id="wm_list" style="overflow-y:auto;"></div>
+  </div>
+</div>
 </body>
 </html>
