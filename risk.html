@@ -120,6 +120,10 @@
         <div class="card"><h3>실시간 위험 신호</h3><div id="signals"></div></div>
         <div class="card"><h3>예정 위험 이벤트</h3><div id="events"></div></div>
       </div>
+      <div class="row4b">
+        <div class="card"><h3>위험 유형 분포</h3><div id="typedist"></div></div>
+        <div class="card"><h3>위험도 구간 분포</h3><div id="rkdist"></div></div>
+      </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;height:100%;">
       <div class="card"><h3>급등 과열 TOP 5</h3><div id="hotlist"></div></div>
@@ -163,6 +167,8 @@
 ST.nav("risk.html");
 document.getElementById("asof").textContent = "업데이트: " + ST.asofText();
 const clip = v => Math.max(0, Math.min(100, Math.round(v)));
+// 점수(0~100)별 색 그라데이션: 낮음=연두(안전) · 중간=골드 · 높음=빨강(위험)
+const RBAND = v => v>=71 ? ["#7a2822","#f0645a"] : v>=41 ? ["#8a6f1e","#f0c948"] : ["#0f7a56","#7ee08a"];
 const today0 = new Date(); today0.setHours(0,0,0,0);
 const dday = d => Math.round((d-today0)/864e5);
 
@@ -280,7 +286,7 @@ window.openRiskInfo = (src, kEnc) => {
       <span class="rknum" style="font-size:21px;padding:7px 17px;background:${x.rk>=80?"#7a2822":x.rk>=60?"#3d3313":"#13322a"};color:${x.rk>=80?"#ffb3ad":x.rk>=60?"#f0c948":"#4cd7a5"};">${x.rk}</span>
       <div style="font-size:12px;color:var(--muted);">위험 유형 <b style="color:var(--text);">${x.type}</b><br><span style="font-size:11px;color:var(--dim);">${x.sig}</span></div>
     </div>
-    <div class="sbars">${factors.map(([lb,v])=>`<div class="r"><span class="lb" style="width:112px;">${lb}</span><div class="m"><i style="width:${v}%;background:linear-gradient(90deg,#0f7a56,${rc(v)});"></i></div><b>${v}</b></div>`).join("")}</div>
+    <div class="sbars">${factors.map(([lb,v])=>`<div class="r"><span class="lb" style="width:112px;">${lb}</span><div class="m"><i style="width:${v}%;background:linear-gradient(90deg,${RBAND(v)[0]},${RBAND(v)[1]});"></i></div><b>${v}</b></div>`).join("")}</div>
     <div style="font-size:11px;color:var(--dim);line-height:1.75;margin-top:13px;border-top:1px solid var(--border);padding-top:11px;">
       위험도(0~100)는 <b style="color:var(--muted);">거래량 급증 · 단기 변동성 · 가격 급등락 · 수급 이탈 · 실적 임박</b> 신호를 종합해 산출합니다. 값이 높을수록 단기 변동·손실 위험이 큽니다. 위 막대는 각 요인의 상대 기여도(0~100)입니다.</div>`;
   document.getElementById("rkinfo").classList.add("on");
@@ -398,23 +404,25 @@ drawBar(); drawTbl();
     ["코스피", pick(MK.kospi)],
     ["코스닥", pick(MK.kosdaq)],
     ["다우존스", pick(MKU.dji, MKU.dow, MKU.djia)],
-    ["S&P500", pick(MKU.gspc, MKU.spx, MKU.sp500, MKU.snp, MKU.snp500, MKU.inx, MKU.us500, MKU.sandp, MKU.sp)],
+    ["S&P500", pick(MKU.inx, MKU.gspc, MKU.spx, MKU.sp500)],
     ["나스닥 종합", pick(MKU.ixic, MKU.nasdaq, MKU.comp)],
   ];
   // 지수 리스크 점수(0~100): 하락·급변동일수록 높음
   const idxRisk = o => o ? clip(48 - o.ratio*7 + Math.abs(o.ratio)*2.5) : null;
-  const rcol = v => v>=71?"#f0645a":v>=41?"#f0c948":"#4cd7a5";
-  // 각 지수 = 미니 게이지(빨강→골드→초록, 점수만큼 채움) + 점수 + 지수값/등락률
-  const gaugeS = v => `<div class="gaugeS"><div class="arc" style="background:conic-gradient(from 270deg, #4cd7a5 0%, #f0c948 ${v/4}%, #f0645a ${v/2}%, #ffffff14 ${v/2}%, #ffffff14 50%, transparent 50%);"></div><div class="hole"><b style="color:${rcol(v)};">${v}</b></div></div>`;
+  // 점수별 단색 그라데이션 게이지 (연두=안전 · 골드=중간 · 빨강=위험)
+  const gaugeS = v => { const [c1,c2]=RBAND(v);
+    return `<div class="gaugeS"><div class="arc" style="background:conic-gradient(from 270deg, ${c1} 0%, ${c2} ${v/2}%, #ffffff14 ${v/2}%, #ffffff14 50%, transparent 50%);"></div><div class="hole"><b style="color:${c2};">${v}</b></div></div>`; };
   const idxCells = IDX.map(([nm,o])=>{
     if (!o) return `<div class="idxcell"><div class="inm">${nm}</div><div class="gaugeS" style="display:flex;align-items:flex-end;justify-content:center;color:var(--dim);font-size:10px;">데이터 없음</div><div class="ipr">-</div></div>`;
     const rs = idxRisk(o);
     return `<div class="idxcell"><div class="inm">${nm}</div>${gaugeS(rs)}<div class="ipr">${ST.num(o.price)} <span class="${ST.cls(o.ratio)}">${ST.pct2(o.ratio)}</span></div></div>`;
   }).join("");
+  const subBars = sub.map(([lb,v])=>{ const [c1,c2]=RBAND(v);
+    return `<div class="r"><span class="lb">${lb}</span><div class="m"><i style="width:${v}%;background:linear-gradient(90deg,${c1},${c2});"></i></div><b>${v}</b></div>`; }).join("");
   document.getElementById("mktidx").innerHTML =
-    `<div style="display:flex;gap:22px;align-items:center;flex-wrap:wrap;">
-       <div style="width:230px;flex-shrink:0;"><div class="sbars">${sub.map(([lb,v])=>`<div class="r"><span class="lb">${lb}</span><div class="m"><i class="red" style="width:${v}%"></i></div><b>${v}</b></div>`).join("")}</div></div>
-       <div style="flex:1;min-width:300px;"><div class="idxgrid">${idxCells}</div></div>
+    `<div style="display:flex;gap:24px;align-items:flex-start;">
+       <div style="width:238px;flex-shrink:0;"><div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:10px;">종합 리스크 지표</div><div class="sbars">${subBars}</div></div>
+       <div style="flex:1;min-width:0;"><div class="idxgrid">${idxCells}</div></div>
      </div>`;
 
   const mk5 = (arr, id, valFn, valHd) => {
@@ -430,6 +438,27 @@ drawBar(); drawTbl();
     x=>`<b class="num down" style="font-size:11.5px;">${(x.e[14]||0).toFixed(1)}%</b>`, "등락률");
   mk5(A.filter(x=>x.eo && dday(x.eo.d)<=7 && x.rk>=50).sort((a,b)=>dday(a.eo.d)-dday(b.eo.d)).slice(0,5), "earnlist",
     x=>`<b class="num" style="font-size:11.5px;color:#f0c948;">D-${dday(x.eo.d)}${x.eo.est?"·예상":""}</b>`, "실적일");
+})();
+
+// ── 위험 분포 (하단 추가 섹션)
+(function(){
+  const typeOrder = ["급등 과열","수급 악화","실적/공시","재무 위험","기타"];
+  const tc = {}; typeOrder.forEach(t=>tc[t]=0);
+  risky.forEach(x=>{ if (tc[x.type]!=null) tc[x.type]++; });
+  const tmax = Math.max(1, ...typeOrder.map(t=>tc[t]));
+  const tcol = { "급등 과열":["#8a5f1e","#e0a63e"], "수급 악화":["#7a2822","#f0708a"], "실적/공시":["#1a4a5a","#4cc3d7"], "재무 위험":["#4a2340","#d68ab0"], "기타":["#2a3a44","#9db9d4"] };
+  document.getElementById("typedist").innerHTML = `<div class="sbars">` + typeOrder.map(t=>{
+    const c = tc[t], w = clip(c/tmax*100), col = tcol[t];
+    return `<div class="r"><span class="lb" style="width:70px;">${t}</span><div class="m"><i style="width:${Math.max(4,w)}%;background:linear-gradient(90deg,${col[0]},${col[1]});"></i></div><b>${ST.num(c)}</b></div>`;
+  }).join("") + `</div><div style="font-size:10px;color:var(--dim);margin-top:10px;">위험도 60 이상 종목의 위험 유형 구성</div>`;
+
+  const bands = [["60–69",60,70],["70–79",70,80],["80–89",80,90],["90–100",90,101]];
+  const bc = bands.map(([,lo,hi])=>risky.filter(x=>x.rk>=lo && x.rk<hi).length);
+  const bmax = Math.max(1, ...bc);
+  document.getElementById("rkdist").innerHTML = `<div class="sbars">` + bands.map(([lb,lo,hi],i)=>{
+    const c = bc[i], w = clip(c/bmax*100), col = RBAND((lo+Math.min(hi,100))/2);
+    return `<div class="r"><span class="lb" style="width:70px;">${lb}</span><div class="m"><i style="width:${Math.max(4,w)}%;background:linear-gradient(90deg,${col[0]},${col[1]});"></i></div><b>${ST.num(c)}</b></div>`;
+  }).join("") + `</div><div style="font-size:10px;color:var(--dim);margin-top:10px;">위험도 구간별 종목 수 · 높을수록 빨강</div>`;
 })();
 </script>
 </body>
