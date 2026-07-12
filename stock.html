@@ -16,6 +16,8 @@
   .cards3 { display:grid; grid-template-columns:2.9fr 0.85fr 0.66fr; gap:12px; margin-bottom:14px; }
   @media (max-width:1000px){ .cards3 { grid-template-columns:1fr; } }
   .scard { background:linear-gradient(135deg,#0d2e3b,#123f4b); border:1px solid var(--border); border-radius:14px; padding:14px 16px; min-width:0; display:flex; flex-direction:column; }
+  .scard.clickable { transition:border-color .15s, transform .1s; }
+  .scard.clickable:hover { border-color:#4cd7a5; transform:translateY(-1px); }
   .scard .hd { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); font-weight:700; margin-bottom:9px; }
   .scard .hd .hic { width:26px; height:26px; border-radius:8px; background:#4cd7a51a; border:1px solid #4cd7a544; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   .chips2 { display:flex; gap:4px; flex-wrap:wrap; }
@@ -276,7 +278,7 @@ if (!s) {
     : sc>=45 ? "중위권 티어 · 모멘텀에 따라<br>등락 여지가 있는 구간"
     : "하위 티어 · 지표 개선 확인 후<br>접근이 필요한 구간";
   const tierCard = `
-  <div class="scard" style="cursor:pointer;" onclick="openTierReason()" title="클릭하면 티어 산정 근거가 열려요">
+  <div class="scard clickable" style="cursor:pointer;" onclick="openTierReason()" title="클릭하면 티어 산정 근거가 열려요">
     <div class="hd"><span class="hic">${shieldIcon}</span>종합 티어 <span style="margin-left:auto;font-size:10px;color:var(--gold);font-weight:700;">산정 근거 ›</span></div>
     <div style="display:flex;align-items:center;gap:10px;">
       <span style="font-size:29px;font-weight:800;color:#f0c948;">${g.g} <span style="font-size:15px;">티어</span></span>
