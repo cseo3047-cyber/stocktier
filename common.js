@@ -11,6 +11,9 @@ window.FIREBASE_CONFIG = {
 // App Check(reCAPTCHA v3): 아래에 reCAPTCHA v3 "사이트 키"를 붙여넣으면 App Check가 켜집니다.
 // (비워두면 App Check는 적용되지 않고 기존 동작 그대로입니다.)
 window.APP_CHECK_SITE_KEY = "";  // App Check 미사용(끔). 나중에 쓰려면 여기에 reCAPTCHA v3 사이트 키를 붙여넣으세요.
+// 종목 로고: true = 실제 로고(토스/네이버) 대신 자체 제작 아바타(색깔 원+이니셜) 사용 → 저작권 안전.
+//            false = 실제 로고를 쓰고, 못 불러올 때만 아바타로 대체.
+window.ST_AVATAR_ONLY = true;
 // ================================================================
 // 필드: 0코드 1시장 2주가 3등락 4PER 5PBR 6배당 7ROE 8시총 9평균거래량 10전일 11당일 12최근5일 13외인 14주간 15월간 16분기 [17] [18]
 window.ST = (function () {
@@ -477,4 +480,42 @@ window.ST = (function () {
   });
   // 이미지·로고 드래그 저장 억제
   document.addEventListener("dragstart", function (e) { if (e.target && e.target.tagName === "IMG") e.preventDefault(); });
+})();
+
+// ── 종목 로고 아바타 (실제 로고 대신/실패 시 색깔 원 + 이니셜) ──
+(function () {
+  function avColor(s) { var h = 0; s = String(s || "?"); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return "hsl(" + (h % 360) + ",42%,42%)"; }
+  function isLogo(img) { var s = img.getAttribute("src") || img.src || ""; return /tossinvest|pstatic\.net|imgstock/.test(s); }
+  function labelOf(img) {
+    var l = img.getAttribute("data-nm") || (img.parentElement && (img.parentElement.textContent || "").trim()) || "";
+    if (!l) { var m = (img.getAttribute("src") || img.src || "").match(/Stock([A-Za-z]{1,6})(?:\.[ONA])?\.svg/); if (m) l = m[1]; }
+    return l;
+  }
+  function toAvatar(img) {
+    if (!img || img.dataset.avdone) return;
+    img.dataset.avdone = "1";
+    var label = labelOf(img), ch = ((label || "?").trim().charAt(0) || "?").toUpperCase();
+    var cs; try { cs = getComputedStyle(img); } catch (_) { cs = {}; }
+    var w = parseFloat(cs.width) || img.width || 20, h = parseFloat(cs.height) || img.height || w;
+    var span = document.createElement("span");
+    span.textContent = ch;
+    span.style.cssText = "display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-sizing:border-box;overflow:hidden;"
+      + "width:" + w + "px;height:" + h + "px;border-radius:50%;background:" + avColor(label || ch) + ";color:#fff;font-weight:800;"
+      + "font-size:" + Math.max(9, Math.round(w * 0.45)) + "px;line-height:1;"
+      + "vertical-align:" + (cs.verticalAlign || "-4px") + ";margin-right:" + (cs.marginRight || "6px") + ";";
+    try { img.replaceWith(span); } catch (_) { img.style.visibility = "hidden"; }
+  }
+  // 1) 로고 로드 실패 시 아바타로 대체 (네이버 폴백까지 실패한 뒤)
+  document.addEventListener("error", function (e) {
+    var img = e.target;
+    if (img && img.tagName === "IMG" && img.dataset.f && isLogo(img)) toAvatar(img);
+  }, true);
+  // 2) 아바타 전용 모드: 실제 로고를 아예 아바타로 교체
+  if (window.ST_AVATAR_ONLY) {
+    var scan = function (root) { if (root && root.querySelectorAll) root.querySelectorAll("img").forEach(function (im) { if (isLogo(im)) toAvatar(im); }); };
+    new MutationObserver(function (muts) {
+      muts.forEach(function (m) { m.addedNodes.forEach(function (n) { if (n.nodeType === 1) { if (n.tagName === "IMG" && isLogo(n)) toAvatar(n); else scan(n); } }); });
+    }).observe(document.documentElement, { childList: true, subtree: true });
+    document.addEventListener("DOMContentLoaded", function () { scan(document); });
+  }
 })();
