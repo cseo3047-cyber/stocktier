@@ -112,7 +112,7 @@
   <div class="page-sub">시장과 종목의 위험 신호를 한눈에 모니터링하세요.</div>
 
   <div class="layout">
-    <div>
+    <div style="display:flex;flex-direction:column;">
       <div class="cards4" id="cards"></div>
       <div class="card" style="margin-bottom:14px;"><h3>시장 리스크 지수 <span class="more" style="cursor:default;color:var(--dim);font-weight:600;font-size:11px;">지수별 리스크 점수 · 종합 지표</span></h3><div id="mktidx"></div></div>
       <div class="card"><h3>위험 종목 리스트
@@ -129,9 +129,9 @@
         <div class="card"><h3>실시간 위험 신호</h3><div id="signals"></div></div>
         <div class="card"><h3>예정 위험 이벤트</h3><div id="events"></div></div>
       </div>
-      <div class="row4b">
-        <div class="card"><h3>위험 유형 분포</h3><div id="typedist"></div></div>
-        <div class="card"><h3>위험도 구간 분포</h3><div id="rkdist"></div></div>
+      <div class="row4b" style="flex:1;align-items:stretch;">
+        <div class="card" style="display:flex;flex-direction:column;"><h3>국내 업종별 리스크 집중도</h3><div id="krsector"></div></div>
+        <div class="card" style="display:flex;flex-direction:column;"><h3>미국 업종별 리스크 집중도</h3><div id="ussector"></div></div>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;height:100%;">
@@ -466,25 +466,35 @@ drawBar(); drawTbl();
     x=>`<b class="num" style="font-size:11.5px;color:#f0c948;">D-${dday(x.eo.d)}${x.eo.est?"·예상":""}</b>`, "실적일");
 })();
 
-// ── 위험 분포 (하단 추가 섹션)
+// ── 업종별 리스크 집중도 (국내 / 미국)
 (function(){
-  const typeOrder = ["급등 과열","수급 악화","실적/공시","재무 위험","기타"];
-  const tc = {}; typeOrder.forEach(t=>tc[t]=0);
-  risky.forEach(x=>{ if (tc[x.type]!=null) tc[x.type]++; });
-  const tmax = Math.max(1, ...typeOrder.map(t=>tc[t]));
-  const tcol = { "급등 과열":["#8a5f1e","#e0a63e"], "수급 악화":["#7a2822","#f0708a"], "실적/공시":["#1a4a5a","#4cc3d7"], "재무 위험":["#4a2340","#d68ab0"], "기타":["#2a3a44","#9db9d4"] };
-  document.getElementById("typedist").innerHTML = `<div class="sbars">` + typeOrder.map(t=>{
-    const c = tc[t], w = clip(c/tmax*100), col = tcol[t];
-    return `<div class="r"><span class="lb" style="width:70px;">${t}</span><div class="m"><i style="width:${Math.max(4,w)}%;background:linear-gradient(90deg,${col[0]},${col[1]});"></i></div><b>${ST.num(c)}</b></div>`;
-  }).join("") + `</div><div style="font-size:10px;color:var(--dim);margin-top:10px;">위험도 60 이상 종목의 위험 유형 구성</div>`;
-
-  const bands = [["60–69",60,70],["70–79",70,80],["80–89",80,90],["90–100",90,101]];
-  const bc = bands.map(([,lo,hi])=>risky.filter(x=>x.rk>=lo && x.rk<hi).length);
-  const bmax = Math.max(1, ...bc);
-  document.getElementById("rkdist").innerHTML = `<div class="sbars">` + bands.map(([lb,lo,hi],i)=>{
-    const c = bc[i], w = clip(c/bmax*100), col = RBAND((lo+Math.min(hi,100))/2);
-    return `<div class="r"><span class="lb" style="width:70px;">${lb}</span><div class="m"><i style="width:${Math.max(4,w)}%;background:linear-gradient(90deg,${col[0]},${col[1]});"></i></div><b>${ST.num(c)}</b></div>`;
-  }).join("") + `</div><div style="font-size:10px;color:var(--dim);margin-top:10px;">위험도 구간별 종목 수 · 높을수록 빨강</div>`;
+  // 위험도 60 이상 종목을 업종별로 집계 (국내 업종=e[20], 미국 업종=e[19])
+  const sectorRows = isUs => {
+    const map = {};
+    A.filter(x => x.us===isUs && x.rk>=60).forEach(x=>{
+      const ind = x.e[isUs?19:20];
+      if (!ind || typeof ind!=="string") return;
+      if (!map[ind]) map[ind] = { cnt:0, rsum:0 };
+      map[ind].cnt++; map[ind].rsum += x.rk;
+    });
+    return Object.entries(map).map(([ind,v])=>({ ind, cnt:v.cnt, avg:Math.round(v.rsum/v.cnt) }))
+      .sort((a,b)=> b.cnt-a.cnt || b.avg-a.avg).slice(0,7);
+  };
+  const render = (rows, id, note) => {
+    const el = document.getElementById(id);
+    el.style.cssText = "flex:1;display:flex;flex-direction:column;min-height:0;";
+    if (!rows.length) { el.innerHTML = `<div style="font-size:12px;color:var(--dim);padding:12px 0;">위험도 60 이상 종목이 없습니다</div>`; return; }
+    const mx = Math.max(...rows.map(r=>r.cnt), 1);
+    el.innerHTML =
+      `<div class="chd"><span style="flex:1;text-align:center;">업종</span><span style="min-width:66px;text-align:center;">위험 종목 수</span></div>` +
+      `<div class="sbars" style="margin-top:8px;">` + rows.map(r=>{
+        const [c1,c2]=RBAND(r.avg), w=clip(r.cnt/mx*100);
+        return `<div class="r"><span class="lb" style="width:108px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.ind} · 평균 위험도 ${r.avg}">${r.ind}</span><div class="m"><i style="width:${Math.max(5,w)}%;background:linear-gradient(90deg,${c1},${c2});"></i></div><b>${ST.num(r.cnt)}</b></div>`;
+      }).join("") + `</div>` +
+      `<div style="font-size:10px;color:var(--dim);margin-top:auto;padding-top:10px;">${note} · 막대 색 = 업종 평균 위험도(높을수록 빨강)</div>`;
+  };
+  render(sectorRows(false), "krsector", "위험도 60 이상 국내 종목 기준");
+  render(sectorRows(true),  "ussector", "위험도 60 이상 미국 종목 기준");
 })();
 </script>
 </body>
