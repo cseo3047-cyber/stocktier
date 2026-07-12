@@ -61,6 +61,33 @@
   .nrow2 .rank { width:18px; height:18px; border-radius:5px; background:#3a1a22; color:#f0708a; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   .nrow2 .tx { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .mag { position:absolute; right:11px; top:0; bottom:0; display:flex; align-items:center; color:var(--muted); font-size:15px; font-weight:700; pointer-events:none; }
+  /* 상단 카드 클릭 모달 */
+  .scard.clickable { cursor:pointer; transition:border-color .15s, transform .1s; }
+  .scard.clickable:hover { border-color:var(--gold-dim); transform:translateY(-1px); }
+  .rmodal { position:fixed; inset:0; background:#000000aa; display:none; align-items:center; justify-content:center; z-index:130; }
+  .rmodal.on { display:flex; }
+  .rmbox { background:var(--panel); border:1px solid var(--border); border-radius:16px; width:min(580px,92vw); max-height:82vh; display:flex; flex-direction:column; padding:20px 22px; }
+  .rmhead { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; }
+  .rmhead .x { cursor:pointer; color:var(--dim); font-size:21px; font-weight:800; line-height:1; padding:0 3px; }
+  .rmhead .x:hover { color:#f0708a; }
+  .rmlist { overflow-y:auto; }
+  .rmhd { display:flex; align-items:center; gap:10px; padding:0 2px 8px; border-bottom:1px solid var(--border); font-size:10.5px; color:var(--dim); font-weight:700; }
+  .rmrow { display:flex; align-items:center; gap:10px; padding:9px 2px; border-bottom:1px solid #ffffff0d; font-size:12.5px; cursor:pointer; }
+  .rmrow:last-child { border-bottom:none; }
+  .rmrow:hover { background:var(--panel2); }
+  .rmrow .rk { width:26px; text-align:center; color:var(--dim); font-weight:800; flex-shrink:0; }
+  .rmrow .nm { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; }
+  /* 시장 리스크 지수 (지수별) */
+  .idxgrid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin-bottom:13px; }
+  @media (max-width:900px){ .idxgrid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .idxcell { text-align:center; background:var(--panel2); border:1px solid var(--border); border-radius:11px; padding:11px 8px 10px; }
+  .idxcell .inm { font-size:11.5px; color:var(--muted); font-weight:700; margin-bottom:6px; white-space:nowrap; }
+  .idxcell .isc { font-size:23px; font-weight:800; line-height:1; }
+  .idxcell .isc small { font-size:11px; color:var(--dim); font-weight:600; }
+  .idxcell .ipr { font-size:10px; color:var(--dim); margin-top:5px; white-space:nowrap; }
+  /* 카드 컬럼 헤더 (가운데 정렬) */
+  .chd { display:flex; align-items:center; gap:8px; padding:0 2px 7px; margin-bottom:3px; border-bottom:1px solid var(--border); font-size:10.5px; color:var(--dim); font-weight:700; }
+  .chd span { text-align:center; }
 </style>
 </head>
 <body>
@@ -73,6 +100,7 @@
   <div class="layout">
     <div>
       <div class="cards4" id="cards"></div>
+      <div class="card"><h3>시장 리스크 지수 <span class="more" style="cursor:default;color:var(--dim);font-weight:600;font-size:11px;">지수별 리스크 점수 · 종합 지표</span></h3><div id="mktidx"></div></div>
       <div class="card"><h3>위험 종목 리스트
         <span style="margin-left:auto;position:relative;flex-shrink:0;display:inline-flex;">
           <input id="riskq" placeholder="종목명 또는 코드 검색" autocomplete="off"
@@ -91,7 +119,6 @@
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;height:100%;">
-      <div class="card"><h3>시장 리스크 지수</h3><div id="riskidx"></div></div>
       <div class="card"><h3>급등 과열 TOP 5</h3><div id="hotlist"></div></div>
       <div class="card"><h3>수급 악화 TOP 5</h3><div id="selllist"></div></div>
       <div class="card" style="flex:1;"><h3>실적 임박 위험 TOP 5</h3><div id="earnlist"></div></div>
@@ -99,6 +126,18 @@
   </div>
 
   <div class="footer"></div>
+</div>
+
+<div class="rmodal" id="rmodal" onclick="if(event.target===this)closeRiskModal()">
+  <div class="rmbox">
+    <div class="rmhead">
+      <div><div id="rmtitle" style="font-size:16px;font-weight:800;"></div>
+        <div id="rmsub" style="font-size:11.5px;color:var(--muted);margin-top:3px;"></div></div>
+      <span class="x" onclick="closeRiskModal()">✕</span>
+    </div>
+    <div class="rmhd"><span style="width:26px;text-align:center;">순위</span><span style="flex:1;text-align:center;">종목명</span><span style="width:52px;text-align:center;">위험도</span><span style="width:64px;text-align:center;">최근 변화</span><span style="width:150px;text-align:center;">주요 위험 신호</span></div>
+    <div class="rmlist" id="rmlist"></div>
+  </div>
 </div>
 
 <script src="data.js"></script>
@@ -152,6 +191,7 @@ const listIcon = `<svg width="24" height="22" viewBox="0 0 22 20"><g stroke="#f0
 const warnIcon = `<svg width="25" height="23" viewBox="0 0 24 22" fill="none" stroke="#f0645a" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2L22 20H2z"/><line x1="12" y1="9" x2="12" y2="14" stroke-linecap="round"/><circle cx="12" cy="17" r="1.2" fill="#f0645a" stroke="none"/></svg>`;
 const fireIcon = `<svg width="23" height="25" viewBox="0 0 24 26" fill="none" stroke="#e0a63e" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2c1 4-5 6-5 12a5 5 0 0 0 10 0c0-3-2-5-2-5s-1 2-3 2c1-3 0-7 0-9z" fill="#e0a63e22"/></svg>`;
 const calIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4cd7a5" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/></svg>`;
+const downIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f0645a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="4" x2="12" y2="17"/><path d="M6 12l6 7 6-7"/></svg>`;
 const miniLine = (id,c1,c2,seed) => { const pts=[]; let v=13;
   for (let i=0;i<13;i++){ v=Math.max(5,Math.min(29,v+((seed>>(i%9))%7)-2.6)); pts.push(`${(i*6.5).toFixed(1)},${(36-v).toFixed(1)}`); }
   return `<svg class="mini" width="80" height="36" viewBox="0 0 80 36"><defs>
@@ -173,12 +213,38 @@ const logo = x => {
   const sigN = A.filter(x=>x.rk>=70).length;
   const hotN = A.filter(x=>x.type==="급등 과열" && x.rk>=60).length;
   const earnN = A.filter(x=>x.eo && dday(x.eo.d)<=7 && x.rk>=50).length;
+  const sellN = A.filter(x=>x.type==="수급 악화" && x.rk>=60).length;
   document.getElementById("cards").innerHTML = `
-    <div class="scard"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${listIcon}</span><div class="l"><div class="lb">전체 위험 종목</div><div class="vl num">${ST.num(risky.length)}<small> 개</small></div><div class="sub">위험도 60 이상</div></div>${miniLine("rg1","#7a2822","#f0645a",risky.length%89+11)}</div>
-    <div class="scard"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${warnIcon}</span><div class="l"><div class="lb">위험 신호 종목</div><div class="vl num">${ST.num(sigN)}<small> 개</small></div><div class="sub">위험도 70 이상</div></div>${miniBars("rg2","#7a2822","#f0645a",sigN%41+9)}</div>
-    <div class="scard"><span class="ic" style="background:#e0a63e1a;border-color:#e0a63e44;">${fireIcon}</span><div class="l"><div class="lb">급등 과열 종목</div><div class="vl num">${ST.num(hotN)}<small> 개</small></div><div class="sub">거래량 급증 · 단기 급등</div></div>${miniBars("rg3","#8a5f1e","#e0a63e",hotN%37+7)}</div>
-    <div class="scard"><span class="ic">${calIcon}</span><div class="l"><div class="lb">실적 임박 위험</div><div class="vl num">${ST.num(earnN)}<small> 개</small></div><div class="sub">D-7 이내 · 예상 포함</div></div>${miniBars("rg4","#1d9e75","#8fd6b8",earnN%31+13)}</div>`;
+    <div class="scard clickable" onclick="openRiskModal('all')"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${listIcon}</span><div class="l"><div class="lb">전체 위험 종목</div><div class="vl num">${ST.num(risky.length)}<small> 개</small></div><div class="sub">위험도 60 이상</div></div>${miniLine("rg1","#7a2822","#f0645a",risky.length%89+11)}</div>
+    <div class="scard clickable" onclick="openRiskModal('sig')"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${warnIcon}</span><div class="l"><div class="lb">위험 신호 종목</div><div class="vl num">${ST.num(sigN)}<small> 개</small></div><div class="sub">위험도 70 이상</div></div>${miniBars("rg2","#7a2822","#f0645a",sigN%41+9)}</div>
+    <div class="scard clickable" onclick="openRiskModal('hot')"><span class="ic" style="background:#e0a63e1a;border-color:#e0a63e44;">${fireIcon}</span><div class="l"><div class="lb">급등 과열 종목</div><div class="vl num">${ST.num(hotN)}<small> 개</small></div><div class="sub">거래량 급증 · 단기 급등</div></div>${miniBars("rg3","#8a5f1e","#e0a63e",hotN%37+7)}</div>
+    <div class="scard clickable" onclick="openRiskModal('sell')"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${downIcon}</span><div class="l"><div class="lb">수급 이탈 종목</div><div class="vl num">${ST.num(sellN)}<small> 개</small></div><div class="sub">외국인·기관 순매도</div></div>${miniBars("rg4","#7a2822","#f0645a",sellN%37+7)}</div>`;
 })();
+
+// ── 상단 카드 클릭 → 종목 리스트 모달
+const RISKSETS = {
+  all:  ["전체 위험 종목", "위험도 60 이상", ()=>risky.slice()],
+  sig:  ["위험 신호 종목", "위험도 70 이상", ()=>A.filter(x=>x.rk>=70).sort((a,b)=>b.rk-a.rk)],
+  hot:  ["급등 과열 종목", "거래량 급증·단기 급등 (위험도 60 이상)", ()=>A.filter(x=>x.type==="급등 과열" && x.rk>=60).sort((a,b)=>b.rk-a.rk)],
+  sell: ["수급 이탈 종목", "외국인·기관 순매도 (위험도 60 이상)", ()=>A.filter(x=>x.type==="수급 악화" && x.rk>=60).sort((a,b)=>b.rk-a.rk)],
+};
+window.openRiskModal = k => {
+  const s = RISKSETS[k]; if (!s) return;
+  const arr = s[2]();
+  document.getElementById("rmtitle").textContent = s[0];
+  document.getElementById("rmsub").textContent = s[1] + " · 총 " + ST.num(arr.length) + "종목";
+  document.getElementById("rmlist").innerHTML = arr.length ? arr.slice(0,100).map((x,i)=>`
+    <div class="rmrow" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
+      <span class="rk">${i+1}</span>
+      <span class="nm">${logo(x)}${ST.displayName(x.src,x.key)}</span>
+      <span style="width:52px;text-align:center;flex-shrink:0;"><span class="rknum" style="background:${x.rk>=80?"#7a2822":"#3d3313"};color:${x.rk>=80?"#ffb3ad":"#f0c948"};">${x.rk}</span></span>
+      <span class="num ${ST.cls(x.e[14]||0)}" style="width:64px;text-align:center;flex-shrink:0;font-weight:700;">${(x.e[14]||0)>0?"▲":"▼"} ${Math.abs(x.e[14]||0).toFixed(1)}</span>
+      <span style="width:150px;flex-shrink:0;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x.sig}</span></div>`).join("")
+    : `<div style="padding:26px;text-align:center;color:var(--dim);font-size:12.5px;">해당 종목이 없습니다</div>`;
+  document.getElementById("rmodal").classList.add("on");
+};
+window.closeRiskModal = () => document.getElementById("rmodal").classList.remove("on");
+document.addEventListener("keydown", e => { if (e.key==="Escape") window.closeRiskModal(); });
 
 // ── 위험 종목 리스트
 let CAT = "all", SORT = "rk", SHOW = 10, Q = "", MKT = "all";
@@ -238,7 +304,7 @@ drawBar(); drawTbl();
 // ── 하단 4분할
 (function(){
   const sig = risky.slice(0,5);
-  document.getElementById("signals").innerHTML = sig.map(x=>`
+  document.getElementById("signals").innerHTML = `<div class="chd" style="justify-content:center;"><span>종목 · 주요 위험 신호</span></div>` + sig.map(x=>`
     <div class="alrow" style="cursor:pointer;" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
       <span style="color:#f0645a;font-weight:900;">●</span>
       <span class="tx"><b style="color:var(--text);">${ST.displayName(x.src,x.key)}</b> ${x.sig}</span></div>`).join("");
@@ -255,22 +321,22 @@ drawBar(); drawTbl();
     ["평균 변동성(5일)", `<span style="color:${avgVol>=3?"var(--down)":"var(--text)"};">${avgVol.toFixed(2)}%</span>`],
     ["고위험 비중", `${Math.round(A.filter(x=>x.rk>=70).length/Math.max(1,A.length)*100)}%`],
   ];
-  document.getElementById("mktsum").innerHTML = rows.map(([lb,v])=>`
+  document.getElementById("mktsum").innerHTML = `<div class="chd"><span style="flex:1;text-align:center;">지표</span><span style="min-width:74px;text-align:center;">수치</span></div>` + rows.map(([lb,v])=>`
     <div class="alrow"><span class="tx" style="color:var(--muted);">${lb}</span><b class="num" style="flex-shrink:0;">${v}</b></div>`).join("");
 
   const evs = (ST.EVENTS||[]).map(e=>({d:new Date(e[0]+"T00:00:00"), t:e[1]+" "+e[3]})).filter(x=>x.d>=today0).slice(0,5);
-  document.getElementById("events").innerHTML = evs.map(x=>`
+  document.getElementById("events").innerHTML = `<div class="chd"><span style="width:46px;text-align:center;flex-shrink:0;">날짜</span><span style="flex:1;text-align:center;">이벤트</span><span style="min-width:42px;text-align:center;">D-day</span></div>` + evs.map(x=>`
     <div class="evrow"><span class="dt">${String(x.d.getMonth()+1).padStart(2,"0")}/${String(x.d.getDate()).padStart(2,"0")}</span><span class="tx">${x.t}</span>
       <b style="color:${dday(x.d)<=7?"#f0c948":"var(--dim)"};font-size:11px;">D-${dday(x.d)}</b></div>`).join("");
 
   const res = A.filter(x=>x.rk<40 && Math.abs(x.e[15]||0)>=8).sort((a,b)=>a.rk-b.rk).slice(0,5);
-  document.getElementById("resolved").innerHTML = res.length ? res.map((x,i)=>`
+  document.getElementById("resolved").innerHTML = `<div class="chd"><span style="width:18px;text-align:center;flex-shrink:0;">순위</span><span style="flex:1;text-align:center;">종목명</span><span style="min-width:104px;text-align:center;">위험도 · 상태</span></div>` + (res.length ? res.map((x,i)=>`
     <div class="nrow2" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
       <span class="rank" style="background:#13322a;color:#4cd7a5;">${i+1}</span>
       <span class="tx">${ST.displayName(x.src,x.key)}</span>
       <span class="num" style="color:var(--dim);font-size:11px;">위험도 ${x.rk}</span>
       <span class="tchg" style="background:#13322a;color:#4cd7a5;">위험 해소</span></div>`).join("")
-  : `<div style="font-size:12px;color:var(--dim);padding:8px 0;">해당 종목 없음</div>`;
+  : `<div style="font-size:12px;color:var(--dim);padding:8px 0;">해당 종목 없음</div>`);
 })();
 
 // ── 사이드
@@ -284,25 +350,44 @@ drawBar(); drawTbl();
     ["변동성 리스크", clip(A.reduce((a,x)=>a+x.vol5,0)/Math.max(1,A.length)*20), true],
     ["실적 리스크", clip(A.filter(x=>x.eo&&dday(x.eo.d)<=7).length/Math.max(1,A.length)*400), true],
   ];
-  document.getElementById("riskidx").innerHTML = `
-    <div class="gauge"><div class="arc" style="background:conic-gradient(from 270deg, ${gcol} 0% ${avgRk/2}%, #ffffff14 ${avgRk/2}% 50%, transparent 50%);"></div>
-      <div class="hole"><b>${avgRk}<small>/100</small></b></div></div>
-    <div class="gsub" style="color:${gcol};">${lbl}</div>
-    <div class="sbars">${sub.map(([lb,v])=>`<div class="r"><span class="lb">${lb}</span><div class="m"><i class="red" style="width:${v}%"></i></div><b>${v}</b></div>`).join("")}</div>
-    <div style="font-size:10px;color:var(--dim);text-align:center;margin-top:8px;">보통 0~40 · 주의 41~70 · 경계 71~100</div>`;
+  const MK = window.STOCK_MARKET || {}, MKU = window.STOCK_MARKET_US || {};
+  const pick = (...cands) => { for (const c of cands) if (c && typeof c.price !== "undefined") return c; return null; };
+  const IDX = [
+    ["코스피", pick(MK.kospi)],
+    ["코스닥", pick(MK.kosdaq)],
+    ["다우존스", pick(MKU.dji, MKU.dow, MKU.djia)],
+    ["S&P500", pick(MKU.gspc, MKU.spx, MKU.sp500, MKU.snp)],
+    ["나스닥 종합", pick(MKU.ixic, MKU.nasdaq, MKU.comp)],
+  ];
+  // 지수 리스크 점수(0~100): 하락·급변동일수록 높음
+  const idxRisk = o => o ? clip(48 - o.ratio*7 + Math.abs(o.ratio)*2.5) : null;
+  const rcol = v => v>=71?"#f0645a":v>=41?"#f0c948":"#4cd7a5";
+  const idxCells = IDX.map(([nm,o],i)=>{
+    if (!o) return `<div class="idxcell"><div class="inm">${nm}</div><div style="height:36px;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:10px;">데이터 없음</div><div class="isc" style="color:var(--dim);">-</div></div>`;
+    const rs = idxRisk(o), up = o.ratio>=0;
+    return `<div class="idxcell"><div class="inm">${nm}</div>
+      <div style="display:flex;justify-content:center;">${miniLine("mi"+i, up?"#1d9e75":"#7a2822", up?"#4cd7a5":"#f0645a", Math.abs(Math.round(o.price))%97+7)}</div>
+      <div class="isc" style="color:${rcol(rs)};margin-top:5px;">${rs}<small>/100</small></div>
+      <div class="ipr">${ST.num(o.price)} <span class="${ST.cls(o.ratio)}">${ST.pct2(o.ratio)}</span></div></div>`;
+  }).join("");
+  document.getElementById("mktidx").innerHTML =
+    `<div class="idxgrid">${idxCells}</div>
+     <div class="sbars">${sub.map(([lb,v])=>`<div class="r"><span class="lb">${lb}</span><div class="m"><i class="red" style="width:${v}%"></i></div><b>${v}</b></div>`).join("")}</div>
+     <div style="font-size:10px;color:var(--dim);text-align:center;margin-top:9px;">지수 리스크 점수: 낮을수록 안정 · 높을수록 위험 (전일 대비 하락·급변동 반영)</div>`;
 
-  const mk5 = (arr, id, valFn) => {
-    document.getElementById(id).innerHTML = arr.length ? arr.map((x,i)=>`
+  const mk5 = (arr, id, valFn, valHd) => {
+    const hd = `<div class="chd"><span style="width:18px;text-align:center;flex-shrink:0;">순위</span><span style="flex:1;text-align:center;">종목명</span><span style="min-width:58px;text-align:center;">${valHd}</span></div>`;
+    document.getElementById(id).innerHTML = hd + (arr.length ? arr.map((x,i)=>`
       <div class="nrow2" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
         <span class="rank">${i+1}</span><span class="tx">${ST.displayName(x.src,x.key)}</span>${valFn(x)}</div>`).join("")
-    : `<div style="font-size:12px;color:var(--dim);padding:8px 0;">해당 종목 없음</div>`;
+    : `<div style="font-size:12px;color:var(--dim);padding:8px 0;">해당 종목 없음</div>`);
   };
   mk5(A.filter(x=>x.type==="급등 과열").sort((a,b)=>b.e[14]-a.e[14]).slice(0,5), "hotlist",
-    x=>`<b class="num up" style="font-size:11.5px;">+${(x.e[14]||0).toFixed(1)}%</b>`);
+    x=>`<b class="num up" style="font-size:11.5px;">+${(x.e[14]||0).toFixed(1)}%</b>`, "등락률");
   mk5(A.filter(x=>x.type==="수급 악화").sort((a,b)=>(a.e[14]||0)-(b.e[14]||0)).slice(0,5), "selllist",
-    x=>`<b class="num down" style="font-size:11.5px;">${(x.e[14]||0).toFixed(1)}%</b>`);
+    x=>`<b class="num down" style="font-size:11.5px;">${(x.e[14]||0).toFixed(1)}%</b>`, "등락률");
   mk5(A.filter(x=>x.eo && dday(x.eo.d)<=7 && x.rk>=50).sort((a,b)=>dday(a.eo.d)-dday(b.eo.d)).slice(0,5), "earnlist",
-    x=>`<b class="num" style="font-size:11.5px;color:#f0c948;">D-${dday(x.eo.d)}${x.eo.est?"·예상":""}</b>`);
+    x=>`<b class="num" style="font-size:11.5px;color:#f0c948;">D-${dday(x.eo.d)}${x.eo.est?"·예상":""}</b>`, "실적일");
 })();
 </script>
 </body>
