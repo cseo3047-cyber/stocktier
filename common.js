@@ -10,7 +10,7 @@ window.FIREBASE_CONFIG = {
 };
 // App Check(reCAPTCHA v3): 아래에 reCAPTCHA v3 "사이트 키"를 붙여넣으면 App Check가 켜집니다.
 // (비워두면 App Check는 적용되지 않고 기존 동작 그대로입니다.)
-window.APP_CHECK_SITE_KEY = "6LftJE8tAAAAAP90bi7THCpIn6qha5bUEQ6jejRC";
+window.APP_CHECK_SITE_KEY = "";  // App Check 미사용(끔). 나중에 쓰려면 여기에 reCAPTCHA v3 사이트 키를 붙여넣으세요.
 // ================================================================
 // 필드: 0코드 1시장 2주가 3등락 4PER 5PBR 6배당 7ROE 8시총 9평균거래량 10전일 11당일 12최근5일 13외인 14주간 15월간 16분기 [17] [18]
 window.ST = (function () {
