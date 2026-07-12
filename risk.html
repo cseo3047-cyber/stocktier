@@ -102,6 +102,11 @@
   .mgrid .bcell .m { flex:1; height:6px; background:var(--panel2); border:1px solid var(--border); border-radius:4px; overflow:hidden; min-width:0; }
   .mgrid .bcell .m i { display:block; height:100%; border-radius:4px; }
   .mgrid .bcell b { width:22px; text-align:right; font-size:11px; color:var(--text); font-variant-numeric:tabular-nums; flex-shrink:0; }
+  /* 지표 설명 팝업 */
+  .ihrow { display:flex; gap:13px; padding:12px 2px; border-bottom:1px solid #ffffff0d; font-size:12px; }
+  .ihrow:last-child { border-bottom:none; }
+  .ihrow .ihk { width:104px; flex-shrink:0; font-weight:800; }
+  .ihrow .ihv { flex:1; color:var(--muted); line-height:1.65; }
 </style>
 </head>
 <body>
@@ -114,7 +119,7 @@
   <div class="layout">
     <div style="display:flex;flex-direction:column;">
       <div class="cards4" id="cards"></div>
-      <div class="card" style="margin-bottom:14px;"><h3>시장 리스크 지수 <span class="more" style="cursor:default;color:var(--dim);font-weight:600;font-size:11px;">지수별 리스크 점수 · 종합 지표</span></h3><div id="mktidx"></div></div>
+      <div class="card" style="margin-bottom:14px;"><h3>시장 리스크 지수 <span class="more" onclick="openIdxHelp()">더보기 ›</span></h3><div id="mktidx"></div></div>
       <div class="card"><h3>위험 종목 리스트
         <span style="margin-left:auto;position:relative;flex-shrink:0;display:inline-flex;">
           <input id="riskq" placeholder="종목명 또는 코드 검색" autocomplete="off"
@@ -166,6 +171,26 @@
       <span class="x" onclick="closeRkInfo()">✕</span>
     </div>
     <div id="rki_body"></div>
+  </div>
+</div>
+
+<div class="rmodal" id="idxhelp" onclick="if(event.target===this)closeIdxHelp()">
+  <div class="rmbox" style="width:min(520px,92vw);">
+    <div class="rmhead">
+      <div><div style="font-size:16px;font-weight:800;">시장 리스크 지수 안내</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:3px;">지수 리스크 점수와 종합 지표가 뜻하는 것</div></div>
+      <span class="x" onclick="closeIdxHelp()">✕</span>
+    </div>
+    <div class="rmhd"><span style="width:104px;">지표</span><span style="flex:1;">의미</span></div>
+    <div class="rmlist">
+      <div class="ihrow"><span class="ihk" style="color:#f0c948;">지수 리스크 점수</span><span class="ihv">지수의 전일 대비 하락·급변동을 반영한 0~100 게이지 점수입니다. 낮을수록 안정(연두), 중간은 골드, 높을수록 위험(빨강)입니다.</span></div>
+      <div class="ihrow"><span class="ihk" style="color:#4cd7a5;">시장 과열</span><span class="ihv">지수 구성 종목 중 단기 급등하거나 거래량이 급증한 과열 종목의 비중. 높을수록 과열 신호가 강합니다.</span></div>
+      <div class="ihrow"><span class="ihk" style="color:#4cd7a5;">수급 리스크</span><span class="ihv">매도 압력의 크기. 국내는 외국인·기관 순매도 종목 비중, 미국은 하락 압력(주간 낙폭) 종목 비중으로 산출합니다.</span></div>
+      <div class="ihrow"><span class="ihk" style="color:#4cd7a5;">변동성 리스크</span><span class="ihv">지수 구성 종목의 평균 5일 변동성. 높을수록 가격 흔들림이 크고 단기 손실 위험이 큽니다.</span></div>
+      <div class="ihrow"><span class="ihk" style="color:#4cd7a5;">밸류 리스크</span><span class="ihv">고PER(고평가) 종목의 비중. 높을수록 밸류에이션 부담이 커 조정 위험이 있습니다.</span></div>
+    </div>
+    <div style="font-size:10.5px;color:var(--dim);line-height:1.6;margin-top:12px;border-top:1px solid var(--border);padding-top:11px;">
+      지표는 각 지수의 구성 종목(거래소 기준 근사)에서 산출되어 시장마다 다릅니다. 모든 지표는 0~100이며 값이 높을수록 위험이 큽니다.</div>
   </div>
 </div>
 
@@ -301,7 +326,9 @@ window.openRiskInfo = (src, kEnc) => {
   document.getElementById("rkinfo").classList.add("on");
 };
 window.closeRkInfo = () => document.getElementById("rkinfo").classList.remove("on");
-document.addEventListener("keydown", e => { if (e.key==="Escape") { window.closeRiskModal(); window.closeRkInfo(); } });
+window.openIdxHelp = () => document.getElementById("idxhelp").classList.add("on");
+window.closeIdxHelp = () => document.getElementById("idxhelp").classList.remove("on");
+document.addEventListener("keydown", e => { if (e.key==="Escape") { window.closeRiskModal(); window.closeRkInfo(); window.closeIdxHelp(); } });
 
 // ── 위험 종목 리스트
 let CAT = "all", SORT = "rk", SHOW = 10, Q = "", MKT = "all";
