@@ -462,3 +462,19 @@ window.ST = (function () {
            displayName, get, all, stockUrl, findStock, suggestions,
            watchGet, watchSet, watchHas, watchToggle, nav, asofText, sampleNotice, spark, qp };
 })();
+
+// ── 콘텐츠 무단 복제 억제 (참고: 완전 차단은 불가능한 "억지력" 수준) ──
+(function () {
+  var inField = function (el) { return el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable); };
+  // 우클릭(컨텍스트 메뉴) 차단 — 입력창에서는 허용(검색·댓글 붙여넣기 편의)
+  document.addEventListener("contextmenu", function (e) { if (!inField(e.target)) e.preventDefault(); });
+  // 소스보기(Ctrl+U)·저장(Ctrl+S)·개발자도구(F12, Ctrl+Shift+I/J/C) 단축키 억제
+  document.addEventListener("keydown", function (e) {
+    var k = (e.key || "").toLowerCase();
+    if (e.key === "F12") { e.preventDefault(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (k === "i" || k === "j" || k === "c")) { e.preventDefault(); return; }
+    if ((e.ctrlKey || e.metaKey) && !inField(e.target) && (k === "u" || k === "s")) { e.preventDefault(); }
+  });
+  // 이미지·로고 드래그 저장 억제
+  document.addEventListener("dragstart", function (e) { if (e.target && e.target.tagName === "IMG") e.preventDefault(); });
+})();
