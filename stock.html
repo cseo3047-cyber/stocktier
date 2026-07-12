@@ -96,6 +96,7 @@
     </div>
     <span class="asof" id="asof" style="margin-top:6px;"></span>
     <button class="btn3" id="watchbtn" onclick="toggleWatch()">☆ 관심종목</button>
+    <button class="btn3" id="pfbtn" onclick="togglePf()">＋ 포트폴리오</button>
     <a class="btn3" id="cmpbtn" href="#">⚔ 비교</a>
   </div>
   <div id="body"></div>
@@ -118,6 +119,7 @@ if (!s) {
     <div style="font-size:18px;font-weight:700;margin-bottom:8px;">종목을 찾을 수 없습니다</div>
     <div style="font-size:13px;color:var(--muted);">상단 검색창에서 다시 검색해보세요.</div></div>`;
   document.getElementById("watchbtn").style.display = "none";
+  document.getElementById("pfbtn").style.display = "none";
   document.getElementById("cmpbtn").style.display = "none";
 } else {
   const us = src==="us";
@@ -274,8 +276,8 @@ if (!s) {
     : sc>=45 ? "중위권 티어 · 모멘텀에 따라<br>등락 여지가 있는 구간"
     : "하위 티어 · 지표 개선 확인 후<br>접근이 필요한 구간";
   const tierCard = `
-  <div class="scard">
-    <div class="hd"><span class="hic">${shieldIcon}</span>종합 티어</div>
+  <div class="scard" style="cursor:pointer;" onclick="openTierReason()" title="클릭하면 티어 산정 근거가 열려요">
+    <div class="hd"><span class="hic">${shieldIcon}</span>종합 티어 <span style="margin-left:auto;font-size:10px;color:var(--gold);font-weight:700;">산정 근거 ›</span></div>
     <div style="display:flex;align-items:center;gap:10px;">
       <span style="font-size:29px;font-weight:800;color:#f0c948;">${g.g} <span style="font-size:15px;">티어</span></span>
       <span class="vbadge ${outlook[1]}">${outlook[0]}</span></div>
@@ -728,7 +730,39 @@ if (!s) {
     else { b.textContent = "☆ 관심종목"; b.style.color = ""; b.style.borderColor = ""; }
   }
   updateWatchBtn();
+  // 포트폴리오(내 투자) — 관심종목과 별개
+  window.togglePf = function(){ ST.pfToggle(src, key); updatePfBtn(); };
+  function updatePfBtn(){
+    const b = document.getElementById("pfbtn");
+    if (ST.pfHas(src,key)) { b.textContent = "✓ 포트폴리오 담김"; b.style.color = "#4cd7a5"; b.style.borderColor = "#2e5c47"; }
+    else { b.textContent = "＋ 포트폴리오"; b.style.color = ""; b.style.borderColor = ""; }
+  }
+  updatePfBtn();
+  // 종합 티어 산정 근거 팝업
+  window.openTierReason = function(){
+    const rc = v => v>=67?"#4cd7a5":v>=40?"#f0c948":"#f0645a";
+    const factors = [["수급", supply],["모멘텀", momentum],["밸류에이션", value],["펀더멘털", funda],["안정성(리스크 반영)", clip(100-rk)]];
+    document.getElementById("smroot").innerHTML = `
+      <div style="display:flex;align-items:center;gap:13px;margin:2px 0 13px;">
+        <span style="font-size:30px;font-weight:900;color:#f0c948;">${g.g}<span style="font-size:14px;"> 티어</span></span>
+        <span style="font-size:13px;color:var(--muted);">종합점수 <b class="num" style="color:var(--text);">${sc}</b>/100 · <span class="vbadge ${outlook[1]}">${outlook[0]}</span></span></div>
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;line-height:1.6;">티어는 아래 5개 지표를 종합한 <b style="color:var(--text);">종합점수(${sc})</b>로 결정돼요. 점수가 높을수록 상위 티어(D → AAA)입니다.</div>
+      ${factors.map(([lb,v])=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;color:var(--muted);"><span style="width:128px;flex-shrink:0;">${lb}</span><div style="flex:1;height:7px;background:var(--panel2);border:1px solid var(--border);border-radius:4px;overflow:hidden;"><i style="display:block;height:100%;width:${clip(v)}%;background:linear-gradient(90deg,#0f7a56,${rc(clip(v))});border-radius:4px;"></i></div><b class="num" style="width:26px;text-align:right;color:var(--text);">${clip(v)}</b></div>`).join("")}
+      <div style="font-size:11px;color:var(--dim);line-height:1.7;margin-top:13px;border-top:1px solid var(--border);padding-top:11px;">${tierDesc.replace(/<br>/g," ")}</div>`;
+    document.getElementById("smodal").style.display = "flex";
+  };
+  window.closeSModal = function(){ document.getElementById("smodal").style.display = "none"; };
+  document.addEventListener("keydown", e => { if (e.key==="Escape") closeSModal(); });
 }
 </script>
+
+<div id="smodal" style="position:fixed;inset:0;background:#000000aa;display:none;align-items:center;justify-content:center;z-index:200;" onclick="if(event.target===this)closeSModal()">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;width:min(440px,92vw);max-height:86vh;overflow:auto;padding:20px 22px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <b style="font-size:15px;">🛡 종합 티어 산정 근거</b>
+      <span style="cursor:pointer;color:var(--dim);font-size:18px;font-weight:800;padding:0 3px;" onclick="closeSModal()">✕</span></div>
+    <div id="smroot"></div>
+  </div>
+</div>
 </body>
 </html>

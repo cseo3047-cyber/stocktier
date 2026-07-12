@@ -149,6 +149,17 @@ window.ST = (function () {
     watchSet(l);
     return watchHas(src,key);
   }
+  // ── 포트폴리오(내 투자) — 관심종목과 별개 저장소 ──
+  function pfGet() { try { return JSON.parse(localStorage.getItem("st_pf")||"[]"); } catch(e){ return []; } }
+  function pfSet(list) { localStorage.setItem("st_pf", JSON.stringify(list)); }
+  function pfHas(src,key) { return pfGet().some(w=>w[0]===src&&w[1]===key); }
+  function pfToggle(src,key) {
+    let l = pfGet();
+    if (pfHas(src,key)) l = l.filter(w=>!(w[0]===src&&w[1]===key));
+    else l.push([src,key]);
+    pfSet(l);
+    return pfHas(src,key);
+  }
 
   // ── Firebase 로그인 + 관심종목 클라우드 동기화 ──
   let fbUser = null;
@@ -467,7 +478,7 @@ window.ST = (function () {
 
   return { KR, US, ALIAS, isReal, GRADES, EVENTS, score, risk, gradeOf, pct, pct2, num, cls, capStr, priceStr,
            displayName, get, all, stockUrl, findStock, suggestions,
-           watchGet, watchSet, watchHas, watchToggle, nav, asofText, sampleNotice, spark, qp };
+           watchGet, watchSet, watchHas, watchToggle, pfGet, pfSet, pfHas, pfToggle, nav, asofText, sampleNotice, spark, qp };
 })();
 
 // ── 콘텐츠 무단 복제 억제 (참고: 완전 차단은 불가능한 "억지력" 수준) ──
@@ -523,7 +534,8 @@ window.ST = (function () {
     var m = src.match(/Stock([A-Za-z0-9]{1,7})(?:\.[ONA])?\.svg/); if (m) t = m[1];
     if (!t) { var mm = src.match(/icn-sec-fill-(\w+)/); if (mm) t = mm[1]; }
     if (!t) t = img.getAttribute("data-ticker");
-    return t ? "https://img.logo.dev/ticker/" + encodeURIComponent(t) + "?token=" + encodeURIComponent(LDV) + "&size=96&format=png" : null;
+    // 미국 티커(알파벳)만 logo.dev 사용, 국내 6자리 코드(숫자)는 아바타로 대체
+    return (t && /^[A-Za-z.]+$/.test(t)) ? "https://img.logo.dev/ticker/" + encodeURIComponent(t) + "?token=" + encodeURIComponent(LDV) + "&size=96&format=png" : null;
   }
   function useLdv(img) {
     if (img.dataset.ldv) return; img.dataset.ldv = "1";

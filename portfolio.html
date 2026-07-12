@@ -19,6 +19,8 @@
   .scard .vl small { font-size:12px; color:var(--dim); font-weight:600; }
   .scard .sub { font-size:10.5px; color:var(--dim); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .scard svg.mini { flex-shrink:0; }
+  .scard.clickable { cursor:pointer; transition:border-color .15s, transform .1s; }
+  .scard.clickable:hover { border-color:#4cd7a5; transform:translateY(-1px); }
   .icgauge { width:46px; height:46px; border-radius:50%; flex-shrink:0; position:relative; }
   .icgauge .ih { position:absolute; inset:6px; background:#0f333e; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; color:#4cd7a5; }
   .avat { display:inline-flex; width:21px; height:21px; border-radius:6px; align-items:center; justify-content:center; font-size:10.5px; font-weight:800; color:#052018; margin-right:7px; vertical-align:-5px; flex-shrink:0; }
@@ -98,13 +100,13 @@ ST.nav("portfolio.html");
 document.getElementById("asof").textContent = "업데이트: " + ST.asofText();
 
 const clip = v => Math.max(0, Math.min(100, Math.round(v)));
-const list = ST.watchGet().filter(w => ST.get(w[0],w[1]));
+const list = ST.pfGet().filter(w => ST.get(w[0],w[1]));
 const box = document.getElementById("body");
 
 if (!list.length) {
   box.innerHTML = `<div class="card" style="text-align:center;padding:56px;">
     <div style="font-size:18px;font-weight:800;margin-bottom:8px;">진단할 보유 종목이 없어요</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">종목 페이지에서 ☆ 관심종목을 눌러 담으면<br>포트폴리오 진단이 자동으로 만들어집니다.</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">종목 페이지에서 <b>＋ 포트폴리오</b> 버튼을 눌러 담으면<br>포트폴리오 진단이 자동으로 만들어집니다.</div>
     <a class="btn" href="tier.html">종목 담으러 가기 →</a></div>`;
 } else {
   const items = list.map(([src,key]) => {
@@ -173,10 +175,10 @@ if (!list.length) {
 
   const cards = `
   <div class="cards4">
-    <div class="scard"><span class="ic">${listIcon}</span><div class="l" style="display:flex;flex-direction:column;justify-content:flex-start;"><div class="lb">전체 보유 종목</div><div class="vl num" style="font-size:30px;line-height:1;margin-top:5px;margin-left:28px;">${n}<small style="font-size:14px;"> 개</small></div></div>${miniLine("mg1","#1d9e75","#4cd7a5",n*17+5)}</div>
-    <div class="scard"><span class="icgauge" style="background:conic-gradient(${gcol} 0% ${surv}%, #ffffff14 ${surv}% 100%);"><span class="ih" style="color:${gcol};">${g.g}</span></span><div class="l" style="display:flex;flex-direction:column;justify-content:flex-start;"><div class="lb">포트폴리오 점수</div><div class="vl num" style="font-size:30px;line-height:1;margin-top:5px;margin-left:28px;">${surv}<small style="font-size:14px;"> 점</small></div></div>${miniBars("mg2","#0f7a56","#4cd7a5",surv+13)}</div>
-    <div class="scard"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${warnIcon}</span><div class="l"><div class="lb">고위험 종목 비중</div><div class="vl num" style="color:${highPct>=40?"#f0708a":"var(--text)"};">${highPct}<small> %</small></div><div class="sub">${highRisk.length}개 종목</div></div>${miniBars("mg3","#7a2822","#f0645a",highPct+7)}</div>
-    <div class="scard"><span class="ic">${calIcon}</span><div class="l"><div class="lb">실적 임박 종목</div><div class="vl num">${earnSoon}<small> 개</small></div><div class="sub">D-7 이내 · 예상 포함</div></div>${miniBars("mg4","#1d9e75","#8fd6b8",earnSoon*9+21)}</div>
+    <div class="scard clickable" onclick="openPfModal('all')"><span class="ic">${listIcon}</span><div class="l" style="display:flex;flex-direction:column;justify-content:flex-start;"><div class="lb">전체 보유 종목</div><div class="vl num" style="font-size:30px;line-height:1;margin-top:5px;margin-left:28px;">${n}<small style="font-size:14px;"> 개</small></div></div>${miniLine("mg1","#1d9e75","#4cd7a5",n*17+5)}</div>
+    <div class="scard clickable" onclick="openPfModal('score')"><span class="icgauge" style="background:conic-gradient(${gcol} 0% ${surv}%, #ffffff14 ${surv}% 100%);"><span class="ih" style="color:${gcol};">${g.g}</span></span><div class="l" style="display:flex;flex-direction:column;justify-content:flex-start;"><div class="lb">포트폴리오 점수</div><div class="vl num" style="font-size:30px;line-height:1;margin-top:5px;margin-left:28px;">${surv}<small style="font-size:14px;"> 점</small></div></div>${miniBars("mg2","#0f7a56","#4cd7a5",surv+13)}</div>
+    <div class="scard clickable" onclick="openPfModal('high')"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${warnIcon}</span><div class="l"><div class="lb">고위험 종목 비중</div><div class="vl num" style="color:${highPct>=40?"#f0708a":"var(--text)"};">${highPct}<small> %</small></div><div class="sub">${highRisk.length}개 종목</div></div>${miniBars("mg3","#7a2822","#f0645a",highPct+7)}</div>
+    <div class="scard clickable" onclick="openPfModal('earn')"><span class="ic">${calIcon}</span><div class="l"><div class="lb">실적 임박 종목</div><div class="vl num">${earnSoon}<small> 개</small></div><div class="sub">D-7 이내 · 예상 포함</div></div>${miniBars("mg4","#1d9e75","#8fd6b8",earnSoon*9+21)}</div>
   </div>`;
 
   // 구성 테이블
@@ -261,6 +263,27 @@ if (!list.length) {
         <span class="num">점수 ${x.sc}</span><span class="num">위험도 ${x.rk}</span>
         <span class="tierb tier-${ST.gradeOf(x.sc).g}" style="font-size:10px;">${ST.gradeOf(x.sc).g}</span></div>`).join("")
     ).join("");
+    document.getElementById("dmodal").classList.remove("hidden");
+  };
+  // 상단 카드 클릭 → 세부 팝업 (점수 산정 근거 / 종목 리스트)
+  window.openPfModal = k => {
+    const rows = arr => arr.length ? arr.map((x,i)=>`<div class="mrow"><b>${i+1}. ${ST.displayName(x.src,x.key)}</b>
+      <span class="num">점수 ${x.sc}</span><span class="num">위험도 ${x.rk}</span>
+      <span class="tierb tier-${ST.gradeOf(x.sc).g}" style="font-size:10px;">${ST.gradeOf(x.sc).g}</span></div>`).join("")
+      : `<div style="font-size:12.5px;color:var(--dim);padding:18px 2px;">해당 종목이 없습니다</div>`;
+    let title, body;
+    if (k==="score") {
+      title = "포트폴리오 점수 산정 근거";
+      const rc = v => v>=67?"#4cd7a5":v>=40?"#f0c948":"#f0645a";
+      const fac = [["수급",supply],["모멘텀",momentum],["펀더멘털",funda],["밸류에이션",value],["안정성(리스크)",riskV]];
+      body = `<div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">보유 종목들의 아래 5개 지표를 평균 내어 <b style="color:var(--text);">포트폴리오 점수(${surv})</b>를 산출하고, 그에 따라 <b style="color:var(--text);">${g.g} 등급</b>이 정해져요.</div>`
+        + fac.map(([lb,v])=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12.5px;color:var(--muted);"><span style="width:118px;flex-shrink:0;">${lb}</span><div style="flex:1;height:7px;background:var(--panel2);border:1px solid var(--border);border-radius:4px;overflow:hidden;"><i style="display:block;height:100%;width:${clip(v)}%;background:linear-gradient(90deg,#0f7a56,${rc(clip(v))});border-radius:4px;"></i></div><b class="num" style="width:28px;text-align:right;color:var(--text);">${clip(v)}</b></div>`).join("")
+        + `<div style="font-size:11px;color:var(--dim);line-height:1.7;margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">각 지표는 100점 만점이며, 다섯 항목의 단순 평균이 최종 점수예요. 점수가 높을수록 상위 등급(D → AAA)입니다.</div>`;
+    } else if (k==="all") { title = "전체 보유 종목 (" + n + ")"; body = rows(items.slice()); }
+    else if (k==="high") { title = "고위험 종목 (" + highRisk.length + ")"; body = rows(highRisk.slice().sort((a,b)=>b.rk-a.rk)); }
+    else { const es = items.filter(x=>{ const o=earnInfo(x); return o && dday(o.d)<=7; }); title = "실적 임박 종목 (" + es.length + ")"; body = rows(es); }
+    document.getElementById("mtitle").textContent = title;
+    document.getElementById("mbody").innerHTML = body;
     document.getElementById("dmodal").classList.remove("hidden");
   };
   const donuts = `
