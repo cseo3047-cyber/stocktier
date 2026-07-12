@@ -63,6 +63,39 @@ function avatarHtml(){
   return (NICK || USER.displayName || USER.email)[0].toUpperCase();
 }
 
+// ── 리그 티어 카드 (league/{uid}에서 현재 시즌 + 시즌 이력 표시) ──
+function wonMy(v){ v = Math.round(v);
+  if (Math.abs(v) >= 1e8) return (v/1e8).toFixed(2).replace(/\.?0+$/,"") + "억";
+  if (Math.abs(v) >= 1e4) return Math.round(v/1e4).toLocaleString("ko-KR") + "만";
+  return v.toLocaleString("ko-KR"); }
+function tierMiniCard(o){
+  const c = o.c || "#8a8f94", ic = o.ic || "🛡️", tier = o.tier || "-", ret = o.ret || 0;
+  const sn = String(o.season || o.key || "").replace("S","");
+  const up = ret >= 0;
+  return `<div style="flex:0 0 168px;border-radius:16px;padding:16px 12px 13px;background:linear-gradient(160deg,${c}26,${c}08);border:1.5px solid ${c}66;text-align:center;position:relative;overflow:hidden;">
+    <div style="position:absolute;left:0;right:0;top:0;height:80px;background:radial-gradient(circle at 50% -20%,${c}44,transparent 70%);pointer-events:none;"></div>
+    <div style="position:relative;">
+      <div style="font-size:10px;color:var(--muted);font-weight:800;">시즌 ${sn}${o.cur?" · 진행 중":" · 최종"}</div>
+      <div style="font-size:40px;line-height:1;margin:9px 0 5px;">${ic}</div>
+      <div style="font-size:16px;font-weight:900;color:${c};text-shadow:0 0 12px ${c}55;">${tier}</div>
+      <div class="num" style="font-size:12px;font-weight:800;margin-top:7px;color:${up?'var(--up)':'var(--down)'};">${up?'+':''}${ret}%</div>
+      ${o.total!=null?`<div class="num" style="font-size:10.5px;color:var(--dim);margin-top:2px;">${wonMy(o.total)}</div>`:""}
+    </div></div>`;
+}
+function loadTierCards(){
+  const el = document.getElementById("tiercards");
+  if (!el || !window.firebase || !USER) return;
+  firebase.firestore().collection("league").doc(USER.uid).get().then(s => {
+    const d = s.exists ? s.data() : {};
+    const cards = [];
+    if (d.curTier) cards.push(Object.assign({ cur:true }, d.curTier));
+    (Array.isArray(d.seasons) ? d.seasons.slice().reverse() : []).forEach(x => cards.push(x));
+    el.innerHTML = cards.length
+      ? cards.map(tierMiniCard).join("")
+      : `<div style="font-size:12px;color:var(--dim);padding:16px;">아직 리그 기록이 없어요. 모의투자 리그에 참여하면 티어 카드가 생겨요.</div>`;
+  }).catch(() => { el.innerHTML = `<div style="font-size:12px;color:var(--dim);padding:16px;">티어를 불러오지 못했어요.</div>`; });
+}
+
 function render(){
   const p = window.ST_PROFILE || {};
   NICK = p.nick || USER.displayName || "";
@@ -127,6 +160,12 @@ function render(){
         ${wl.slice(0,5).map(([src,key])=>`<div class="irow"><span class="lb" style="color:var(--text);cursor:pointer;" onclick="location.href='${ST.stockUrl(src,key)}'">${ST.displayName(src,key)}</span><b style="color:var(--dim);font-size:11px;">${src==="us"?"미국":"국내"}</b></div>`).join("")}
       </div>
     </div>
+  </div>
+  <div class="card" style="margin-top:14px;"><h3>리그 티어 <span class="more" onclick="location.href='league.html'">모의투자 리그 ›</span></h3>
+    <div id="tiercards" style="display:flex;gap:12px;overflow-x:auto;padding:4px 2px 8px;">
+      <div style="font-size:12px;color:var(--dim);padding:16px;">리그 티어를 불러오는 중...</div>
+    </div>
+    <div style="font-size:10.5px;color:var(--dim);margin-top:6px;">시즌은 분기(3개월)마다 진행돼요. 왼쪽이 현재 시즌, 지난 시즌 카드는 마감 시 자동으로 쌓입니다.</div>
   </div>`;
 
   // 아바타 그리드
@@ -177,6 +216,8 @@ function render(){
     document.getElementById("mp_streak").textContent = (g.streak||0) + "일";
     document.getElementById("mp_rate").textContent = g.total ? Math.round(g.hit/g.total*100) + "% (" + g.hit + "/" + g.total + ")" : "기록 없음";
   }).catch(()=>{});
+
+  loadTierCards();
 
   const pmsg = (t,ok) => { const m=document.getElementById("pmsg"); m.textContent=t; m.style.color = ok?"#4cd7a5":"#f0708a"; };
   const amsg = (t,ok) => { const m=document.getElementById("amsg"); m.textContent=t; m.style.color = ok?"#4cd7a5":"#f0708a"; };

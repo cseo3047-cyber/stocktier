@@ -132,6 +132,15 @@
   </div>
 </div>
 
+<div id="tcardmodal" style="position:fixed;inset:0;background:#000000aa;display:none;align-items:center;justify-content:center;z-index:318;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;width:min(360px,92vw);max-height:90vh;overflow:auto;padding:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <b style="font-size:15px;">🎖️ 내 티어 카드</b>
+      <span style="cursor:pointer;color:var(--muted);padding:2px 6px;font-size:16px;" onclick="document.getElementById('tcardmodal').style.display='none'">✕</span></div>
+    <div id="tcardbody"></div>
+  </div>
+</div>
+
 <div id="rankmodal" style="position:fixed;inset:0;background:#000000aa;display:none;align-items:center;justify-content:center;z-index:315;" onclick="if(event.target===this)this.style.display='none'">
   <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;width:min(460px,92vw);max-height:82vh;display:flex;flex-direction:column;padding:22px 24px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -257,6 +266,34 @@ window.openTiers = () => {
   document.getElementById("tiermodal").style.display = "flex";
 };
 
+// ── 티어 카드 (리그 티어 seabox 클릭 / 마이페이지 공용) ──
+function tierCardHTML(o){
+  const c = o.tier.c, ic = o.tier.ic, full = o.tier.full, ret = o.ret, up = ret >= 0;
+  return `<div style="border-radius:18px;padding:22px 18px 18px;background:linear-gradient(160deg,${c}26,${c}08);border:1.5px solid ${c}66;text-align:center;position:relative;overflow:hidden;">
+    <div style="position:absolute;left:0;right:0;top:0;height:120px;background:radial-gradient(circle at 50% -10%,${c}44,transparent 70%);pointer-events:none;"></div>
+    <div style="position:relative;">
+      <div style="font-size:11px;color:var(--muted);font-weight:800;letter-spacing:.5px;">시즌 ${o.season} · 리그 티어${o.ended?" · 최종":""}</div>
+      <div style="font-size:60px;line-height:1;margin:14px 0 8px;">${ic}</div>
+      <div style="font-size:26px;font-weight:900;color:${c};text-shadow:0 0 18px ${c}55;">${full}</div>
+      <div style="display:flex;gap:9px;margin-top:18px;">
+        <div style="flex:1;background:#ffffff0d;border:1px solid var(--border);border-radius:11px;padding:9px 6px;">
+          <div style="font-size:10px;color:var(--dim);margin-bottom:3px;">수익률</div>
+          <div class="num" style="font-size:15px;font-weight:800;color:${up?'var(--up)':'var(--down)'};">${up?'+':''}${ret}%</div></div>
+        <div style="flex:1;background:#ffffff0d;border:1px solid var(--border);border-radius:11px;padding:9px 6px;">
+          <div style="font-size:10px;color:var(--dim);margin-bottom:3px;">총자산</div>
+          <div class="num" style="font-size:15px;font-weight:800;">${o.total!=null?wonC(o.total):"—"}</div></div>
+      </div>
+      <div style="font-size:10.5px;color:var(--dim);margin-top:15px;">${String(o.nick||'').replace(/</g,'&lt;')} · Stocktier League</div>
+    </div>
+  </div>`;
+}
+window.openTierCard = function(){
+  const total = totalOf(L), t = tierOf(total, L.seedWon);
+  const ret = Math.round((total/L.seedWon - 1) * 10000) / 100;
+  document.getElementById("tcardbody").innerHTML = tierCardHTML({ tier:t, season:SNUM, ret:ret, total:Math.round(total), nick:L.nick });
+  document.getElementById("tcardmodal").style.display = "flex";
+};
+
 // ── 공용 스타일 팝업 (confirm/alert 대체)
 function stConfirm(title, html, opt){
   opt = opt || {};
@@ -321,13 +358,17 @@ async function load(){
       const oy = +L.season.split("-")[0], oq = +L.season.split("-")[1];
       L.season = "S" + Math.max(1, oy*4 + (oq-1) - SEPOCH + 1);
     }
+    // 시즌 이력 배열 (마이페이지 시즌별 티어카드용) — 기존 사용자는 lastSeason으로 시드
+    L.seasons = Array.isArray(L.seasons) ? L.seasons : (L.lastSeason ? [Object.assign({}, L.lastSeason)] : []);
     let seasonEnded = null;
     if (L.season && L.season !== sKey) {
       const t0 = totalOf(L);
       const tr0 = tierOf(t0, L.seedWon);
       L.lastSeason = { key: L.season, tier: tr0.full, ic: tr0.ic, c: tr0.c,
-        ret: Math.round((t0/L.seedWon - 1) * 10000) / 100 };
+        ret: Math.round((t0/L.seedWon - 1) * 10000) / 100, total: Math.round(t0) };
       seasonEnded = L.lastSeason;
+      // 같은 시즌 중복 없이 이력에 누적
+      if (!L.seasons.some(s => s.key === L.lastSeason.key)) { L.seasons.push(Object.assign({}, L.lastSeason)); L.seasons = L.seasons.slice(-40); }
     }
     L.season = sKey;
     // 월간 자동 정산: 1개월(30일)이 지났으면 자동으로 지급 (기본 2,000만 + 포인트 1P당 100만)
@@ -349,6 +390,10 @@ async function load(){
       else L.hist.push({ d: dk, t: t, e: ev });
       L.hist = L.hist.slice(-400);
     }
+    // 현재 시즌 티어 스냅샷 저장 (마이페이지 티어 카드용)
+    { const _t = totalOf(L), _tr = tierOf(_t, L.seedWon);
+      L.curTier = { season: "S" + SNUM, tier: _tr.full, ic: _tr.ic, c: _tr.c,
+        ret: Math.round((_t/L.seedWon - 1) * 10000) / 100, total: Math.round(_t) }; }
     await ref.set(L, { merge: true });
     render();
     if (settled > 0) {
@@ -436,7 +481,7 @@ function render(){
     <div class="seasonrow">
       <div class="seabox"><span class="si">🕐</span><div><div class="sl">시즌 ${SNUM} 진행 중</div><div class="sv num" style="font-size:12px;color:var(--muted);">${fmtSD(SSTART)} ~ ${fmtSD(SEND)}</div></div></div>
       <div class="seabox"><div><div class="sl">시즌 종료까지</div><div class="sv" style="color:var(--gold);">${SLEFT}일 남음</div></div></div>
-      <div class="seabox"><span class="si">${myTier.ic}</span><div><div class="sl">내 리그 티어</div><div class="sv" style="color:${myTier.c};">${myTier.full}</div></div></div>
+      <div class="seabox" style="cursor:pointer;" onclick="openTierCard()" title="클릭하면 내 티어 카드가 열려요"><span class="si">${myTier.ic}</span><div><div class="sl">내 리그 티어 <span style="font-size:9px;color:var(--gold);">카드 보기 ›</span></div><div class="sv" style="color:${myTier.c};">${myTier.full}</div></div></div>
       ${L.lastSeason ? `<div class="seabox" style="opacity:.85;"><span class="si">${L.lastSeason.ic}</span><div><div class="sl">지난 시즌 최종 (시즌 ${sNumOf(L.lastSeason.key)})</div><div class="sv" style="color:${L.lastSeason.c};">${L.lastSeason.tier}</div></div></div>` : ""}
       <span style="flex:1;"></span>
       <button onclick="openTiers()" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:9px 20px;font-size:12.5px;font-weight:800;cursor:pointer;">🎖️ 티어 구분</button>
