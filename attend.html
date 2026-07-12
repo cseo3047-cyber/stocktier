@@ -71,6 +71,8 @@ ST.nav("attend.html");
 document.getElementById("asof").textContent = "업데이트: " + ST.asofText();
 const box = document.getElementById("body");
 let USER = null, ready = false, G = null, GAINED = 0, GBONUS = "", MOFF = 0, NEWATT = false;
+// 달력 앞으로 이동 최대치 = 내년 12월까지
+const MMAX = (function(){ const n = new Date(); return (n.getFullYear()+1)*12 + 11 - (n.getFullYear()*12 + n.getMonth()); })();
 
 function locked(){
   box.innerHTML = `<div class="card" style="text-align:center;padding:50px;">
@@ -135,7 +137,7 @@ function calHtml(){
   return `<div class="mnav">
     <span class="ar" onclick="MOFF--;redraw()">‹</span>
     <span>${y}년 ${m+1}월</span>
-    <span class="ar" onclick="if(MOFF<0){MOFF++;redraw()}" style="${MOFF>=0?"opacity:.3;cursor:default;":""}">›</span></div>
+    <span class="ar" onclick="if(MOFF<MMAX){MOFF++;redraw()}" style="${MOFF>=MMAX?"opacity:.3;cursor:default;":""}">›</span></div>
     <div class="cal">${cal}</div>`;
 }
 window.redraw = () => { document.getElementById("calbox").innerHTML = calHtml(); };
