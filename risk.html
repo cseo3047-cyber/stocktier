@@ -93,6 +93,15 @@
   .gaugeS .arc { width:86px; height:86px; border-radius:50%; }
   .gaugeS .hole { position:absolute; left:12px; top:12px; width:62px; height:62px; background:var(--panel2); border-radius:50%; text-align:center; }
   .gaugeS .hole b { font-size:16px; display:block; margin-top:13px; line-height:1; }
+  /* 시장 리스크 지수 매트릭스 (게이지 5열 + 종합지표 막대 행) */
+  .mgrid { display:grid; grid-template-columns:88px repeat(5,minmax(0,1fr)); gap:10px 12px; align-items:center; }
+  @media (max-width:900px){ .mgrid { grid-template-columns:70px repeat(5,minmax(0,1fr)); gap:8px 6px; } }
+  .mgrid .glabel { font-size:11px; color:var(--muted); font-weight:700; white-space:nowrap; }
+  .mgrid .glabel.gtop { color:var(--dim); font-size:10.5px; line-height:1.35; white-space:normal; text-align:center; }
+  .mgrid .bcell { display:flex; align-items:center; gap:7px; min-width:0; }
+  .mgrid .bcell .m { flex:1; height:6px; background:var(--panel2); border:1px solid var(--border); border-radius:4px; overflow:hidden; min-width:0; }
+  .mgrid .bcell .m i { display:block; height:100%; border-radius:4px; }
+  .mgrid .bcell b { width:22px; text-align:right; font-size:11px; color:var(--text); font-variant-numeric:tabular-nums; flex-shrink:0; }
 </style>
 </head>
 <body>
@@ -412,18 +421,17 @@ drawBar(); drawTbl();
   // 점수별 단색 그라데이션 게이지 (연두=안전 · 골드=중간 · 빨강=위험)
   const gaugeS = v => { const [c1,c2]=RBAND(v);
     return `<div class="gaugeS"><div class="arc" style="background:conic-gradient(from 270deg, ${c1} 0%, ${c2} ${v/2}%, #ffffff14 ${v/2}%, #ffffff14 50%, transparent 50%);"></div><div class="hole"><b style="color:${c2};">${v}</b></div></div>`; };
-  const idxCells = IDX.map(([nm,o])=>{
-    if (!o) return `<div class="idxcell"><div class="inm">${nm}</div><div class="gaugeS" style="display:flex;align-items:flex-end;justify-content:center;color:var(--dim);font-size:10px;">데이터 없음</div><div class="ipr">-</div></div>`;
-    const rs = idxRisk(o);
-    return `<div class="idxcell"><div class="inm">${nm}</div>${gaugeS(rs)}<div class="ipr">${ST.num(o.price)} <span class="${ST.cls(o.ratio)}">${ST.pct2(o.ratio)}</span></div></div>`;
-  }).join("");
-  const subBars = sub.map(([lb,v])=>{ const [c1,c2]=RBAND(v);
-    return `<div class="r"><span class="lb">${lb}</span><div class="m"><i style="width:${v}%;background:linear-gradient(90deg,${c1},${c2});"></i></div><b>${v}</b></div>`; }).join("");
-  document.getElementById("mktidx").innerHTML =
-    `<div style="display:flex;gap:24px;align-items:flex-start;">
-       <div style="width:238px;flex-shrink:0;"><div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:10px;">종합 리스크 지표</div><div class="sbars">${subBars}</div></div>
-       <div style="flex:1;min-width:0;"><div class="idxgrid">${idxCells}</div></div>
-     </div>`;
+  // 게이지 셀 (지수명 + 게이지 + 지수값/등락률)
+  const gaugeCell = ([nm,o]) => o
+    ? `<div class="idxcell"><div class="inm">${nm}</div>${gaugeS(idxRisk(o))}<div class="ipr">${ST.num(o.price)} <span class="${ST.cls(o.ratio)}">${ST.pct2(o.ratio)}</span></div></div>`
+    : `<div class="idxcell"><div class="inm">${nm}</div><div class="gaugeS" style="display:flex;align-items:flex-end;justify-content:center;color:var(--dim);font-size:10px;">데이터 없음</div><div class="ipr">-</div></div>`;
+  // 막대 셀 (점수별 색 그라데이션)
+  const barCell = v => { const [c1,c2]=RBAND(v);
+    return `<div class="bcell"><div class="m"><i style="width:${v}%;background:linear-gradient(90deg,${c1},${c2});"></i></div><b>${v}</b></div>`; };
+  // 매트릭스: 좌측 라벨 열 + 지수 5열 (게이지 행 + 종합지표 4행)
+  let grid = `<div class="glabel gtop">종합<br>리스크<br>지표</div>` + IDX.map(gaugeCell).join("");
+  for (const [lb,v] of sub) grid += `<div class="glabel">${lb}</div>` + IDX.map(()=>barCell(v)).join("");
+  document.getElementById("mktidx").innerHTML = `<div class="mgrid">${grid}</div>`;
 
   const mk5 = (arr, id, valFn, valHd) => {
     const hd = `<div class="chd"><span style="width:18px;text-align:center;flex-shrink:0;">순위</span><span style="flex:1;text-align:center;">종목명</span><span style="min-width:58px;text-align:center;">${valHd}</span></div>`;
