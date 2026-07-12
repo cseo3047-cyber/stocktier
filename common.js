@@ -402,7 +402,10 @@ window.ST = (function () {
       ft.className = "footer";
       (document.querySelector(".wrap") || document.body).appendChild(ft);
     }
-    ft.innerHTML = notice + ` &nbsp;·&nbsp; <a href="privacy.html" style="color:var(--muted);text-decoration:underline;">개인정보 처리방침</a>`;
+    ft.innerHTML = notice
+      + ` &nbsp;·&nbsp; <a href="privacy.html" style="color:var(--muted);text-decoration:underline;">개인정보 처리방침</a>`
+      + ` &nbsp;·&nbsp; <a href="terms.html" style="color:var(--muted);text-decoration:underline;">이용약관</a>`
+      + `<div style="margin-top:7px;font-size:11px;color:var(--dim);">© 2026 Stocktier. All rights reserved. · 콘텐츠·디자인·코드의 무단 복제·배포·도용을 금합니다.</div>`;
     // 로그인 UI + Firebase 초기화
     setupLoginUI();
     initFirebase();
