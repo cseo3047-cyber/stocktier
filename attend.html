@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="style.css">
 <style>
   .wrap { max-width:1220px; }
-  .layout { display:grid; grid-template-columns:1fr 320px; gap:14px; align-items:start; }
+  .layout { display:grid; grid-template-columns:1fr 320px; gap:14px; align-items:stretch; }
   @media (max-width:1000px){ .layout { grid-template-columns:1fr; } }
   .statgrid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px; }
   @media (max-width:900px){ .statgrid { grid-template-columns:repeat(2,1fr); } }
@@ -36,7 +36,7 @@
   .tdot { display:flex; flex-direction:column; align-items:center; gap:5px; flex:1; position:relative; }
   .tdot .c { width:22px; height:22px; border-radius:50%; background:var(--panel2); border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--dim); z-index:1; }
   .tdot .c.on { background:linear-gradient(135deg,#1d9e75,#0f7a56); border-color:#2e5c47; color:#fff; }
-  .tdot .c.today { border-color:var(--gold); }
+  .tdot .c.today { background:linear-gradient(135deg,#f0c948,#c9611d); border-color:var(--gold); color:#5c3300; }
   .tdot::after { content:""; position:absolute; top:11px; left:50%; width:100%; height:1.5px; background:var(--border); }
   .tdot:last-child::after { display:none; }
   .tdot b { font-size:9.5px; color:var(--dim); font-weight:700; }
@@ -45,8 +45,7 @@
   .benrow .bic { width:32px; height:32px; border-radius:9px; background:#3d3313; border:1px solid #c9a83244; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
   .badge3 { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #ffffff0d; }
   .badge3:last-child { border-bottom:none; }
-  .badge3 .bi { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; background:var(--panel2); border:1px solid var(--border); filter:grayscale(1); opacity:.45; }
-  .badge3.got .bi { filter:none; opacity:1; background:linear-gradient(135deg,#3d3313,#5c4a12); border-color:#c9a83266; }
+  .badge3 .bi { width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; box-shadow:0 1px 5px rgba(0,0,0,.32); }
   .rkrow { display:flex; align-items:center; gap:9px; padding:8px 0; border-bottom:1px solid #ffffff0d; font-size:12.5px; font-weight:700; }
   .rkrow:last-child { border-bottom:none; }
   .rkrow .rank { width:20px; height:20px; border-radius:6px; background:var(--panel2); border:1px solid var(--border); color:var(--muted); font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -169,14 +168,14 @@ function render(){
       <div class="pbar"><i class="grn" style="width:${Math.round(mc/daysIn*100)}%;"></i></div></div></div>
     <div class="sbox2"><span class="ic coin">P</span>
       <div><div class="lb">출석 포인트</div><div class="vl num" style="color:#f0c948;">${G.pts.toLocaleString("ko-KR")}<span style="font-size:13px;">P</span></div><div class="sub">누적 획득 포인트</div></div></div>
-    <div class="sbox2"><span class="ic" style="background:linear-gradient(135deg,#f0a818,#8a5a1d);">🏅</span>
+    <div class="sbox2"><span class="ic" style="background:linear-gradient(135deg,#f0a818,#8a5a1d);">🎖️</span>
       <div style="flex:1;"><div class="lb">다음 배지까지</div><div class="vl num">${toNext}<span style="font-size:13px;color:var(--muted);">일 남음</span></div>
       <div class="pbar"><i style="width:${ringPct}%;"></i></div><div class="sub" style="text-align:right;">${Math.min(G.streak,next[0])} / ${next[0]}일</div></div></div>
   </div>
   <div class="layout">
-    <div>
+    <div style="display:flex;flex-direction:column;">
       <div class="card">
-        <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px;align-items:start;">
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;align-items:center;">
           <div id="calbox">${calHtml()}</div>
           <div style="text-align:center;padding-top:22px;">
             <div style="font-size:34px;font-weight:800;">🔥 <span class="num" style="color:#f0c948;">${G.streak}</span><span style="font-size:17px;">일</span></div>
@@ -185,16 +184,16 @@ function render(){
               <div class="ring" style="background:conic-gradient(#f0c948 0% ${ringPct}%, #0d3a52 ${ringPct}% 100%);">
                 <div class="hole"><b class="num" style="font-size:15px;">${Math.min(G.streak,next[0])} / ${next[0]}</b><span style="font-size:9px;color:var(--dim);">연속 목표</span></div></div>
             </div>
-            <div style="font-size:11px;color:var(--muted);font-weight:700;margin-top:14px;background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:8px 10px;">
-              내일 출석 시 <b style="color:#f0c948;">+${nextGain}P</b> 획득</div>
           </div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:14px;margin-top:14px;align-items:stretch;">
-        <div class="card"><h3>최근 출석 기록</h3>
-          <div class="tline">${tl}</div>
-          <div style="display:flex;gap:14px;justify-content:center;font-size:10.5px;color:var(--dim);font-weight:700;margin-top:12px;">
-            <span><span style="color:#4cd7a5;">●</span> 출석</span><span><span style="color:var(--border);">●</span> 미출석</span><span><span style="color:var(--gold);">○</span> 오늘</span></div>
+      <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:14px;margin-top:14px;align-items:stretch;flex:1;">
+        <div class="card" style="display:flex;flex-direction:column;"><h3>최근 출석 기록</h3>
+          <div style="margin:auto 0;">
+            <div class="tline">${tl}</div>
+            <div style="display:flex;gap:14px;justify-content:center;font-size:10.5px;color:var(--dim);font-weight:700;margin-top:14px;">
+              <span><span style="color:#4cd7a5;">●</span> 출석</span><span><span style="color:var(--border);">●</span> 미출석</span><span><span style="color:var(--gold);">○</span> 오늘</span></div>
+          </div>
         </div>
         <div class="card"><h3>출석 혜택 안내</h3>
           <div class="benrow"><span class="bic">🔥</span><div style="font-size:11.5px;color:var(--muted);line-height:1.7;"><b style="color:var(--text);">연속 출석 보너스</b><br>기본 10P + 연속 하루당 +1P (최대 +20P)</div></div>
@@ -205,20 +204,21 @@ function render(){
     </div>
     <div style="display:flex;flex-direction:column;gap:12px;">
       <div class="card"><h3>배지 <span class="more" style="cursor:default;">수집 현황 ${BADGES.filter(b=>G.best>=b[0]).length} / ${BADGES.length}</span></h3>
-        ${BADGES.map(([n,ic,lb])=>{
+        ${BADGES.map(([n,ic,lb],i)=>{
           const got = G.best>=n, pct = Math.min(100,Math.round(G.best/n*100));
-          return `<div class="badge3 ${got?"got":""}"><span class="bi">${ic}</span>
+          const c = ["#e0a63e","#4cc3d7","#f0c948","#c77dff"][i], bic = ["⭐","🛡️","⚡","👑"][i];
+          return `<div class="badge3"><span class="bi" style="background:radial-gradient(circle at 34% 30%, ${c}, ${c}66);border:1.5px solid ${c};">${bic}</span>
             <div style="flex:1;"><div style="font-size:12px;font-weight:700;">${lb}</div>
-            <div class="pbar" style="margin-top:5px;"><i class="${got?"":"grn"}" style="width:${pct}%;"></i></div></div>
-            <span style="font-size:10.5px;color:${got?"#f0c948":"var(--dim)"};font-weight:700;flex-shrink:0;">${got?"달성!":`${Math.min(G.best,n)} / ${n}`}</span></div>`;}).join("")}
+            <div class="pbar" style="margin-top:6px;"><i class="grn" style="width:${pct}%;"></i></div></div>
+            <span style="font-size:10.5px;color:${got?"#4cd7a5":"var(--dim)"};font-weight:700;flex-shrink:0;">${got?"달성!":`${Math.min(G.best,n)} / ${n}`}</span></div>`;}).join("")}
       </div>
       <div class="card"><h3>🏆 스트릭 랭킹</h3><div id="ranks">불러오는 중...</div></div>
       <div class="card"><h3>오늘의 출석 보상</h3>
         <div style="display:flex;align-items:center;gap:14px;padding:6px 0;">
           <span class="ic coin" style="width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#5c3300;background:radial-gradient(circle at 35% 30%,#ffd95e,#c9611d);">P</span>
-          <div style="flex:1;"><b class="num" style="font-size:22px;color:#f0c948;">+${NEWATT?GAINED:0}P</b>
+          <div style="flex:1;"><b class="num" style="font-size:22px;color:#f0c948;">${NEWATT?GAINED:0}P</b>
             <div style="font-size:10.5px;color:var(--dim);">출석 포인트${GBONUS?` · ${GBONUS}`:""}</div></div>
-          <span style="font-size:11px;font-weight:800;color:${NEWATT?"#4cd7a5":"var(--dim)"};border:1.5px dashed ${NEWATT?"#2e5c47":"var(--border)"};border-radius:50%;width:56px;height:56px;display:flex;align-items:center;justify-content:center;text-align:center;transform:rotate(-12deg);">${NEWATT?"획득<br>완료":"이미<br>출석"}</span>
+          <span style="font-size:11px;font-weight:800;color:${NEWATT?"#4cd7a5":"var(--dim)"};background:${NEWATT?"#13322a":"var(--panel2)"};border:1px solid ${NEWATT?"#2e5c47":"var(--border)"};border-radius:8px;padding:6px 12px;flex-shrink:0;white-space:nowrap;">${NEWATT?"획득 완료":"이미 출석"}</span>
         </div>
       </div>
       <div class="card"><h3>이번 달 달성률</h3>
