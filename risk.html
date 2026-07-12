@@ -428,9 +428,27 @@ drawBar(); drawTbl();
   // 막대 셀 (점수별 색 그라데이션)
   const barCell = v => { const [c1,c2]=RBAND(v);
     return `<div class="bcell"><div class="m"><i style="width:${v}%;background:linear-gradient(90deg,${c1},${c2});"></i></div><b>${v}</b></div>`; };
-  // 매트릭스: 좌측 라벨 열 + 지수 5열 (게이지 행 + 종합지표 4행)
-  let grid = `<div class="glabel gtop">종합<br>리스크<br>지표</div>` + IDX.map(gaugeCell).join("");
-  for (const [lb,v] of sub) grid += `<div class="glabel">${lb}</div>` + IDX.map(()=>barCell(v)).join("");
+  // 지수별 구성 종목(근사): 거래소 기준. 다우≈NYSE · 나스닥=NASDAQ · S&P500=미국 전체(대형주 근사)
+  const idxStocks = nm =>
+    nm==="코스피" ? A.filter(x=>!x.us && x.e[1]==="KOSPI") :
+    nm==="코스닥" ? A.filter(x=>!x.us && x.e[1]==="KOSDAQ") :
+    nm==="나스닥 종합" ? A.filter(x=>x.us && x.e[1]==="NASDAQ") :
+    nm==="다우존스" ? A.filter(x=>x.us && x.e[1]==="NYSE") :
+    nm==="S&P500" ? A.filter(x=>x.us) : [];
+  // 시장(지수)별 리스크 지표 — 구성 종목에서 산출하므로 시장마다 다름
+  const CATS = ["시장 과열","수급 리스크","변동성 리스크","밸류 리스크"];
+  const metricsFor = nm => {
+    const s = idxStocks(nm), n = Math.max(1, s.length);
+    const overheated = s.filter(x=>x.surge>=2 || (x.e[14]||0)>=10).length;
+    const pressured  = s.filter(x=>(!x.us && x.e.length>18 && ((x.e[17]||0)<0 || (x.e[18]||0)<0)) || (x.e[14]||0)<=-3).length;
+    const avgVol = s.length ? s.reduce((a,x)=>a+x.vol5,0)/s.length : 0;
+    const highPer = s.filter(x=>(x.e[4]||0) > (x.us?40:25)).length;
+    return [ clip(overheated/n*300), clip(pressured/n*160), clip(avgVol*18), clip(highPer/n*220) ];
+  };
+  const perIdx = IDX.map(([nm,o]) => ({ nm, o, m: metricsFor(nm) }));
+  // 매트릭스: 좌측 라벨 열(상단 코너 비움) + 지수 5열 (게이지 행 + 지표 4행)
+  let grid = `<div class="glabel gtop"></div>` + perIdx.map(p=>gaugeCell([p.nm,p.o])).join("");
+  CATS.forEach((cat, ci) => { grid += `<div class="glabel">${cat}</div>` + perIdx.map(p=>barCell(p.m[ci])).join(""); });
   document.getElementById("mktidx").innerHTML = `<div class="mgrid">${grid}</div>`;
 
   const mk5 = (arr, id, valFn, valHd) => {
