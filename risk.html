@@ -33,8 +33,8 @@
   .tchg { font-size:10px; font-weight:800; border-radius:5px; padding:1.5px 6px; }
   .morebtn { display:block; margin:12px auto 0; background:var(--panel2); border:1px solid var(--border); color:var(--muted); border-radius:9px; padding:8px 26px; font-size:12px; font-weight:800; cursor:pointer; }
   .morebtn:hover { color:var(--gold); border-color:var(--gold-dim); }
-  .row4b { display:grid; grid-template-columns:1.25fr 1fr 1fr 1fr; gap:14px; margin-top:14px; }
-  @media (max-width:1150px){ .row4b { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .row4b { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px; }
+  @media (max-width:1150px){ .row4b { grid-template-columns:1fr; } }
   @media (max-width:700px){ .row4b { grid-template-columns:1fr; } }
   .alrow { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); font-weight:600; padding:7px 0; border-bottom:1px solid #ffffff0d; line-height:1.5; }
   .alrow:last-child { border-bottom:none; }
@@ -87,7 +87,12 @@
   .idxcell .ipr { font-size:10px; color:var(--dim); margin-top:5px; white-space:nowrap; }
   /* 카드 컬럼 헤더 (가운데 정렬) */
   .chd { display:flex; align-items:center; gap:8px; padding:0 2px 7px; margin-bottom:3px; border-bottom:1px solid var(--border); font-size:10.5px; color:var(--dim); font-weight:700; }
-  .chd span { text-align:center; }
+  .chd span { text-align:center; white-space:nowrap; }
+  /* 지수별 미니 게이지 */
+  .gaugeS { width:86px; height:46px; position:relative; overflow:hidden; margin:4px auto 6px; }
+  .gaugeS .arc { width:86px; height:86px; border-radius:50%; }
+  .gaugeS .hole { position:absolute; left:12px; top:12px; width:62px; height:62px; background:var(--panel2); border-radius:50%; text-align:center; }
+  .gaugeS .hole b { font-size:16px; display:block; margin-top:13px; line-height:1; }
 </style>
 </head>
 <body>
@@ -100,7 +105,7 @@
   <div class="layout">
     <div>
       <div class="cards4" id="cards"></div>
-      <div class="card"><h3>시장 리스크 지수 <span class="more" style="cursor:default;color:var(--dim);font-weight:600;font-size:11px;">지수별 리스크 점수 · 종합 지표</span></h3><div id="mktidx"></div></div>
+      <div class="card" style="margin-bottom:14px;"><h3>시장 리스크 지수 <span class="more" style="cursor:default;color:var(--dim);font-weight:600;font-size:11px;">지수별 리스크 점수 · 종합 지표</span></h3><div id="mktidx"></div></div>
       <div class="card"><h3>위험 종목 리스트
         <span style="margin-left:auto;position:relative;flex-shrink:0;display:inline-flex;">
           <input id="riskq" placeholder="종목명 또는 코드 검색" autocomplete="off"
@@ -113,15 +118,15 @@
       </div>
       <div class="row4b">
         <div class="card"><h3>실시간 위험 신호</h3><div id="signals"></div></div>
-        <div class="card"><h3>시장 리스크 요약</h3><div id="mktsum"></div></div>
         <div class="card"><h3>예정 위험 이벤트</h3><div id="events"></div></div>
-        <div class="card"><h3>리스크 해소 종목</h3><div id="resolved"></div></div>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;height:100%;">
       <div class="card"><h3>급등 과열 TOP 5</h3><div id="hotlist"></div></div>
       <div class="card"><h3>수급 악화 TOP 5</h3><div id="selllist"></div></div>
-      <div class="card" style="flex:1;"><h3>실적 임박 위험 TOP 5</h3><div id="earnlist"></div></div>
+      <div class="card"><h3>실적 임박 위험 TOP 5</h3><div id="earnlist"></div></div>
+      <div class="card"><h3>시장 리스크 요약</h3><div id="mktsum"></div></div>
+      <div class="card" style="flex:1;"><h3>리스크 해소 종목</h3><div id="resolved"></div></div>
     </div>
   </div>
 
@@ -137,6 +142,17 @@
     </div>
     <div class="rmhd"><span style="width:26px;text-align:center;">순위</span><span style="flex:1;text-align:center;">종목명</span><span style="width:52px;text-align:center;">위험도</span><span style="width:64px;text-align:center;">최근 변화</span><span style="width:150px;text-align:center;">주요 위험 신호</span></div>
     <div class="rmlist" id="rmlist"></div>
+  </div>
+</div>
+
+<div class="rmodal" id="rkinfo" onclick="if(event.target===this)closeRkInfo()">
+  <div class="rmbox" style="width:min(460px,92vw);">
+    <div class="rmhead">
+      <div><div id="rki_title" style="font-size:16px;font-weight:800;"></div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:3px;">위험도 산정 근거</div></div>
+      <span class="x" onclick="closeRkInfo()">✕</span>
+    </div>
+    <div id="rki_body"></div>
   </div>
 </div>
 
@@ -244,7 +260,33 @@ window.openRiskModal = k => {
   document.getElementById("rmodal").classList.add("on");
 };
 window.closeRiskModal = () => document.getElementById("rmodal").classList.remove("on");
-document.addEventListener("keydown", e => { if (e.key==="Escape") window.closeRiskModal(); });
+
+// ── 위험도 산정 근거 팝업 (표의 위험도 클릭)
+window.openRiskInfo = (src, kEnc) => {
+  const key = decodeURIComponent(kEnc);
+  const x = A.find(z => z.src===src && z.key===key);
+  if (!x) return;
+  const rc = v => v>=70?"#f0645a":v>=40?"#f0c948":"#4cd7a5";
+  const factors = [
+    ["거래량 급증", clip(x.surge/3*100)],
+    ["단기 변동성(5일)", clip(x.vol5*20)],
+    ["가격 급등락(1주)", clip(Math.abs(x.e[14]||0)*8)],
+    ["수급 이탈", x.us ? null : clip((((x.e[17]||0)<0?45:0)+((x.e[18]||0)<0?45:0))+(((x.e[17]||0)<0||(x.e[18]||0)<0)?10:0))],
+    ["실적 임박", (x.eo && dday(x.eo.d)<=7) ? clip(100-dday(x.eo.d)*11) : 8],
+  ].filter(a=>a[1]!=null);
+  document.getElementById("rki_title").textContent = ST.displayName(x.src,x.key) + " 위험도 산정";
+  document.getElementById("rki_body").innerHTML = `
+    <div style="display:flex;align-items:center;gap:13px;margin:4px 0 15px;">
+      <span class="rknum" style="font-size:21px;padding:7px 17px;background:${x.rk>=80?"#7a2822":x.rk>=60?"#3d3313":"#13322a"};color:${x.rk>=80?"#ffb3ad":x.rk>=60?"#f0c948":"#4cd7a5"};">${x.rk}</span>
+      <div style="font-size:12px;color:var(--muted);">위험 유형 <b style="color:var(--text);">${x.type}</b><br><span style="font-size:11px;color:var(--dim);">${x.sig}</span></div>
+    </div>
+    <div class="sbars">${factors.map(([lb,v])=>`<div class="r"><span class="lb" style="width:112px;">${lb}</span><div class="m"><i style="width:${v}%;background:linear-gradient(90deg,#0f7a56,${rc(v)});"></i></div><b>${v}</b></div>`).join("")}</div>
+    <div style="font-size:11px;color:var(--dim);line-height:1.75;margin-top:13px;border-top:1px solid var(--border);padding-top:11px;">
+      위험도(0~100)는 <b style="color:var(--muted);">거래량 급증 · 단기 변동성 · 가격 급등락 · 수급 이탈 · 실적 임박</b> 신호를 종합해 산출합니다. 값이 높을수록 단기 변동·손실 위험이 큽니다. 위 막대는 각 요인의 상대 기여도(0~100)입니다.</div>`;
+  document.getElementById("rkinfo").classList.add("on");
+};
+window.closeRkInfo = () => document.getElementById("rkinfo").classList.remove("on");
+document.addEventListener("keydown", e => { if (e.key==="Escape") { window.closeRiskModal(); window.closeRkInfo(); } });
 
 // ── 위험 종목 리스트
 let CAT = "all", SORT = "rk", SHOW = 10, Q = "", MKT = "all";
@@ -289,7 +331,7 @@ function drawTbl(){
       <td class="nm">${logo(x)}${ST.displayName(x.src,x.key)}</td>
       <td class="num" style="color:var(--dim);font-size:11px;">${x.e[0]}</td>
       <td><span class="tchg" style="${x.type==="급등 과열"?"background:#3d2313;color:#e0a63e;":x.type==="수급 악화"?"background:#3a1a22;color:#f0708a;":x.type==="실적/공시"?"background:#13303d;color:#4cc3d7;":x.type==="재무 위험"?"background:#33202c;color:#d68ab0;":"background:#22303c;color:#9db9d4;"}">${x.type}</span></td>
-      <td><span class="rknum" style="background:${x.rk>=80?"#7a2822":"#3d3313"};color:${x.rk>=80?"#ffb3ad":"#f0c948"};">${x.rk}</span></td>
+      <td><span class="rknum" style="background:${x.rk>=80?"#7a2822":"#3d3313"};color:${x.rk>=80?"#ffb3ad":"#f0c948"};cursor:pointer;" onclick="event.stopPropagation();openRiskInfo('${x.src}','${encodeURIComponent(x.key)}')" title="위험도 산정 근거 보기">${x.rk}</span></td>
       <td class="num ${ST.cls(x.e[14]||0)}" style="font-weight:700;">${(x.e[14]||0)>0?"▲":"▼"} ${Math.abs(x.e[14]||0).toFixed(1)}</td>
       <td class="num">${x.vol5.toFixed(1)}%</td>
       <td>${buyCell(!x.us && x.e.length>18 ? x.e[17] : null)}</td>
@@ -356,24 +398,24 @@ drawBar(); drawTbl();
     ["코스피", pick(MK.kospi)],
     ["코스닥", pick(MK.kosdaq)],
     ["다우존스", pick(MKU.dji, MKU.dow, MKU.djia)],
-    ["S&P500", pick(MKU.gspc, MKU.spx, MKU.sp500, MKU.snp)],
+    ["S&P500", pick(MKU.gspc, MKU.spx, MKU.sp500, MKU.snp, MKU.snp500, MKU.inx, MKU.us500, MKU.sandp, MKU.sp)],
     ["나스닥 종합", pick(MKU.ixic, MKU.nasdaq, MKU.comp)],
   ];
   // 지수 리스크 점수(0~100): 하락·급변동일수록 높음
   const idxRisk = o => o ? clip(48 - o.ratio*7 + Math.abs(o.ratio)*2.5) : null;
   const rcol = v => v>=71?"#f0645a":v>=41?"#f0c948":"#4cd7a5";
-  const idxCells = IDX.map(([nm,o],i)=>{
-    if (!o) return `<div class="idxcell"><div class="inm">${nm}</div><div style="height:36px;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:10px;">데이터 없음</div><div class="isc" style="color:var(--dim);">-</div></div>`;
-    const rs = idxRisk(o), up = o.ratio>=0;
-    return `<div class="idxcell"><div class="inm">${nm}</div>
-      <div style="display:flex;justify-content:center;">${miniLine("mi"+i, up?"#1d9e75":"#7a2822", up?"#4cd7a5":"#f0645a", Math.abs(Math.round(o.price))%97+7)}</div>
-      <div class="isc" style="color:${rcol(rs)};margin-top:5px;">${rs}<small>/100</small></div>
-      <div class="ipr">${ST.num(o.price)} <span class="${ST.cls(o.ratio)}">${ST.pct2(o.ratio)}</span></div></div>`;
+  // 각 지수 = 미니 게이지(빨강→골드→초록, 점수만큼 채움) + 점수 + 지수값/등락률
+  const gaugeS = v => `<div class="gaugeS"><div class="arc" style="background:conic-gradient(from 270deg, #4cd7a5 0%, #f0c948 ${v/4}%, #f0645a ${v/2}%, #ffffff14 ${v/2}%, #ffffff14 50%, transparent 50%);"></div><div class="hole"><b style="color:${rcol(v)};">${v}</b></div></div>`;
+  const idxCells = IDX.map(([nm,o])=>{
+    if (!o) return `<div class="idxcell"><div class="inm">${nm}</div><div class="gaugeS" style="display:flex;align-items:flex-end;justify-content:center;color:var(--dim);font-size:10px;">데이터 없음</div><div class="ipr">-</div></div>`;
+    const rs = idxRisk(o);
+    return `<div class="idxcell"><div class="inm">${nm}</div>${gaugeS(rs)}<div class="ipr">${ST.num(o.price)} <span class="${ST.cls(o.ratio)}">${ST.pct2(o.ratio)}</span></div></div>`;
   }).join("");
   document.getElementById("mktidx").innerHTML =
-    `<div class="idxgrid">${idxCells}</div>
-     <div class="sbars">${sub.map(([lb,v])=>`<div class="r"><span class="lb">${lb}</span><div class="m"><i class="red" style="width:${v}%"></i></div><b>${v}</b></div>`).join("")}</div>
-     <div style="font-size:10px;color:var(--dim);text-align:center;margin-top:9px;">지수 리스크 점수: 낮을수록 안정 · 높을수록 위험 (전일 대비 하락·급변동 반영)</div>`;
+    `<div style="display:flex;gap:22px;align-items:center;flex-wrap:wrap;">
+       <div style="width:230px;flex-shrink:0;"><div class="sbars">${sub.map(([lb,v])=>`<div class="r"><span class="lb">${lb}</span><div class="m"><i class="red" style="width:${v}%"></i></div><b>${v}</b></div>`).join("")}</div></div>
+       <div style="flex:1;min-width:300px;"><div class="idxgrid">${idxCells}</div></div>
+     </div>`;
 
   const mk5 = (arr, id, valFn, valHd) => {
     const hd = `<div class="chd"><span style="width:18px;text-align:center;flex-shrink:0;">순위</span><span style="flex:1;text-align:center;">종목명</span><span style="min-width:58px;text-align:center;">${valHd}</span></div>`;
