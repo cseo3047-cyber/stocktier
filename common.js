@@ -184,11 +184,12 @@ window.ST = (function () {
       const d = snap.exists ? snap.data() : {};
       window.ST_PROFILE = { nick: d.nick || "", avatar: d.avatar || "", photo: d.photo || "" };
       const local = watchGet();
-      const cloud = d.items || [];
+      // Firestore는 중첩 배열을 지원하지 않으므로 "src|key" 문자열 배열로 저장/복원
+      const cloud = (d.items || []).map(w => Array.isArray(w) ? w : String(w).split("|"));
       const seen = new Set(local.map(w => w[0] + "|" + w[1]));
       const merged = local.concat(cloud.filter(w => !seen.has(w[0] + "|" + w[1])));
       localStorage.setItem("st_watch", JSON.stringify(merged));
-      await ref.set({ items: merged, updated: Date.now() }, { merge: true });
+      await ref.set({ items: merged.map(w => w[0] + "|" + w[1]), updated: Date.now() }, { merge: true });
       if (merged.length !== local.length && !sessionStorage.getItem("st_synced")) {
         sessionStorage.setItem("st_synced", "1");
         location.reload();   // 클라우드 목록을 화면에 반영
@@ -198,7 +199,7 @@ window.ST = (function () {
   function cloudPush(list) {
     if (fbUser && window.firebase) {
       firebase.firestore().collection("watchlists").doc(fbUser.uid)
-        .set({ items: list, updated: Date.now() }, { merge: true }).catch(() => {});
+        .set({ items: (list || []).map(w => w[0] + "|" + w[1]), updated: Date.now() }, { merge: true }).catch(() => {});
     }
   }
   // ── 예측 게임 채점: 로그인 시 어느 페이지에서든 자동 채점 + 결과 팝업 ──
