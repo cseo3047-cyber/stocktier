@@ -484,7 +484,7 @@ window.ST = (function () {
 
 // ── 종목 로고 아바타 (실제 로고 대신/실패 시 색깔 원 + 이니셜) ──
 (function () {
-  function avColor(s) { var h = 0; s = String(s || "?"); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return "hsl(" + (h % 360) + ",42%,42%)"; }
+  function avGrad(s) { var h = 0; s = String(s || "?"); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; var u = h % 360; return "linear-gradient(140deg,hsl(" + u + ",62%,57%),hsl(" + ((u + 42) % 360) + ",58%,40%))"; }
   function isLogo(img) { var s = img.getAttribute("src") || img.src || ""; return /tossinvest|pstatic\.net|imgstock/.test(s); }
   function labelOf(img) {
     var l = img.getAttribute("data-nm") || (img.parentElement && (img.parentElement.textContent || "").trim()) || "";
@@ -500,8 +500,10 @@ window.ST = (function () {
     var span = document.createElement("span");
     span.textContent = ch;
     span.style.cssText = "display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-sizing:border-box;overflow:hidden;"
-      + "width:" + w + "px;height:" + h + "px;border-radius:50%;background:" + avColor(label || ch) + ";color:#fff;font-weight:800;"
-      + "font-size:" + Math.max(9, Math.round(w * 0.45)) + "px;line-height:1;"
+      + "width:" + w + "px;height:" + h + "px;border-radius:50%;background:" + avGrad(label || ch) + ";color:#fff;font-weight:800;"
+      + "box-shadow:inset 0 1px 1px rgba(255,255,255,.30),inset 0 0 0 1px rgba(255,255,255,.14),0 1px 3px rgba(0,0,0,.28);"
+      + "text-shadow:0 1px 2px rgba(0,0,0,.30);letter-spacing:-.02em;"
+      + "font-size:" + Math.max(9, Math.round(w * 0.46)) + "px;line-height:1;"
       + "vertical-align:" + (cs.verticalAlign || "-4px") + ";margin-right:" + (cs.marginRight || "6px") + ";";
     try { img.replaceWith(span); } catch (_) { img.style.visibility = "hidden"; }
   }
