@@ -244,13 +244,19 @@ window.rmWatch = (src,k) => { ST.watchToggle(src, decodeURIComponent(k)); locati
 
 // ── 하단 3분할
 const ups = items.filter(x=>x.up).sort((a,b)=>b.sc-a.sc).slice(0,5);
-const upCard = `<div class="card"><h3>티어 상승 TOP 5</h3>
-  ${ups.length ? ups.map((x,i)=>`
-    <div class="rrow" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
-      <span class="rank">${i+1}</span>
-      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ST.displayName(x.src,x.key)}</span>
-      <span class="tchg" style="background:#22303c;color:#9db9d4;">${x.gPast.g}</span><span style="color:var(--dim);">→</span><span class="tchg" style="background:#3d3313;color:#f0c948;">${x.gNow.g}</span></div>`).join("")
-  : `<div style="font-size:12px;color:var(--dim);padding:10px 0;">오늘 티어 상승 종목이 없습니다</div>`}</div>`;
+// 업종/테마 집계 (업종별 관심도 · 전략 브리핑 · 분산관리 점수용)
+const sectorOf = x => (x.us ? (x.e.length>19 && typeof x.e[19]==="string" && x.e[19]) : ((x.e.length>21 && x.e[21]) || (x.e.length>20 && x.e[20]))) || "기타";
+const secMap = {};
+items.forEach(x => { const s = sectorOf(x); if(!secMap[s]) secMap[s]={cnt:0,scSum:0}; secMap[s].cnt++; secMap[s].scSum += x.sc; });
+const secList = Object.entries(secMap).map(([nm,v])=>({nm, cnt:v.cnt, score: clip(Math.round(v.scSum/v.cnt)*0.7 + Math.min(30, v.cnt*11))})).sort((a,b)=>b.score-a.score).slice(0,5);
+const divScore = clip(28 + Object.keys(secMap).length*12);
+const interestCard = `<div class="card"><h3>업종별 관심도 <span class="more" style="cursor:default;">관심종목 기준</span></h3>
+  ${secList.length ? secList.map((s,i)=>`<div style="display:flex;align-items:center;gap:9px;padding:7px 0;font-size:12.5px;">
+    <span style="width:20px;height:20px;border-radius:6px;background:var(--panel2);border:1px solid var(--border);color:var(--muted);font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${i+1}</span>
+    <span style="width:78px;flex-shrink:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.nm}</span>
+    <div style="flex:1;height:7px;background:var(--panel2);border:1px solid var(--border);border-radius:4px;overflow:hidden;"><i style="display:block;height:100%;width:${s.score}%;background:linear-gradient(90deg,#0f7a56,#4cd7a5);border-radius:4px;"></i></div>
+    <b class="num" style="width:26px;text-align:right;">${s.score}</b></div>`).join("")
+  : `<div style="font-size:12px;color:var(--dim);padding:10px 0;">업종 데이터 수집 후 표시됩니다</div>`}</div>`;
 
 const evList = [];
 for (const x of items) { const o = earnInfo(x); if (o && dday(o.d)<=45) evList.push([o.d, `${ST.displayName(x.src,x.key)} 실적${o.est?" (예상)":""}`, "실적"]); }
@@ -263,14 +269,14 @@ const evCard = `<div class="card"><h3>실적 / 일정 체크</h3>
     <span class="tx">${t}</span>
     <span class="tchg" style="${typeStyle(ty)}">${ty==="실적"?"실적":ty}</span></div>`).join("") || `<div style="font-size:12px;color:var(--dim);padding:10px 0;">예정 일정이 없습니다</div>`}</div>`;
 
-const notes = [];
-const best = items.slice().sort((a,b)=>b.sc-a.sc)[0];
-if (best) notes.push(`${ST.displayName(best.src,best.key)}, 관심종목 중 종합점수 ${best.sc}점 1위`);
-if (ups.length) notes.push(`${ST.displayName(ups[0].src,ups[0].key)} 등 ${ups.length}개 종목 티어 상승`);
-if (riskN) notes.push(`위험 신호 ${riskN}개 종목 — 리스크 워치에서 점검 권장`);
-if (earnN) notes.push(`실적 발표 임박 ${earnN}개 종목, 변동성 확대 가능성`);
-notes.push("수급·모멘텀 지속 종목 중심으로 관심 유지");
-const noteCard = `<div class="card"><h3>오늘의 한줄 해설</h3><ul class="bullets2">${notes.slice(0,5).map(t=>`<li>${t}</li>`).join("")}</ul></div>`;
+const brief = [];
+if (secList[0]) brief.push(["🏭", `${secList[0].nm} 주도 유지 · 관심종목 내 상대 비중 최상위`]);
+if (secList[1]) brief.push(["🤖", `${secList[1].nm} 강세 · 관심 비중 2위 업종 흐름 지속`]);
+if (earnN) brief.push(["📅", `실적 시즌 대비 · 발표 임박 ${earnN}개 종목 변동성 확대 점검`]);
+brief.push(["👥", `외인·기관 수급 유입 종목 중심으로 관심 유지 확인`]);
+brief.push([riskN?"⚠️":"✅", riskN?`단기 과열 경계 · 위험 신호 ${riskN}개 종목 추격 매수 자제`:`과열·위험 신호 없는 안정적 구성 유지`]);
+const briefCard = `<div class="card"><h3>오늘의 전략 브리핑 <span class="more" style="cursor:default;">핵심 체크 포인트</span></h3>
+  ${brief.slice(0,5).map(([ic,t])=>`<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #ffffff0d;font-size:12.5px;color:var(--muted);font-weight:600;line-height:1.55;"><span style="flex-shrink:0;">${ic}</span><span>${t}</span></div>`).join("")}</div>`;
 
 // ── 사이드
 const sideSurv = `
@@ -279,40 +285,68 @@ const sideSurv = `
     <div class="hole"><b>${surv}<small>/100</small></b></div></div>
   <div class="gsub"><span class="tierb tier-${g.g}">${g.g}</span> 티어 · ${surv>=65?"양호":surv>=45?"보통":"주의"}</div>
   <div class="sbars">
-    ${[["수급",avgOf(x=>x.supply)],["모멘텀",avgOf(x=>x.momentum)],["펀더멘털",avgOf(x=>50+x.e[7]*2)],["밸류에이션",avgOf(x=>x.value)],["리스크",avgOf(x=>100-x.rk)]].map(([lb,v])=>
+    ${[["수익",avgOf(x=>clip(50+(x.e[14]||0)*3))],["모멘텀",avgOf(x=>x.momentum)],["안정성",avgOf(x=>100-x.rk)],["분산관리",divScore],["리스크",avgOf(x=>x.rk)]].map(([lb,v])=>
       `<div class="r"><span class="lb">${lb}</span><div class="m"><i style="width:${clip(v)}%"></i></div><b>${clip(v)}</b></div>`).join("")}
   </div>
   <div style="font-size:10.5px;color:var(--dim);text-align:center;margin-top:8px;">보유 종목 ${n}개 기준</div>
 </div>`;
 
-const alerts = [];
-for (const x of items){
-  if (x.up) alerts.push([`${ST.displayName(x.src,x.key)} ${x.gPast.g}→${x.gNow.g} 상향`, "↑", "var(--up)"]);
-  else if (x.rk>=70) alerts.push([`${ST.displayName(x.src,x.key)} 과열 경고 진입`, "⚠", "#f0c948"]);
-  else if (!x.us && x.e[17]!=null && x.e[17]>0 && x.e[18]>0) alerts.push([`${ST.displayName(x.src,x.key)} 외인·기관 순매수`, "↑", "var(--up)"]);
-  else if ((x.e[14]||0)<=-5) alerts.push([`${ST.displayName(x.src,x.key)} 1주 ${ST.pct(x.e[14])}`, "↓", "var(--down)"]);
-}
-for (const x of items){ const o = earnInfo(x); if (o && dday(o.d)<=7) alerts.push([`${ST.displayName(x.src,x.key)} 실적 발표 D-${dday(o.d)}`, "📅", "#f0c948"]); }
-const sideAlert = `<div class="card"><h3>오늘의 알림</h3>
-  ${alerts.slice(0,5).map(([t,a,c],i)=>`<div class="nrow2"><span class="rank">${i+1}</span><span class="tx">${t}</span><span class="ar" style="color:${c};">${a}</span></div>`).join("") || `<div style="font-size:12px;color:var(--dim);">특이 알림 없음</div>`}</div>`;
+// 오늘의 자금 흐름 요약
+const flows = [];
+items.forEach(x => {
+  let msg=null, ar="↑", col="var(--up)", tag="";
+  if (!x.us && x.e[17]!=null && x.e[17]>0 && x.e[18]>0) { msg="외국인·기관 순매수 유입"; tag="쌍끌이"; }
+  else if (!x.us && x.e[17]!=null && x.e[17]>0) { msg="외국인 순매수 유입"; tag="대형주 선호"; }
+  else if (!x.us && x.e[18]!=null && x.e[18]>0) { msg="기관 매수세 강화"; tag="기관 선호"; }
+  else if ((x.e[14]||0)>=5) { msg="거래대금 급증"; tag="단기 급등"; }
+  else if ((x.e[14]||0)<=-5) { msg="단기 차익실현"; ar="↓"; col="var(--down)"; tag="변동성 확대"; }
+  else if (x.momentum>=58) { msg="개인 매수 유입"; tag="모멘텀"; }
+  if (msg) flows.push({x, msg, ar, col, tag, w: Math.abs(x.e[14]||0)*2 + x.momentum/5});
+});
+flows.sort((a,b)=>b.w-a.w);
+const flowCard = `<div class="card"><h3>오늘의 자금 흐름 요약 <span class="more" style="cursor:default;">최근 3거래일 기준</span></h3>
+  ${flows.length ? flows.slice(0,5).map((f,i)=>`<div class="nrow2" style="cursor:pointer;flex-wrap:wrap;" onclick="location.href='${ST.stockUrl(f.x.src,f.x.key)}'">
+    <span class="rank">${i+1}</span>
+    <span class="tx"><b style="color:var(--text);">${ST.displayName(f.x.src,f.x.key)}</b> <span style="color:var(--dim);font-weight:500;font-size:11px;">${f.msg}</span></span>
+    <span class="ar" style="color:${f.col};">${f.ar}</span>
+    <span class="tchg" style="background:#22303c;color:#9db9d4;flex-shrink:0;">${f.tag}</span></div>`).join("")
+  : `<div style="font-size:12px;color:var(--dim);padding:8px 0;">수급 특이 종목 없음</div>`}</div>`;
 
-const sideCrit = `<div class="card"><h3>관심종목 평가 기준</h3>
-  ${[["수급",25],["모멘텀",25],["펀더멘털",20],["밸류에이션",15],["리스크",15]].map(([lb,v])=>
-    `<div class="gbar"><span class="lb2">${lb}</span><div class="m"><i style="width:${v*3.2}%"></i></div><b>${v}%</b></div>`).join("")}
-  <div style="font-size:10.5px;color:var(--dim);margin-top:8px;">관심종목 종합 점수는 100점 기준으로 산출됩니다.</div></div>`;
+// 리밸런싱 액션 제안
+const acts = items.map(x => {
+  let act, reason;
+  if (x.momentum>=58 && x.supply>=52 && x.rk<62) { act=["확대","#13322a","#4cd7a5"]; reason="모멘텀·수급 동시 개선"; }
+  else if (x.rk>=68 || (x.e[14]||0)>=12) { act=["축소","#3a1a22","#f0708a"]; reason="단기 과열·변동성 확대"; }
+  else if (x.sc>=68 && x.rk<52) { act=["유지","#22303c","#9db9d4"]; reason="안정적 펀더멘털 유지"; }
+  else { act=["관찰","#33202c","#d68ab0"]; reason="지표 혼조 · 추이 관찰"; }
+  return {x, act, reason, w: Math.abs(x.momentum-50)+x.rk+x.sc/5};
+}).sort((a,b)=>b.w-a.w);
+const rebalCard = `<div class="card"><h3>리밸런싱 액션 제안 <span class="more" style="cursor:default;">현재 관심종목 기준</span></h3>
+  ${acts.slice(0,4).map(a=>`<div class="nrow2" style="cursor:pointer;" onclick="location.href='${ST.stockUrl(a.x.src,a.x.key)}'">
+    <span class="tchg" style="background:${a.act[1]};color:${a.act[2]};flex-shrink:0;min-width:32px;text-align:center;">${a.act[0]}</span>
+    <span class="tx"><b style="color:var(--text);">${ST.displayName(a.x.src,a.x.key)}</b>: <span style="color:var(--dim);font-weight:500;font-size:11.5px;">${a.reason}</span></span></div>`).join("")}</div>`;
 
-const recent = list.slice(-3).reverse().map(([src,key])=>({src,key,e:ST.get(src,key)}));
-const sideRecent = `<div class="card" style="flex:1;"><h3>최근 추가 종목</h3>
-  ${recent.map(x=>`<div class="nrow2" style="cursor:pointer;" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
-    <span class="tx">${ST.displayName(x.src,x.key)}</span>
-    <span style="color:var(--dim);font-size:10.5px;font-weight:500;">${x.e[1]}</span></div>`).join("")}</div>`;
+// 관심 해제 후보 점검
+const drops = items.map(x => {
+  let reason=null, st;
+  if (x.momentum<46 && (x.e[14]||0)<0) { reason="모멘텀 둔화"; st=["재검토","#3d3313","#f0c948"]; }
+  else if (x.rk>=64) { reason="변동성 과다"; st=["주의","#3a1a22","#f0708a"]; }
+  else if (x.sc<50) { reason="종합점수 부진"; st=["보류","#22303c","#9db9d4"]; }
+  else if (x.value<38) { reason="밸류 부담"; st=["후보","#33202c","#d68ab0"]; }
+  return reason ? {x, reason, st, w:(100-x.sc)+x.rk} : null;
+}).filter(Boolean).sort((a,b)=>b.w-a.w).slice(0,5);
+const dropCard = `<div class="card" style="flex:1;"><h3>관심 해제 후보 점검</h3>
+  ${drops.length ? drops.map(d=>`<div class="nrow2" style="cursor:pointer;" onclick="location.href='${ST.stockUrl(d.x.src,d.x.key)}'">
+    <span class="tx"><b style="color:var(--text);">${ST.displayName(d.x.src,d.x.key)}</b> <span style="color:var(--dim);font-weight:500;font-size:11px;">${d.reason}</span></span>
+    <span class="tchg" style="background:${d.st[1]};color:${d.st[2]};flex-shrink:0;">${d.st[0]}</span></div>`).join("")
+  : `<div style="font-size:12px;color:var(--dim);padding:8px 0;">정리 후보 없음 — 안정적 구성</div>`}</div>`;
 
 box.innerHTML = `
 <div class="layout">
   <div>${cards}${tableCard}
-    <div class="row3b">${upCard}${evCard}${noteCard}</div>
+    <div class="row3b">${interestCard}${evCard}${briefCard}</div>
   </div>
-  <div style="display:flex;flex-direction:column;gap:14px;height:100%;">${sideSurv}${sideAlert}${sideCrit}${sideRecent}</div>
+  <div style="display:flex;flex-direction:column;gap:14px;height:100%;">${sideSurv}${flowCard}${rebalCard}${dropCard}</div>
 </div>`;
 drawBar(); drawTbl();
 }
