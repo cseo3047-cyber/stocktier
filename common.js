@@ -8,6 +8,9 @@ window.FIREBASE_CONFIG = {
   authDomain: "stocktier-10c96.firebaseapp.com",
   projectId: "stocktier-10c96",
 };
+// App Check(reCAPTCHA v3): 아래에 reCAPTCHA v3 "사이트 키"를 붙여넣으면 App Check가 켜집니다.
+// (비워두면 App Check는 적용되지 않고 기존 동작 그대로입니다.)
+window.APP_CHECK_SITE_KEY = "6LftJE8tAAAAAP90bi7THCpIn6qha5bUEQ6jejRC";
 // ================================================================
 // 필드: 0코드 1시장 2주가 3등락 4PER 5PBR 6배당 7ROE 8시총 9평균거래량 10전일 11당일 12최근5일 13외인 14주간 15월간 16분기 [17] [18]
 window.ST = (function () {
@@ -157,7 +160,13 @@ window.ST = (function () {
       await loadScript("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
       await loadScript("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js");
       await loadScript("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js");
+      if (window.APP_CHECK_SITE_KEY) await loadScript("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js");
       firebase.initializeApp(window.FIREBASE_CONFIG);
+      // App Check (reCAPTCHA v3) — 사이트 키가 있을 때만 활성화
+      if (window.APP_CHECK_SITE_KEY) {
+        try { firebase.appCheck().activate(window.APP_CHECK_SITE_KEY, true); }
+        catch (e) { console.warn("App Check 활성화 실패:", e); }
+      }
       firebase.auth().onAuthStateChanged(async u => {
         fbUser = u;
         updateLoginBtn();
