@@ -53,10 +53,15 @@
   .chips2 .chip.on { background:#13322a; color:#4cd7a5; border-color:#2e5c47; }
   .chartbox { position:relative; }
   .ctip { position:absolute; background:#021b27; border:1px solid var(--gold-dim); color:var(--text); font-size:11px; font-weight:600; padding:7px 10px; border-radius:8px; pointer-events:none; white-space:nowrap; transform:translate(-50%,-108%); z-index:5; font-variant-numeric:tabular-nums; line-height:1.7; display:none; }
-  .rkrow { display:flex; align-items:center; gap:9px; padding:9px 0; border-bottom:1px solid #ffffff0d; font-size:12.5px; font-weight:700; }
+  .rkrow { display:flex; align-items:center; gap:9px; padding:9px 6px; border-bottom:1px solid #ffffff0d; font-size:12.5px; font-weight:700; box-sizing:border-box; }
   .rkrow:last-child { border-bottom:none; }
   .rkrow .rank { width:20px; height:20px; border-radius:6px; background:var(--panel2); border:1px solid var(--border); color:var(--muted); font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-  .rkrow.me { background:#3d331322; border-radius:8px; padding-left:6px; padding-right:6px; }
+  .rkrow .medal { width:20px; text-align:center; flex-shrink:0; font-size:14px; }
+  .rkrow.me { background:#3d331322; border-radius:8px; }
+  .hbtn { transition:border-color .15s, background .15s, color .15s; }
+  .hbtn:hover { border-color:var(--gold) !important; }
+  .morelnk { transition:color .15s; }
+  .morelnk:hover { color:var(--gold) !important; }
   .msg2 { font-size:12px; font-weight:700; min-height:16px; margin-top:8px; }
   .rulerow { display:flex; gap:12px; padding:11px 0; border-bottom:1px solid #ffffff0d; }
   .rulerow:last-child { border-bottom:none; }
@@ -77,7 +82,7 @@
 <div class="wrap">
   <span class="asof" id="asof"></span>
   <div class="page-title">🏆 모의투자 리그</div>
-  <div class="page-sub">가상 자금 1억 원으로 시작하는 모의투자. 국내·미국 주식 모두 전일 종가 기준으로 체결됩니다.</div>
+  <div class="page-sub">가상 자금 1억 원으로 시작하는 모의투자. 모든 주문은 국내·미국 주식 모두 <b>다음 종가</b>로 예약 체결됩니다.</div>
   <div id="body"><div class="card" style="text-align:center;padding:40px;color:var(--muted);">로그인 상태 확인 중...</div></div>
   <div class="footer"></div>
 </div>
@@ -91,7 +96,8 @@
     <div class="rulerow"><span class="ric">📅</span><div><b>매월 자동 정산 지급</b><p>1개월(30일)마다 기본 <b style="color:#f0c948;">2,000만 원</b> + <b style="color:#f0c948;">출석 포인트 1P당 100만 원</b>이 자동으로 정산·지급됩니다. 물타기·불타기에 활용하세요.</p></div></div>
     <div class="rulerow"><span class="ric">🔥</span><div><b>출석 포인트</b><p>출석 체크 시 매일 10P + 연속·월간 보너스가 쌓입니다. 포인트가 많을수록 매월 지급액이 커져요.</p></div></div>
     <div class="rulerow"><span class="ric">🔄</span><div><b>초기화는 월 1회</b><p>초기화는 1개월에 한 번만 가능합니다. 그 전엔 잠겨 있어요.</p></div></div>
-    <div class="rulerow"><span class="ric">🌎</span><div><b>국내 + 미국 전 종목</b><p>미국 주식은 <b>전일 기준 환율</b>로 원화 환산됩니다. 체결은 전일 종가, 수수료·세금 없음.</p></div></div>
+    <div class="rulerow"><span class="ric">⏳</span><div><b>다음 종가 예약 체결</b><p>매수·매도 모두 주문 시점의 종가가 아니라 <b style="color:#f0c948;">다음 종가</b>로 체결됩니다. 오늘 오르내림을 미리 보고 과거 종가로 사고파는 걸 막기 위한 규칙이에요. 주문 시 매수는 현금이, 매도는 수량이 체결 전까지 잠깁니다. 체결 전엔 언제든 취소할 수 있어요.</p></div></div>
+    <div class="rulerow"><span class="ric">🌎</span><div><b>국내 + 미국 전 종목</b><p>미국 주식은 <b>전일 기준 환율</b>로 원화 환산됩니다. 수수료·세금 없음.</p></div></div>
     <div class="rulerow"><span class="ric">🏆</span><div><b>랭킹 산정</b><p>수익률 = 총자산 ÷ 누적 지급액. 지급받은 금액이 서로 달라도 공정하게 비교됩니다.</p></div></div>
     <div style="font-size:10.5px;color:var(--dim);margin-top:12px;">※ 실제 투자가 아닌 가상 시뮬레이션입니다.</div>
   </div>
@@ -102,6 +108,7 @@
     <b style="font-size:16px;display:block;margin-bottom:10px;">📌 잠깐! 시작 전에 확인하세요</b>
     <div class="rulerow"><span class="ric" style="background:#3d3313;border-color:#c9a83266;">🔒</span><div><b>초기화는 1개월에 한 번만!</b><p>한번 매수하면 <b style="color:#f0c948;">30일 동안 초기화할 수 없어요.</b> 실전처럼 신중하게 매수하세요.</p></div></div>
     <div class="rulerow"><span class="ric">📅</span><div><b>매월 자금이 자동 지급돼요</b><p>1개월마다 기본 2,000만 원 + 출석 포인트 보너스(1P당 100만 원)가 자동 정산되어 지급됩니다.</p></div></div>
+    <div class="rulerow"><span class="ric">⏳</span><div><b>다음 종가 예약 체결</b><p>매수·매도는 지금 종가가 아니라 <b style="color:#f0c948;">다음 종가</b>로 체결돼요. 오늘 시세를 미리 보고 유리하게 사고파는 걸 막는 규칙입니다.</p></div></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;">
       <span onclick="noticeClose(true)" style="font-size:11.5px;color:var(--dim);cursor:pointer;text-decoration:underline;">오늘 다시 보지 않기</span>
       <button class="mbtn no" onclick="noticeClose(false)">닫기</button>
@@ -185,8 +192,60 @@ const nameOf = pk => { const [src, k] = splitK(pk); return ST.displayName(src, k
 const totalOf = d => {
   let t = d.cash || 0;
   for (const k of Object.keys(d.pos || {})) { const p = priceOf(k); if (p) t += d.pos[k].q * p; }
+  // 예약 매수로 묶어둔 현금(체결 대기)도 자산에 포함
+  t += (d.orders || []).reduce((s,o)=> s + (o.side === "매수" ? (o.hold || 0) : 0), 0);
   return t;
 };
+// 현재 데이터 날짜(YYMMDD) — 예약 주문 체결 판정 기준
+const dataDate = () => ((window.STOCK_META && window.STOCK_META.date) || "").slice(2);
+// 한 종목의 매도 가능 수량 = 보유 - 예약(잠금)
+const freeQ = (d, k) => { const ps = d.pos[k]; return ps ? Math.max(0, ps.q - (ps.locked || 0)) : 0; };
+// 예약 주문 체결: 주문일 이후 데이터가 갱신됐으면(=주문 시점엔 몰랐던 종가로) 체결한다.
+// 이렇게 하면 "오늘 오르내림을 보고 과거 종가로 미리 사고팔기"가 원천 차단된다.
+function fillDueOrders(d){
+  const now = dataDate();
+  if (!now) return [];
+  d.orders = d.orders || [];
+  const filled = [];
+  const remain = [];
+  for (const o of d.orders) {
+    if (!(now > (o.placed || ""))) { remain.push(o); continue; }   // 아직 새 종가 미도착 → 대기
+    const cur = priceOf(o.k);
+    if (!cur) { remain.push(o); continue; }
+    if (o.side === "매수") {
+      const budget = (o.hold || 0);
+      let qn = o.q;
+      let cost = cur * qn;
+      if (cost > budget) { qn = Math.floor(budget / cur); cost = cur * qn; }  // 종가 상승 시 예산 내 수량만
+      if (qn >= 1) {
+        const ps = d.pos[o.k] || { q:0, avg:0 };
+        if (splitK(o.k)[0] === "us") {
+          const usd = (ST.get("us", splitK(o.k)[1]) || [])[2] || (cur/FX);
+          ps.avgUsd = (ps.q * (ps.avgUsd || ps.avg/1350) + qn * usd) / (ps.q + qn);
+        }
+        ps.avg = Math.round((ps.q*ps.avg + cost) / (ps.q + qn));
+        ps.q += qn;
+        d.pos[o.k] = ps;
+        d.tr = (d.tr||[]).concat([{ ts: Date.now(), nm: o.nm || nameOf(o.k), side: "매수", q: qn, p: cur }]).slice(-30);
+        filled.push({ nm: o.nm || nameOf(o.k), side: "매수", q: qn, p: cur });
+      }
+      d.cash += budget - cost;   // 예약분 반환 후 실제 체결가로 정산 (남으면 환급)
+    } else { // 매도
+      const ps = d.pos[o.k];
+      const qn = ps ? Math.min(o.q, ps.q) : 0;
+      if (ps && qn >= 1) {
+        ps.q -= qn;
+        ps.locked = Math.max(0, (ps.locked || 0) - o.q);
+        d.cash += cur * qn;
+        d.tr = (d.tr||[]).concat([{ ts: Date.now(), nm: o.nm || nameOf(o.k), side: "매도", q: qn, p: cur }]).slice(-30);
+        filled.push({ nm: o.nm || nameOf(o.k), side: "매도", q: qn, p: cur });
+        if (ps.q === 0 && !(ps.locked > 0)) delete d.pos[o.k];
+      }
+    }
+  }
+  d.orders = remain;
+  return filled;
+}
 // 평가손익 = 보유 종목 (현재가-평단)×수량 합
 const evalOf = d => Object.keys(d.pos || {}).reduce((s,k)=>{
   const ps = d.pos[k]; if (!ps || !ps.q) return s;
@@ -337,10 +396,13 @@ async function load(){
     const p = window.ST_PROFILE || {};
     L = snap.exists ? snap.data() : { cash: SEED, pos: {}, start: Date.now(), cycleStart: Date.now(), seedWon: SEED, hist: [] };
     L.pos = L.pos || {};
+    L.orders = L.orders || [];
     // 기존 미국 보유분 마이그레이션: 과거 매수는 고정 환율 1,350원 → 달러 평단 역산
     for (const k of Object.keys(L.pos)) {
       if (splitK(k)[0] === "us" && !L.pos[k].avgUsd) L.pos[k].avgUsd = L.pos[k].avg / 1350;
     }
+    // 예약 주문 체결: 주문 이후 새 종가가 도착했으면 지금 체결한다
+    const justFilled = fillDueOrders(L);
     L.cycleStart = L.cycleStart || L.start || Date.now();
     L.seedWon = seedOf(L);
     L.mStart = L.mStart || L.seedWon;   // 이번 달 시작 시점 총자산 (월간 랭킹 기준점)
@@ -396,6 +458,13 @@ async function load(){
         ret: Math.round((_t/L.seedWon - 1) * 10000) / 100, total: Math.round(_t) }; }
     await ref.set(L, { merge: true });
     render();
+    if (justFilled && justFilled.length) {
+      await stAlert("✅ 예약 주문 체결 완료", `<div style="font-size:12.5px;color:var(--muted);line-height:1.9;margin-bottom:6px;">
+        새 종가가 도착해 대기 중이던 예약 주문이 체결되었어요.</div>`
+        + justFilled.map(f => cmrow(
+            `<span style="color:${f.side==="매수"?"#4cd7a5":"#f0708a"};font-weight:800;">${f.side}</span> ${f.nm}`,
+            `${wonN(f.q)}주 · ${wonN(f.p)}원`)).join(""));
+    }
     if (settled > 0) {
       await stAlert("🎉 월간 정산 완료!", `<div style="font-size:12.5px;color:var(--muted);line-height:1.9;">
         ${due}개월치 투자금이 자동 지급되었어요.</div>`
@@ -430,6 +499,18 @@ window.resetPlay = async () => {
   render();
 };
 window.openRules = () => document.getElementById("rulemodal").style.display = "flex";
+// 예약 주문 취소: 잠금 자원(현금/수량) 반환
+window.cancelOrder = async (id) => {
+  const idx = (L.orders||[]).findIndex(o => o.id === id);
+  if (idx < 0) return;
+  const o = L.orders[idx];
+  if (!await stConfirm("예약 취소", `<div style="font-size:12.5px;color:var(--muted);line-height:1.8;"><b style="color:${o.side==="매수"?"#4cd7a5":"#f0708a"};">${o.side}</b> ${o.nm} ${wonN(o.q)}주 예약을 취소할까요?</div>`, { okTxt:"취소하기", red:true })) return;
+  if (o.side === "매수") { L.cash += (o.hold || 0); }
+  else { const ps = L.pos[o.k]; if (ps) ps.locked = Math.max(0, (ps.locked||0) - o.q); }
+  L.orders.splice(idx, 1);
+  await firebase.firestore().collection("league").doc(USER.uid).set(L, { merge: false });
+  render();
+};
 
 let HPER = "1m";
 const HWIN = { "1w":["1주",7], "1m":["1개월",30], "3m":["3개월",91], "6m":["6개월",182], "1y":["1년",365], "3y":["3년",1095] };
@@ -481,11 +562,11 @@ function render(){
     <div class="seasonrow">
       <div class="seabox"><span class="si">🕐</span><div><div class="sl">시즌 ${SNUM} 진행 중</div><div class="sv num" style="font-size:12px;color:var(--muted);">${fmtSD(SSTART)} ~ ${fmtSD(SEND)}</div></div></div>
       <div class="seabox"><div><div class="sl">시즌 종료까지</div><div class="sv" style="color:var(--gold);">${SLEFT}일 남음</div></div></div>
-      <div class="seabox" style="cursor:pointer;" onclick="openTierCard()" title="클릭하면 내 티어 카드가 열려요"><span class="si">${myTier.ic}</span><div><div class="sl">내 리그 티어 <span style="font-size:9px;color:var(--gold);">카드 보기 ›</span></div><div class="sv" style="color:${myTier.c};">${myTier.full}</div></div></div>
+      <div class="seabox hbtn" style="cursor:pointer;" onclick="openTierCard()" title="클릭하면 내 티어 카드가 열려요"><span class="si">${myTier.ic}</span><div><div class="sl">내 리그 티어</div><div class="sv" style="color:${myTier.c};">${myTier.full}</div></div></div>
       ${L.lastSeason ? `<div class="seabox" style="opacity:.85;"><span class="si">${L.lastSeason.ic}</span><div><div class="sl">지난 시즌 최종 (시즌 ${sNumOf(L.lastSeason.key)})</div><div class="sv" style="color:${L.lastSeason.c};">${L.lastSeason.tier}</div></div></div>` : ""}
       <span style="flex:1;"></span>
-      <button onclick="openTiers()" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:9px 20px;font-size:12.5px;font-weight:800;cursor:pointer;">🎖️ 티어 구분</button>
-      <button onclick="openRules()" style="background:transparent;border:1px solid var(--gold-dim);color:var(--gold);border-radius:10px;padding:9px 20px;font-size:12.5px;font-weight:800;cursor:pointer;">📖 게임 규칙</button>
+      <button class="hbtn" onclick="openTiers()" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:9px 20px;font-size:12.5px;font-weight:800;cursor:pointer;">🎖️ 티어 구분</button>
+      <button class="hbtn" onclick="openRules()" style="background:transparent;border:1px solid var(--gold-dim);color:var(--gold);border-radius:10px;padding:9px 20px;font-size:12.5px;font-weight:800;cursor:pointer;">📖 게임 규칙</button>
     </div>
     <div class="sumrow">
         <div class="sumbox"><div class="lb">총 자산</div>
@@ -501,17 +582,28 @@ function render(){
           <div style="display:flex;align-items:center;gap:12px;"><div class="vl num">${wonN(L.cash)}원</div><span style="margin-left:auto;display:inline-flex;">${CASH_ICON}</span></div>
           <div class="sumsub num" style="color:#5a737d;">${total?(L.cash/total*100).toFixed(1):0}%</div></div>
     </div>
-      <div class="card"><h3>주문하기 <span class="more" style="cursor:default;">전일 종가 체결 · 환율 ${FX.toLocaleString("ko-KR")}원 (전일 기준)</span></h3>
+      <div class="card"><h3>주문하기 <span class="more" style="cursor:default;">다음 종가 예약 체결 · 환율 ${FX.toLocaleString("ko-KR")}원 (전일 기준)</span></h3>
         <div class="trade">
           <div class="sbox"><input id="tq" placeholder="종목명 검색 (국내·미국)" autocomplete="off"><span class="mag">⌕</span><div class="suggest" id="tsug"></div></div>
           <input class="qty" id="tqty" type="number" min="1" placeholder="수량">
           <input class="qty" id="tamt" readonly placeholder="주문 금액" style="flex:0 0 140px;min-width:140px;color:var(--gold);font-weight:800;" tabindex="-1">
-          <button class="tbtn buy" id="buybtn">매수</button>
-          <button class="tbtn sell" id="sellbtn">매도</button>
+          <button class="tbtn buy" id="buybtn">매수 예약</button>
+          <button class="tbtn sell" id="sellbtn">매도 예약</button>
         </div>
         <div id="selinfo" style="font-size:12px;color:var(--muted);margin-top:9px;font-weight:700;"></div>
         <div class="prevbox" id="ordprev"></div>
         <div class="msg2" id="tmsg"></div>
+        <div style="font-size:10.5px;color:var(--dim);margin-top:8px;line-height:1.7;">📌 모든 주문은 <b style="color:var(--muted);">다음 종가</b>로 체결됩니다. 오늘 오르내림을 보고 미리 사고파는 걸 막기 위한 규칙이에요.</div>
+        ${(L.orders||[]).length ? `<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:11px;">
+          <div style="font-size:11.5px;color:var(--muted);font-weight:800;margin-bottom:7px;">⏳ 체결 대기 중인 예약 (${L.orders.length})</div>
+          ${L.orders.map(o=>`<div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:7px 0;border-bottom:1px solid #ffffff0d;">
+            <span style="font-weight:800;color:${o.side==="매수"?"#4cd7a5":"#f0708a"};flex:0 0 44px;">${o.side}</span>
+            <span style="flex:1;font-weight:700;">${o.nm}</span>
+            <span class="num" style="color:var(--muted);">${wonN(o.q)}주</span>
+            <button onclick="cancelOrder('${o.id}')" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:7px;padding:4px 10px;font-size:10.5px;font-weight:700;cursor:pointer;">취소</button>
+          </div>`).join("")}
+          <div style="font-size:10px;color:var(--dim);margin-top:6px;">다음 종가 데이터가 반영되면 자동 체결됩니다.</div>
+        </div>` : ""}
       </div>
       <div class="posgrid">
         <div class="card"><h3>포트폴리오 구성</h3>
@@ -537,7 +629,7 @@ function render(){
               const plWon = (cur-ps.avg)*ps.q;
               return `<tr>
                 <td class="nm" style="cursor:pointer;" onclick="location.href='${ST.stockUrl(srcx,kx)}'">${nameOf(k)}${srcx==="us"?` <span style="color:var(--dim);font-size:10px;font-weight:500;">US</span>`:""}</td>
-                <td class="num">${wonN(ps.q)}주</td>
+                <td class="num">${wonN(ps.q)}주${ps.locked>0?`<div style="font-size:9.5px;color:var(--gold-dim);">예약 ${wonN(ps.locked)}주</div>`:""}</td>
                 <td class="num">${wonN(ps.avg)}원</td>
                 <td class="num">${wonN(cur)}원</td>
                 <td class="num" style="color:var(--muted);">${wonN(ps.avg*ps.q)}원</td>
@@ -558,7 +650,7 @@ function render(){
           <div id="hstat" style="flex:0 0 150px;display:flex;flex-direction:column;justify-content:center;gap:8px;"></div>
         </div>
       </div>
-      <div class="card" style="margin-top:14px;"><h3>최근 거래 내역 <span class="more" style="cursor:default;">최신순 · 전일 종가 체결 기준</span></h3>
+      <div class="card" style="margin-top:14px;"><h3>최근 거래 내역 <span class="more" style="cursor:default;">최신순 · 다음 종가 예약 체결</span></h3>
         ${(L.tr||[]).length ? `<table class="ptbl"><thead><tr><th>일시</th><th>종목명</th><th>구분</th><th>수량</th><th>체결가</th><th>금액</th></tr></thead><tbody>
           ${L.tr.slice(-8).reverse().map(t=>{
             const d = new Date(t.ts);
@@ -643,51 +735,39 @@ function render(){
     if (!qn || qn<1) { msg("수량을 입력해주세요."); return; }
     const cur = priceOf(k), cost = cur*qn;
     if (cost > L.cash) { msg(`현금이 부족해요. (필요 ${wonN(cost)}원 / 보유 ${wonN(L.cash)}원)`); return; }
-    const held = L.pos[k];
-    let body = cmrow("종목", nameOf(k) + (splitK(k)[0]==="us" ? ` <span style="color:var(--dim);font-size:10px;">US</span>` : ""))
+    const body = cmrow("종목", nameOf(k) + (splitK(k)[0]==="us" ? ` <span style="color:var(--dim);font-size:10px;">US</span>` : ""))
       + cmrow("수량", wonN(qn)+"주")
-      + cmrow("체결가", wonN(cur)+"원 <span style='color:var(--dim);font-size:10.5px;'>(전일 종가)</span>")
-      + cmrow("주문 금액", `<span style="color:#f0c948;">${wonN(cost)}원</span>`);
-    if (held && held.q>0) {
-      const nAvg = Math.round((held.q*held.avg + cost)/(held.q+qn));
-      body += cmrow("매수 후 평단", wonN(nAvg)+"원") + cmrow("매수 후 수량", wonN(held.q+qn)+"주");
-    }
-    if (!await stConfirm("🛒 매수 확인", body, { okTxt:"매수" })) return;
-    const ps = L.pos[k] || { q:0, avg:0 };
-    // 미국 종목: 환차손 계산용 달러 평단 함께 저장
-    if (splitK(k)[0] === "us") {
-      const usd = ST.get("us", splitK(k)[1])[2];
-      ps.avgUsd = (ps.q * (ps.avgUsd || ps.avg/1350) + qn * usd) / (ps.q + qn);
-    }
-    ps.avg = Math.round((ps.q*ps.avg + cost) / (ps.q+qn));
-    ps.q += qn;
-    L.pos[k] = ps;
-    L.cash -= cost;
-    L.tr = (L.tr||[]).concat([{ ts: Date.now(), nm: nameOf(k), side: "매수", q: qn, p: cur }]).slice(-30);
+      + cmrow("예상 체결가", wonN(cur)+"원 <span style='color:var(--dim);font-size:10.5px;'>(참고용 · 현재 종가)</span>")
+      + cmrow("예약 금액", `<span style="color:#f0c948;">${wonN(cost)}원</span>`)
+      + `<div style="font-size:11px;color:var(--gold-dim);line-height:1.7;margin-top:8px;">📌 지금 종가가 아니라 <b>다음 종가</b>로 체결됩니다.<br>주문 금액만큼 현금이 예약(잠금)되고, 실제 체결가로 정산돼요.</div>`;
+    if (!await stConfirm("🛒 매수 예약", body, { okTxt:"예약하기" })) return;
+    L.cash -= cost;   // 예약 금액 잠금 (체결 시 실제가로 정산)
+    L.orders = (L.orders||[]).concat([{ id: Date.now()+"_"+Math.random().toString(36).slice(2,6),
+      k, nm: nameOf(k), side: "매수", q: qn, hold: cost, placed: dataDate(), ts: Date.now() }]);
     SELK = k;
-    saveRender(`${nameOf(k)} ${wonN(qn)}주 매수 완료 (${wonN(cost)}원)`, true);
+    saveRender(`${nameOf(k)} ${wonN(qn)}주 매수 예약 완료 · 다음 종가에 체결돼요`, true);
   });
   document.getElementById("sellbtn").addEventListener("click", async () => {
     const k = pickPk();
     const qn = Math.floor(+tqty.value);
     const ps = k && L.pos[k];
     if (!ps || ps.q<1) { msg("보유하지 않은 종목입니다."); return; }
-    if (!qn || qn<1 || qn>ps.q) { msg(`매도 가능 수량: ${wonN(ps.q)}주`); return; }
+    const avail = freeQ(L, k);
+    if (!qn || qn<1 || qn>avail) { msg(`매도 가능 수량: ${wonN(avail)}주${avail<ps.q?` (예약 ${wonN(ps.q-avail)}주 제외)`:""}`); return; }
     const cur = priceOf(k);
     const pl = (cur/ps.avg-1)*100;
     const body = cmrow("종목", nameOf(k))
       + cmrow("수량", wonN(qn)+"주")
-      + cmrow("체결가", wonN(cur)+"원 <span style='color:var(--dim);font-size:10.5px;'>(전일 종가)</span>")
-      + cmrow("회수 금액", `<span style="color:#f0c948;">${wonN(cur*qn)}원</span>`)
-      + cmrow("손익", `<span class="${ST.cls(pl)}">${pl>=0?"+":""}${pl.toFixed(2)}%</span>`)
-      + cmrow("매도 후 잔여", wonN(ps.q-qn)+"주");
-    if (!await stConfirm("💸 매도 확인", body, { okTxt:"매도", red:true })) return;
-    ps.q -= qn;
-    L.cash += cur*qn;
-    if (ps.q === 0) delete L.pos[k];
-    L.tr = (L.tr||[]).concat([{ ts: Date.now(), nm: nameOf(k), side: "매도", q: qn, p: cur }]).slice(-30);
+      + cmrow("예상 체결가", wonN(cur)+"원 <span style='color:var(--dim);font-size:10.5px;'>(참고용 · 현재 종가)</span>")
+      + cmrow("예상 회수 금액", `<span style="color:#f0c948;">${wonN(cur*qn)}원</span>`)
+      + cmrow("예상 손익", `<span class="${ST.cls(pl)}">${pl>=0?"+":""}${pl.toFixed(2)}%</span>`)
+      + `<div style="font-size:11px;color:var(--gold-dim);line-height:1.7;margin-top:8px;">📌 지금 종가가 아니라 <b>다음 종가</b>로 체결됩니다.<br>해당 수량은 체결 전까지 잠겨요.</div>`;
+    if (!await stConfirm("💸 매도 예약", body, { okTxt:"예약하기", red:true })) return;
+    ps.locked = (ps.locked || 0) + qn;   // 매도 예약분 잠금
+    L.orders = (L.orders||[]).concat([{ id: Date.now()+"_"+Math.random().toString(36).slice(2,6),
+      k, nm: nameOf(k), side: "매도", q: qn, placed: dataDate(), ts: Date.now() }]);
     SELK = k;
-    saveRender(`${nameOf(k)} ${wonN(qn)}주 매도 완료 (+${wonN(cur*qn)}원)`, true);
+    saveRender(`${nameOf(k)} ${wonN(qn)}주 매도 예약 완료 · 다음 종가에 체결돼요`, true);
   });
   drawHist();
   loadRanks();
@@ -791,9 +871,9 @@ function rkCardHtml(id){
     ${hasMode ? `<span class="chips2" style="margin-left:auto;">
       <span class="chip ${mode==="m"?"on":""}" onclick="setRk('${id}','m')">월간</span>
       <span class="chip ${mode==="all"?"on":""}" onclick="setRk('${id}','all')">전체</span></span>` : `<span style="margin-left:auto;"></span>`}
-    <span onclick="openRank('${id}')" style="font-size:11px;color:var(--dim);cursor:pointer;font-weight:700;flex-shrink:0;">더보기 &gt;</span></h3>
+    <span class="morelnk" onclick="openRank('${id}')" style="font-size:11px;color:var(--dim);cursor:pointer;font-weight:700;flex-shrink:0;">더보기 &gt;</span></h3>
     ${rows.length ? rows.map((r,i)=>`<div class="rkrow ${r.uid===USER.uid?"me":""}">
-      <span style="font-size:14px;flex-shrink:0;">${["🥇","🥈","🥉"][i]}</span>${rkName(r)}${rkFmt(id, rkVal(r,id,mode))}</div>`).join("")
+      <span class="medal">${["🥇","🥈","🥉"][i]}</span>${rkName(r)}${rkFmt(id, rkVal(r,id,mode))}</div>`).join("")
     : `<div style="font-size:12px;color:var(--dim);">첫 참가자가 되어보세요!</div>`}</div>`;
 }
 function renderRkCards(){
@@ -821,7 +901,7 @@ function drawRankFull(){
   const rows = [...RROWS].sort((a,b)=>rkVal(b,RKTAB,RKFMODE)-rkVal(a,RKTAB,RKFMODE)).slice(0,50);
   document.getElementById("rankfull").innerHTML = rows.map((r,i)=>`
     <div class="rkrow ${r.uid===USER.uid?"me":""}">
-      <span class="rank">${i<3?["🥇","🥈","🥉"][i]:i+1}</span>${rkName(r)}${rkFmt(RKTAB, rkVal(r,RKTAB,RKFMODE))}</div>`).join("")
+      <span class="rank"${i<3?' style="background:transparent;border:none;font-size:14px;"':""}>${i<3?["🥇","🥈","🥉"][i]:i+1}</span>${rkName(r)}${rkFmt(RKTAB, rkVal(r,RKTAB,RKFMODE))}</div>`).join("")
     || `<div style="font-size:12px;color:var(--dim);">아직 참가자가 없습니다.</div>`;
 }
 
