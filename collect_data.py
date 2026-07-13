@@ -602,6 +602,28 @@ def main():
     if len(out) < 100:
         sys.exit("상세 수집 실패: " + str(len(out)))
 
+    # ── 지수(코스피/코스닥) 수급 = 전 종목 외인·기관 순매수 합산 (날짜별, 억원)
+    #    새 네트워크 호출 없이 flows에서 파생. 종목별로 보이는 값의 합이라 일관·투명.
+    mkt_of = {st["code"]: st["mkt"] for st in stocks}
+    idx_agg = {"KOSPI": {}, "KOSDAQ": {}}
+    for code, rows in new_flows.items():
+        mk_ = mkt_of.get(code)
+        if mk_ not in idx_agg:
+            continue
+        for r in rows:
+            if len(r) < 3:
+                continue
+            ymd, fq, oq = r[0], r[1], r[2]
+            acc = idx_agg[mk_].setdefault(ymd, [0, 0])
+            acc[0] += fq
+            acc[1] += oq
+    market["flowIdx"] = {
+        mk_: [[ymd, agg[ymd][0], agg[ymd][1]] for ymd in sorted(agg)][-120:]
+        for mk_, agg in idx_agg.items()
+    }
+    print("지수 수급 합산:",
+          {mk_: len(v) for mk_, v in market["flowIdx"].items()}, "일 → data.js (STOCK_MARKET.flowIdx)", flush=True)
+
     meta = {"date": datetime.date.today().strftime("%Y%m%d"),
             "count": len(out),
             "generated": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}

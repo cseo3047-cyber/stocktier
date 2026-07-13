@@ -120,6 +120,7 @@
     <div style="display:flex;flex-direction:column;">
       <div class="cards4" id="cards"></div>
       <div class="card" style="margin-bottom:14px;"><h3>시장 리스크 지수 <span class="more" onclick="openIdxHelp()">더보기 ›</span></h3><div id="mktidx"></div></div>
+      <div class="card" style="margin-bottom:14px;"><h3>코스피·코스닥 수급 <span class="more" style="cursor:default;">외국인·기관 순매수 (전 종목 합산)</span></h3><div id="idxflow"></div></div>
       <div class="card"><h3>위험 종목 리스트
         <span style="margin-left:auto;position:relative;flex-shrink:0;display:inline-flex;">
           <input id="riskq" placeholder="종목명 또는 코드 검색" autocomplete="off"
@@ -491,6 +492,82 @@ drawBar(); drawTbl();
     x=>`<b class="num down" style="font-size:11.5px;">${(x.e[14]||0).toFixed(1)}%</b>`, "등락률");
   mk5(A.filter(x=>x.eo && dday(x.eo.d)<=7 && x.rk>=50).sort((a,b)=>dday(a.eo.d)-dday(b.eo.d)).slice(0,5), "earnlist",
     x=>`<b class="num" style="font-size:11.5px;color:#f0c948;">D-${dday(x.eo.d)}${x.eo.est?"·예상":""}</b>`, "실적일");
+})();
+
+// ── 코스피·코스닥 수급 (외국인·기관 순매수, 전 종목 합산 · STOCK_MARKET.flowIdx)
+(function(){
+  const host = document.getElementById("idxflow");
+  if (!host) return;
+  const FI = (window.STOCK_MARKET && window.STOCK_MARKET.flowIdx) || {};
+  const DEFS = [["KOSPI","코스피"],["KOSDAQ","코스닥"]];
+  if (!DEFS.some(([k])=> Array.isArray(FI[k]) && FI[k].length)) {
+    host.innerHTML = `<div style="font-size:12px;color:var(--dim);padding:14px 2px;line-height:1.9;">
+      지수 수급 데이터를 아직 수집하지 못했어요.<br>
+      <span style="font-size:11px;">수집기(collect_data.py)가 다음 회차에 코스피·코스닥 합산 수급을 생성하면 여기에 자동 표시됩니다.</span></div>`;
+    return;
+  }
+  const eok = v => { const a=Math.abs(v); return (v<0?"-":"+")+(a>=10000?(a/10000).toFixed(1)+"조":Math.round(a).toLocaleString("ko-KR")+"억"); };
+  const cls = v => v>=0 ? "up" : "down";
+  const STATE = {}; DEFS.forEach(([k])=> STATE[k]={ per:60, series:1 });
+  const PERS = [["1개월",20],["3개월",60],["6개월",120]];
+  const block = (key,kr)=>{ const arr=FI[key]||[], last=arr[arr.length-1]||[null,0,0];
+    return `<div style="flex:1;min-width:280px;">
+      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+        <span style="font-size:14px;font-weight:800;">${kr}</span>
+        <span style="font-size:10.5px;color:var(--dim);">${last[0]?("20"+last[0].slice(0,2)+"."+last[0].slice(2,4)+"."+last[0].slice(4,6)+" 기준"):""}</span></div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <div style="flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;">
+          <div style="font-size:10.5px;color:var(--muted);font-weight:700;">외국인 순매수</div>
+          <div class="num ${cls(last[1])}" style="font-size:16px;font-weight:800;">${eok(last[1])}</div></div>
+        <div style="flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;">
+          <div style="font-size:10.5px;color:var(--muted);font-weight:700;">기관 순매수</div>
+          <div class="num ${cls(last[2])}" style="font-size:16px;font-weight:800;">${eok(last[2])}</div></div></div>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
+        <span id="${key}_ser" style="display:inline-flex;gap:4px;"></span>
+        <span id="${key}_per" style="display:inline-flex;gap:4px;margin-left:auto;"></span></div>
+      <div style="position:relative;"><div id="${key}_box"></div>
+        <div id="${key}_tip" style="position:absolute;display:none;background:#021b27;border:1px solid var(--gold-dim);color:var(--text);font-size:10.5px;font-weight:600;padding:6px 9px;border-radius:8px;pointer-events:none;white-space:nowrap;transform:translateX(-50%);z-index:5;line-height:1.6;"></div></div>
+    </div>`; };
+  host.innerHTML = `<div style="display:flex;gap:22px;flex-wrap:wrap;">${DEFS.map(([k,kr])=>block(k,kr)).join("")}</div>
+    <div style="font-size:10px;color:var(--dim);margin-top:10px;">* 상장 전 종목의 외국인·기관 순매수를 합산한 값으로, KRX 공식 지수 수급과는 소폭 차이가 있을 수 있어요. 초록 = 순매수, 빨강 = 순매도.</div>`;
+  function draw(key){
+    const st=STATE[key], arr=FI[key]||[];
+    document.getElementById(key+"_ser").innerHTML = [["외국인",1],["기관",2]].map(([lb,idx])=>
+      `<span onclick="__idxSer('${key}',${idx})" style="cursor:pointer;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:7px;border:1px solid ${st.series===idx?'#2e5c47':'var(--border)'};color:${st.series===idx?'#4cd7a5':'var(--muted)'};background:${st.series===idx?'#13322a':'transparent'};">${lb}</span>`).join("");
+    document.getElementById(key+"_per").innerHTML = PERS.map(([lb,n])=>
+      `<span onclick="__idxPer('${key}',${n})" style="cursor:pointer;font-size:10px;font-weight:700;padding:3px 8px;border-radius:7px;border:1px solid ${st.per===n?'var(--gold-dim)':'var(--border)'};color:${st.per===n?'var(--gold)':'var(--muted)'};">${lb}</span>`).join("");
+    const rows=arr.slice(-Math.min(st.per,arr.length));
+    const el=document.getElementById(key+"_box"), tip=document.getElementById(key+"_tip");
+    const W=440,H=150,padL=52,padR=8,padT=10,padB=20;
+    const mxA=Math.max(...rows.map(r=>Math.abs(r[st.series])),1);
+    const mid=padT+(H-padT-padB)/2, Y=v=>mid-v/mxA*(H-padT-padB)/2;
+    const bw=Math.max(1.4,(W-padL-padR)/rows.length*0.6), X=i=>padL+(i+0.5)/rows.length*(W-padL-padR);
+    const eS=v=>{const a=Math.abs(v);return (v<0?"-":"+")+(a>=10000?(a/10000).toFixed(1)+"조":Math.round(a).toLocaleString("ko-KR")+"억");};
+    const gu="ig"+key+"u", gd="ig"+key+"d";
+    let bars=""; rows.forEach((r,i)=>{const v=r[st.series],h=Math.max(1.2,Math.abs(Y(v)-mid));
+      bars+=`<rect x="${(X(i)-bw/2).toFixed(1)}" y="${(v>=0?Y(v):mid).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.3" fill="url(#${v>=0?gu:gd})"/>`;});
+    let xlab=""; for(const fr of [0,0.5,1]){const i=Math.round(fr*(rows.length-1));
+      xlab+=`<text x="${X(i).toFixed(1)}" y="${H-5}" text-anchor="middle" fill="#5a737d" font-size="9">${rows[i][0].slice(2,4)}/${rows[i][0].slice(4,6)}</text>`;}
+    el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:150px;display:block;">
+      <defs><linearGradient id="${gu}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#0f7a56"/><stop offset="1" stop-color="#4cd7a5"/></linearGradient>
+      <linearGradient id="${gd}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a2822"/><stop offset="1" stop-color="#f0645a"/></linearGradient></defs>
+      <text x="${padL-6}" y="${(Y(mxA)+4).toFixed(1)}" text-anchor="end" fill="#5a737d" font-size="9">${eS(mxA)}</text>
+      <text x="${padL-6}" y="${mid+3}" text-anchor="end" fill="#5a737d" font-size="9">0</text>
+      <text x="${padL-6}" y="${(Y(-mxA)+2).toFixed(1)}" text-anchor="end" fill="#5a737d" font-size="9">${eS(-mxA)}</text>
+      <line x1="${padL}" y1="${mid}" x2="${W-padR}" y2="${mid}" stroke="#1c3440" stroke-width="1"/>
+      ${bars}${xlab}<g class="cr" style="display:none;"><line class="cv" y1="${padT}" y2="${H-padB}" stroke="#8da4ac" stroke-width="1" stroke-dasharray="4,4"/></g></svg>`;
+    const svg=el.querySelector("svg"), cr=svg.querySelector(".cr");
+    svg.onmousemove=ev=>{const r2=svg.getBoundingClientRect(),vx=(ev.clientX-r2.left)/r2.width*W;
+      let i=Math.round((vx-padL)/(W-padL-padR)*rows.length-0.5); i=Math.max(0,Math.min(rows.length-1,i));
+      const v=rows[i][st.series],x=X(i);
+      svg.querySelector(".cv").setAttribute("x1",x); svg.querySelector(".cv").setAttribute("x2",x); cr.style.display="";
+      tip.innerHTML=`20${rows[i][0].slice(0,2)}.${rows[i][0].slice(2,4)}.${rows[i][0].slice(4,6)}<br>${st.series===1?"외국인":"기관"} 순매수 <b class="${cls(v)}">${eS(v)}</b>`;
+      tip.style.left=(x/W*100)+"%"; tip.style.top="4px"; tip.style.display="block";};
+    svg.onmouseleave=()=>{cr.style.display="none"; tip.style.display="none";};
+  }
+  window.__idxSer=(key,idx)=>{STATE[key].series=idx; draw(key);};
+  window.__idxPer=(key,n)=>{STATE[key].per=n; draw(key);};
+  DEFS.forEach(([k])=>draw(k));
 })();
 
 // ── 업종별 리스크 집중도 (국내 / 미국)
