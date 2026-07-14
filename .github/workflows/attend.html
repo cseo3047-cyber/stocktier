@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="style.css">
 <style>
   .wrap { max-width:1220px; }
-  .layout { display:grid; grid-template-columns:1fr 320px; gap:14px; align-items:stretch; }
+  .layout { display:grid; grid-template-columns:1fr 400px; gap:14px; align-items:stretch; }
   @media (max-width:1000px){ .layout { grid-template-columns:1fr; } }
   .statgrid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px; }
   @media (max-width:900px){ .statgrid { grid-template-columns:repeat(2,1fr); } }
@@ -177,15 +177,7 @@ function render(){
   <div class="layout">
     <div style="display:flex;flex-direction:column;">
       <div class="card">
-        <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;align-items:center;">
-          <div id="calbox">${calHtml()}</div>
-          <div style="text-align:center;">
-            <div style="display:flex;justify-content:center;">
-              <div class="ring" style="background:conic-gradient(#f0c948 0% ${ringPct}%, #0d3a52 ${ringPct}% 100%);">
-                <div class="hole"><b class="num" style="font-size:15px;">${Math.min(G.streak,next[0])} / ${next[0]}</b><span style="font-size:9px;color:var(--dim);">연속 목표</span></div></div>
-            </div>
-          </div>
-        </div>
+        <div id="calbox">${calHtml()}</div>
       </div>
       <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:14px;margin-top:14px;align-items:stretch;flex:1;">
         <div class="card" style="display:flex;flex-direction:column;"><h3>최근 출석 기록</h3>
