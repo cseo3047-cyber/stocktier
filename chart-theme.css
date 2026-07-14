@@ -1,0 +1,6 @@
+/* Stocktier 차트 테마 보정 — TradingView 고급차트 iframe 내부에 주입됩니다.
+   대부분의 색은 chart.html의 overrides로 처리하고, 여기선 스크롤바 정도만 정리합니다. */
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: #0a1a22; }
+::-webkit-scrollbar-thumb { background: #1c3440; border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: #2e5c47; }

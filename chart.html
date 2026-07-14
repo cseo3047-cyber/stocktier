@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stocktier — 차트 분석</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap { max-width:1680px; }
+  #tvchart { height:80vh; min-height:520px; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:#0a1a22; }
+  .setup { border:1px solid var(--border); border-radius:12px; background:var(--panel); padding:26px 28px; }
+  .setup h3 { font-size:15px; margin:0 0 4px; }
+  .setup ol { font-size:12.5px; color:var(--muted); line-height:1.95; padding-left:20px; margin:12px 0; }
+  .setup code { background:var(--panel2); border:1px solid var(--border); border-radius:5px; padding:1px 6px; font-size:11.5px; color:#8fd6b8; }
+  .setup a { color:var(--gold); }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<div class="wrap">
+  <span class="asof" id="asof"></span>
+  <div class="page-title">차트 분석</div>
+  <div class="page-sub">캔들·이동평균·RSI·MACD·추세선 등으로 직접 분석하세요. (일봉 · 국내 시총 상위 종목)</div>
+  <div id="tvchart"></div>
+  <div id="tvmiss" class="setup" style="display:none;">
+    <h3>📈 차트 엔진(TradingView 고급차트)을 아직 설치하지 않았어요</h3>
+    <div style="font-size:12.5px;color:var(--dim);">이 페이지는 무료 <b>TradingView Advanced Charts(Charting Library)</b>를 사용합니다. 라이브러리 파일은 TradingView에서 직접 받아 사이트에 올려야 해요(재배포 불가). 데이터 연동·테마·검색은 이미 준비돼 있어요.</div>
+    <ol>
+      <li><a href="https://www.tradingview.com/advanced-charts/" target="_blank" rel="noopener">tradingview.com/advanced-charts</a> 에서 무료 사용 신청(간단한 폼 → GitHub 저장소 접근 권한 부여)</li>
+      <li>받은 저장소의 <code>charting_library/</code> 폴더를 이 사이트 루트(= index.html과 같은 위치)에 그대로 업로드</li>
+      <li>새로고침하면 이 자리에 차트가 뜹니다. (파일 경로는 <code>charting_library/charting_library.standalone.js</code> 여야 해요)</li>
+    </ol>
+    <div style="font-size:11px;color:var(--dim);">※ 데이터피드(<code>datafeed.js</code>)와 <code>ohlc/*.json</code>은 수집기가 생성합니다. 워크플로에서 <code>git add ohlc</code>가 포함되는지 확인하세요.</div>
+  </div>
+  <div class="footer"></div>
+</div>
+
+<script src="data.js"></script>
+<script src="data_us.js"></script>
+<script src="common.js"></script>
+<script src="datafeed.js"></script>
+<script>
+ST.nav("chart.html");
+document.getElementById("asof").textContent = "업데이트: " + ST.asofText();
+function tvShowMissing(){ var m=document.getElementById("tvmiss"), c=document.getElementById("tvchart"); if(m)m.style.display="block"; if(c)c.style.display="none"; }
+</script>
+<script src="charting_library/charting_library.standalone.js" onerror="tvShowMissing()"></script>
+<script>
+(function(){
+  if (!window.TradingView || !window.TradingView.widget) { tvShowMissing(); return; }
+  // 진입 심볼: ?src=kr&k=종목명 (stock.html에서 링크 가능), 기본 삼성전자(005930)
+  var q = new URLSearchParams(location.search), sym = "005930";
+  var k = q.get("k"), src = q.get("src") || "kr";
+  if (k) { var nm = decodeURIComponent(k); if (src === "kr" && ST.KR[nm]) sym = ST.KR[nm][0]; }
+
+  var OV = {
+    "paneProperties.background": "#0a1a22",
+    "paneProperties.backgroundType": "solid",
+    "paneProperties.vertGridProperties.color": "#12303a",
+    "paneProperties.horzGridProperties.color": "#12303a",
+    "scalesProperties.textColor": "#8da4ac",
+    "scalesProperties.lineColor": "#1c3440",
+    "mainSeriesProperties.candleStyle.upColor": "#4cd7a5",
+    "mainSeriesProperties.candleStyle.downColor": "#f0645a",
+    "mainSeriesProperties.candleStyle.borderUpColor": "#4cd7a5",
+    "mainSeriesProperties.candleStyle.borderDownColor": "#f0645a",
+    "mainSeriesProperties.candleStyle.wickUpColor": "#4cd7a5",
+    "mainSeriesProperties.candleStyle.wickDownColor": "#f0645a",
+    "mainSeriesProperties.areaStyle.color1": "#4cd7a555",
+    "mainSeriesProperties.areaStyle.color2": "#0a1a2200",
+    "mainSeriesProperties.areaStyle.linecolor": "#4cd7a5"
+  };
+  var STUDY_OV = {
+    "volume.volume.color.0": "#f0645a",
+    "volume.volume.color.1": "#4cd7a5"
+  };
+
+  new TradingView.widget({
+    container: "tvchart",
+    library_path: "charting_library/",
+    datafeed: window.makeStocktierDatafeed(),
+    symbol: sym,
+    interval: "1D",
+    autosize: true,
+    theme: "dark",
+    locale: "ko",
+    timezone: "Asia/Seoul",
+    overrides: OV,
+    studies_overrides: STUDY_OV,
+    loading_screen: { backgroundColor: "#0a1a22", foregroundColor: "#4cd7a5" },
+    custom_css_url: "chart-theme.css",
+    disabled_features: ["header_saveload", "study_templates"],
+    enabled_features: ["side_toolbar_in_fullscreen_mode"]
+  });
+})();
+</script>
+</body>
+</html>

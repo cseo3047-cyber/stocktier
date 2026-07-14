@@ -194,20 +194,28 @@ def scrape_frgn(code, pages=6):
 
 
 def history(code, count=1250):
-    """일별 시세 약 5년치 (최근 65개는 지표 계산용, 전체는 장기 차트용)"""
+    """일별 시세 약 5년치. 반환: (종가리스트, 거래량리스트, OHLC리스트)
+       OHLC = [[YYYYMMDD, 시가, 고가, 저가, 종가, 거래량], ...] (과거→최신, 차트용)"""
     try:
         r = S.get(f"https://fchart.stock.naver.com/sise.nhn?symbol={code}&timeframe=day&count={count}&requestType=0",
                   timeout=15)
         rows = re.findall(r'data="([^"]+)"', r.text)
-        closes, vols = [], []
+        closes, vols, ohlc = [], [], []
         for row in rows:
             p = row.split("|")
+            # fchart 포맷: p[0]=날짜(YYYYMMDD) p[1]=시가 p[2]=고가 p[3]=저가 p[4]=종가 p[5]=거래량
             if len(p) >= 6 and num(p[4]) and num(p[4]) > 0:
-                closes.append(float(p[4]))
-                vols.append(float(p[5]) if num(p[5]) is not None else 0.0)
-        return closes, vols
+                c = float(p[4])
+                v = float(p[5]) if num(p[5]) is not None else 0.0
+                closes.append(c)
+                vols.append(v)
+                o = num(p[1]); h = num(p[2]); l = num(p[3]); d = str(p[0]).strip()
+                if len(d) == 8:
+                    ohlc.append([d, round(o if o else c, 2), round(h if h else c, 2),
+                                 round(l if l else c, 2), round(c, 2), int(v)])
+        return closes, vols, ohlc
     except Exception:
-        return [], []
+        return [], [], []
 
 
 def idx_hist(symbol, count=1250):
@@ -537,6 +545,12 @@ def main():
     if BACKFILL:
         print("수급 소급 스크래핑 시작 (첫 실행 · 종목당 약 120거래일)", flush=True)
 
+    # 차트용 OHLC 대상: 시총 상위 종목만 (레포 크기 관리). 필요 시 숫자만 올리면 됨.
+    OHLC_TOP = 900
+    ohlc_codes = set(s["code"] for s in sorted(stocks, key=lambda s: -(s.get("cap") or 0))[:OHLC_TOP])
+    os.makedirs("ohlc", exist_ok=True)
+    ohlc_written = []
+
     out = {}
     fchart_ok = 0
     for i, st in enumerate(stocks):
@@ -555,7 +569,15 @@ def main():
         if byd:
             new_flows[st["code"]] = [byd[k] for k in sorted(byd.keys())][-120:]
 
-        closes, vols = history(st["code"])
+        closes, vols, ohlc = history(st["code"])
+        # 차트용 OHLC 저장 (상위 종목만, 최근 500거래일 ≈ 2년)
+        if ohlc and st["code"] in ohlc_codes:
+            try:
+                with open(f"ohlc/{st['code']}.json", "w", encoding="utf-8") as of:
+                    json.dump(ohlc[-500:], of, ensure_ascii=False, separators=(",", ":"))
+                ohlc_written.append(st["code"])
+            except Exception:
+                pass
         spk = None
         if closes:
             fchart_ok += 1
@@ -638,6 +660,13 @@ def main():
                                                     separators=(",", ":")) + ";\n")
     avg_days = round(sum(len(v) for v in new_flows.values()) / max(1, len(new_flows)), 1)
     print("수급 이력:", len(new_flows), "종목 (평균", avg_days, "일) → flows.js", flush=True)
+    # 차트용 OHLC 인덱스 (차트 페이지 datafeed가 참조: 차트 가능한 종목 코드 목록)
+    try:
+        with open("ohlc/index.json", "w", encoding="utf-8") as fp:
+            json.dump(sorted(set(ohlc_written)), fp, ensure_ascii=False, separators=(",", ":"))
+        print("차트 OHLC:", len(set(ohlc_written)), "종목 → ohlc/*.json", flush=True)
+    except Exception as e:
+        print("[진단] OHLC 인덱스 쓰기 실패:", str(e)[:120], flush=True)
     print("완료:", len(out), "종목 → data.js (fchart 성공:", fchart_ok, ")")
 
 
