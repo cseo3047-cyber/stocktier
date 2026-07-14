@@ -50,16 +50,28 @@
   .bullets2 { font-size:12px; color:var(--muted); line-height:1.7; margin:0; padding:0; }
   .bullets2 li { list-style:none; padding-left:22px; position:relative; }
   .bullets2 li:before { content:"✓"; position:absolute; left:0; top:1px; width:15px; height:15px; border-radius:50%; background:#13322a; color:#4cd7a5; font-size:9px; font-weight:800; display:flex; align-items:center; justify-content:center; }
-  .tybar { display:flex; align-items:center; gap:9px; padding:4px 0; font-size:11px; }
-  .tybar .k { width:88px; flex-shrink:0; color:var(--muted); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .tybar .track { flex:1; height:15px; background:#0d3a52; border-radius:4px; overflow:hidden; }
-  .tybar .fill { height:100%; border-radius:4px; }
-  .tybar .v { width:80px; text-align:right; flex-shrink:0; }
-  .distbars { display:flex; align-items:flex-end; gap:12px; padding:4px 8px 0; }
-  .distbars .col { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; justify-content:flex-end; }
-  .distbars .bar { width:100%; max-width:46px; border-radius:5px 5px 0 0; }
-  .distbars .cnt { font-size:10px; color:var(--muted); font-weight:700; text-align:center; }
-  .distbars .lbx { font-size:9.5px; color:var(--dim); text-align:center; }
+  .hicon { width:30px; height:30px; border-radius:9px; background:rgba(56,189,248,.1); border:1px solid rgba(56,189,248,.3); display:inline-flex; align-items:center; justify-content:center; margin-right:6px; vertical-align:middle; }
+  .hicon.g { background:rgba(52,211,153,.1); border-color:rgba(52,211,153,.3); }
+  .hii { color:var(--dim); font-size:13px; margin-left:6px; }
+  .tyrow { display:flex; align-items:center; gap:12px; background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.05); border-radius:10px; padding:9px 13px; }
+  .tyrow .k { width:78px; flex-shrink:0; font-size:12px; color:var(--text); font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tyrow .track { flex:1; height:16px; background:#0b2432; border-radius:8px; overflow:hidden; }
+  .tyrow .fill { height:100%; border-radius:8px; background:linear-gradient(90deg,#22d3ee,#2563eb); }
+  .tyrow .v { width:96px; text-align:right; flex-shrink:0; font-size:12px; white-space:nowrap; }
+  .tyrow .v b { color:#fff; font-weight:800; }
+  .tyrow .v .pc { color:#5ab0e0; font-weight:600; margin-left:4px; }
+  .impchart { position:relative; height:200px; margin:16px 0 4px; padding-left:34px; overflow:visible; }
+  .impchart .grid { position:absolute; left:34px; right:6px; top:16px; bottom:24px; }
+  .impchart .gl { position:absolute; left:0; right:0; border-top:1px dashed rgba(255,255,255,.09); }
+  .impchart .gl span { position:absolute; left:-34px; top:-7px; width:28px; text-align:right; font-size:9.5px; color:var(--dim); }
+  .impchart .cols { position:absolute; left:34px; right:6px; top:16px; bottom:24px; display:flex; align-items:flex-end; gap:16px; }
+  .impchart .col { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .impchart .col .bar { width:100%; max-width:58px; border-radius:6px 6px 0 0; min-height:3px; }
+  .impchart .col .lab { text-align:center; margin-bottom:7px; font-size:13px; font-weight:800; line-height:1.25; white-space:nowrap; }
+  .impchart .col .lab .pc { display:block; font-size:11px; font-weight:600; }
+  .impchart .xrow { position:absolute; left:34px; right:6px; bottom:0; height:20px; display:flex; gap:16px; }
+  .impchart .xrow span { flex:1; text-align:center; font-size:11px; color:var(--dim); font-weight:600; }
+  .chartfoot { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:10px; padding:9px 13px; font-size:11px; color:var(--dim); margin-top:8px; }
   .nrow2 { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #ffffff0d; font-size:12px; font-weight:700; cursor:pointer; }
   .nrow2:last-child { border-bottom:none; }
   .nrow2:hover { color:var(--gold); }
@@ -288,28 +300,41 @@ window.openDetail = kind => {
 const typeCnt = {};
 for (const x of ITEMS) typeCnt[x.type] = (typeCnt[x.type]||0)+1;
 const tEntries = Object.entries(typeCnt).sort((a,b)=>b[1]-a[1]).slice(0,9);
-const DCOLS = ["#4cd7a5","#4aa8d8","#f0c948","#5fd6b0","#e0954a","#f0645a","#8fb4d0","#d0d04a","#b483e0"];
 const mxT = Math.max(...tEntries.map(e=>e[1]),1);
-const typeBars = tEntries.map(([k,c],i)=>{
+const barIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="20" x2="6" y2="11"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="14"/></svg>`;
+const typeBars = tEntries.map(([k,c])=>{
   const p = ITEMS.length?c/ITEMS.length*100:0;
-  return `<div class="tybar"><span class="k">${k}</span>
-    <span class="track"><span class="fill" style="width:${Math.max(2,c/mxT*100).toFixed(1)}%;background:${DCOLS[i%DCOLS.length]};"></span></span>
-    <span class="v"><b style="color:var(--text);">${ST.num(c)}건</b> <span style="color:var(--dim);">${p.toFixed(1)}%</span></span></div>`;
+  return `<div class="tyrow"><span class="k">${k}</span>
+    <span class="track"><span class="fill" style="width:${Math.max(3,c/mxT*100).toFixed(1)}%;"></span></span>
+    <span class="v"><b>${ST.num(c)}건</b><span class="pc">${p.toFixed(1)}%</span></span></div>`;
 }).join("");
-const distCard = `<div class="card" style="display:flex;flex-direction:column;"><h3>공시 유형별 분포</h3>
-  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;margin-top:4px;">${typeBars || `<div style="font-size:12px;color:var(--dim);">데이터 없음</div>`}</div></div>`;
+const distCard = `<div class="card" style="display:flex;flex-direction:column;">
+  <h3><span class="hicon">${barIcon}</span>공시 유형별 분포<span class="hii">ⓘ</span></h3>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;justify-content:center;margin-top:6px;">${typeBars || `<div style="font-size:12px;color:var(--dim);">데이터 없음</div>`}</div></div>`;
 
 const impCnt = [0,0,0,0,0];
 for (const x of ITEMS) impCnt[Math.min(5,Math.max(1,Math.round(impScore(x))))-1]++;
 const mxI = Math.max(...impCnt,1);
 const impLb = ["1 (미미)","2 (낮음)","3 (보통)","4 (높음)","5 (매우)"];
-const impBg = i => i>=3?"linear-gradient(180deg,#f0645a,#a83028)":i===2?"linear-gradient(180deg,#f0c948,#b8901e)":"linear-gradient(180deg,#4cd7a5,#1d8f6a)";
-const impCard = `<div class="card" style="display:flex;flex-direction:column;"><h3>충격도 분포</h3>
-  <div class="distbars" style="flex:1;">${impCnt.map((c,i)=>`
-    <div class="col"><span class="cnt num">${c}건<div style="font-size:9px;color:var(--dim);font-weight:600;">${ITEMS.length?(c/ITEMS.length*100).toFixed(1):0}%</div></span>
-      <div class="bar" style="height:${Math.max(4,c/mxI*118)}px;background:${impBg(i)};"></div>
-      <span class="lbx">${impLb[i]}</span></div>`).join("")}
-  </div></div>`;
+const barIconG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="20" x2="6" y2="11"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="14"/></svg>`;
+const impPct = impCnt.map(c=>ITEMS.length?c/ITEMS.length*100:0);
+const axisMax = Math.max(20, Math.ceil(Math.max(...impPct,1)/20)*20);
+const gridVals = []; for (let v=axisMax; v>=0; v-=20) gridVals.push(v);
+const impGrad = ["linear-gradient(180deg,#2dd4bf,#0f766e)","linear-gradient(180deg,#34d399,#059669)","linear-gradient(180deg,#fbbf24,#d97706)","linear-gradient(180deg,#fb923c,#ea580c)","linear-gradient(180deg,#f87171,#dc2626)"];
+const impLabCol = ["#2dd4bf","#34d399","#fbbf24","#fb923c","#f87171"];
+const maxIdx = impPct.indexOf(Math.max(...impPct));
+const impCard = `<div class="card" style="display:flex;flex-direction:column;">
+  <h3><span class="hicon g">${barIconG}</span>충격도 분포</h3>
+  <div style="font-size:11px;color:var(--muted);margin:-2px 0 0 2px;">전체 종목 대상 충격도 등급 분포 현황</div>
+  <div class="impchart">
+    <div class="grid">${gridVals.map(v=>`<div class="gl" style="top:${((axisMax-v)/axisMax*100).toFixed(1)}%;"><span>${v}%</span></div>`).join("")}</div>
+    <div class="cols">${impCnt.map((c,i)=>`<div class="col">
+      <div class="lab" style="color:${impLabCol[i]};">${ST.num(c)}건<span class="pc">${impPct[i].toFixed(1)}%</span></div>
+      <div class="bar" style="height:${(impPct[i]/axisMax*100).toFixed(1)}%;background:${impGrad[i]};"></div></div>`).join("")}</div>
+    <div class="xrow">${impLb.map((l,i)=>`<span style="${i===maxIdx?`color:${impLabCol[i]};font-weight:800;`:""}">${l}</span>`).join("")}</div>
+  </div>
+  <div class="chartfoot"><span style="color:#5ab0e0;">ⓘ</span> 기준: 전체 종목 &nbsp;|&nbsp; 단위: 종목 수, 비율(%)</div>
+</div>`;
 
 const critRows = [["5점","#f0645a","거래정지 · 상폐 · 횡령/배임 · 투자위험"],
                   ["4점","#f0c948","유상증자 · 전환사채 · 대형 공급계약 · 소송"],
