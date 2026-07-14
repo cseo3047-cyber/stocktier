@@ -59,7 +59,7 @@
 <div class="wrap">
   <span class="asof" id="asof"></span>
   <div class="page-title">🔥 출석 체크</div>
-  <div class="page-sub">매일 출석하고 연속 기록을 이어가며 다양한 보상을 받아보세요! 포인트 1P당 모의투자 리그 월 지급금이 +100만 원.</div>
+  <div class="page-sub">매일 출석하고 연속 기록을 이어가며 다양한 보상을 받아보세요!</div>
   <div id="body"><div class="card" style="text-align:center;padding:40px;color:var(--muted);">로그인 상태 확인 중...</div></div>
   <div class="footer"></div>
 </div>
@@ -170,7 +170,7 @@ function render(){
       <div class="pbar"><i class="grn" style="width:${Math.round(mc/daysIn*100)}%;"></i></div></div></div>
     <div class="sbox2"><span class="ic ico"><img alt="" src="att-coin.png" width="34" height="34"></span>
       <div><div class="lb">출석 포인트</div><div class="vl num" style="color:#f0c948;">${G.pts.toLocaleString("ko-KR")}<span style="font-size:13px;">P</span></div><div class="sub">누적 획득 포인트</div></div></div>
-    <div class="sbox2"><span class="ic" style="background:linear-gradient(135deg,#f0a818,#8a5a1d);"><svg width="21" height="23" viewBox="0 0 20 22" fill="#fff"><path d="M10 2.5l1.95 3.95 4.35.63-3.15 3.07.74 4.35L10 12.98l-3.89 2.05.74-4.35L3.7 7.6l4.35-.63z"/><circle cx="10" cy="9" r="7.2" fill="none" stroke="#fff" stroke-width="1.4" opacity=".55"/></svg></span>
+    <div class="sbox2"><span class="ic ico"><svg viewBox="0 0 40 44" width="30" height="33" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,.45));"><defs><linearGradient id="bgnext" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0b24a"/><stop offset="1" stop-color="#a86a1e"/></linearGradient></defs><path d="M20 2 L36 8 V22 C36 33 29 40 20 43 C11 40 4 33 4 22 V8 Z" fill="url(#bgnext)" stroke="#ffffff66" stroke-width="1"/><path d="M20 12.5 l2.6 5.3 5.9.6 -4.4 4 1.3 5.8 -5.4-3 -5.4 3 1.3-5.8 -4.4-4 5.9-.6z" fill="#fff" opacity=".92"/></svg></span>
       <div style="flex:1;"><div class="lb">다음 배지까지</div><div class="vl num">${toNext}<span style="font-size:13px;color:var(--muted);">일 남음</span></div>
       <div class="pbar"><i style="width:${ringPct}%;"></i></div><div class="sub" style="text-align:right;">${Math.min(G.streak,next[0])} / ${next[0]}일</div></div></div>
   </div>
@@ -190,7 +190,6 @@ function render(){
         <div class="card"><h3>출석 혜택 안내</h3>
           <div class="benrow"><span class="bic">🔥</span><div style="font-size:11.5px;color:var(--muted);line-height:1.7;"><b style="color:var(--text);">연속 출석 보너스</b><br>기본 10P + 연속 하루당 +1P (최대 +20P)</div></div>
           <div class="benrow"><span class="bic">📅</span><div style="font-size:11.5px;color:var(--muted);line-height:1.7;"><b style="color:var(--text);">월간 보너스</b><br>한 달 10일 출석 시 +30P · 20일 출석 시 +50P</div></div>
-          <div class="benrow"><span class="bic">💰</span><div style="font-size:11.5px;color:var(--muted);line-height:1.7;"><b style="color:var(--text);">포인트 → 투자금 환산</b><br>1P당 모의투자 리그 월 지급금 +100만 원 자동 반영</div></div>
         </div>
       </div>
     </div>
@@ -208,7 +207,7 @@ function render(){
       <div class="card"><h3>🏆 스트릭 랭킹</h3><div id="ranks">불러오는 중...</div></div>
       <div class="card"><h3>오늘의 출석 보상</h3>
         <div style="display:flex;align-items:center;gap:14px;padding:6px 0;">
-          <span class="ic coin" style="width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#5c3300;background:radial-gradient(circle at 35% 30%,#ffd95e,#c9611d);">P</span>
+          <span class="ic ico" style="width:46px;height:46px;"><img alt="" src="att-coin.png" width="34" height="34"></span>
           <div style="flex:1;"><b class="num" style="font-size:22px;color:#f0c948;">${NEWATT?GAINED:0}P</b>
             <div style="font-size:10.5px;color:var(--dim);">출석 포인트${GBONUS?` · ${GBONUS}`:""}</div></div>
           <span style="width:62px;height:62px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;font-weight:900;color:#5c3300;line-height:1.25;background:radial-gradient(circle at 40% 34%,#ffe98a,#e0a020);box-shadow:0 0 14px #f0c94877, inset 0 0 0 2px #ffffff55;">획득<br>완료</span>
