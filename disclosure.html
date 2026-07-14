@@ -6,8 +6,8 @@
 <title>Stocktier — 공시 충격도</title>
 <link rel="stylesheet" href="style.css">
 <style>
-  .wrap { max-width:1500px; }
-  .layout { display:grid; grid-template-columns:1fr 320px; gap:14px; align-items:stretch; }
+  .wrap { max-width:1440px; }
+  .layout { display:grid; grid-template-columns:1fr 340px; gap:14px; align-items:start; }
   @media (max-width:1150px){ .layout { grid-template-columns:1fr; } }
   .cards5 { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:11px; margin-bottom:14px; }
   @media (max-width:1000px){ .cards5 { grid-template-columns:repeat(2,minmax(0,1fr)); } }
@@ -19,48 +19,54 @@
   .scard .vl small { font-size:12px; color:var(--dim); font-weight:600; }
   .scard .sub { font-size:10px; color:var(--dim); margin-top:3px; white-space:nowrap; }
   .scard svg.mini { flex-shrink:0; }
-  .fbar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:11px; align-items:center; }
-  .fchip { font-size:11.5px; padding:5px 12px; border-radius:8px; border:1px solid var(--border); color:var(--muted); cursor:pointer; font-weight:700; }
+  .frow { display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+  .fbar { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .fchip { font-size:11.5px; padding:6px 13px; border-radius:8px; border:1px solid var(--border); color:var(--muted); cursor:pointer; font-weight:700; transition:border-color .15s,color .15s; }
+  .fchip:hover { border-color:var(--gold-dim); color:var(--text); }
   .fchip.on { background:#13322a; color:#4cd7a5; border-color:#2e5c47; }
-  .fbar select { background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:7px; padding:5px 8px; font-size:11.5px; outline:none; }
+  .selbar { display:flex; gap:7px; align-items:center; flex-shrink:0; }
+  .selbar select { background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:7px; padding:6px 9px; font-size:11.5px; outline:none; }
+  .xbtn { background:var(--panel2); border:1px solid var(--border); color:var(--muted); border-radius:7px; padding:6px 13px; font-size:11.5px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:border-color .15s,color .15s; }
+  .xbtn:hover { border-color:var(--gold-dim); color:var(--gold); }
   .stbl { width:100%; border-collapse:collapse; font-size:12px; }
-  .stbl th { text-align:center; color:var(--dim); font-size:10.5px; font-weight:700; padding:7px 4px; border-bottom:1px solid var(--border); white-space:nowrap; }
-  .stbl td { padding:8.5px 4px; border-bottom:1px solid #ffffff0d; text-align:center; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .stbl th { text-align:center; color:var(--dim); font-size:10.5px; font-weight:700; padding:8px 4px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  .stbl td { padding:9px 4px; border-bottom:1px solid #ffffff0d; text-align:center; font-variant-numeric:tabular-nums; white-space:nowrap; }
   .stbl tr:hover td { background:var(--panel2); }
-  .stbl td.nm { text-align:left; font-weight:700; max-width:120px; overflow:hidden; text-overflow:ellipsis; }
-  .stbl td.tt { text-align:left; max-width:280px; overflow:hidden; text-overflow:ellipsis; }
+  .stbl td.rk { font-weight:800; color:var(--muted); width:34px; }
+  .stbl td.nm { text-align:left; font-weight:700; max-width:150px; overflow:hidden; text-overflow:ellipsis; }
+  .stbl td.tt { text-align:left; max-width:300px; overflow:hidden; text-overflow:ellipsis; }
   .stbl td.tt a:hover { color:var(--gold); }
   .tchg { font-size:10px; font-weight:800; border-radius:5px; padding:1.5px 6px; }
-  .impn { display:inline-flex; min-width:30px; justify-content:center; border-radius:6px; padding:2.5px 7px; font-size:11.5px; font-weight:800; color:#10231c; }
-  .vbadge { display:inline-flex; padding:2px 9px; border-radius:7px; font-size:10px; font-weight:800; }
+  .impn { display:inline-flex; min-width:34px; justify-content:center; border-radius:6px; padding:3px 8px; font-size:11.5px; font-weight:800; color:#10231c; }
+  .vbadge { display:inline-flex; padding:2.5px 10px; border-radius:7px; font-size:10px; font-weight:800; }
   .t-vgood { background:#0f5a3d; color:#8ff0c8; } .t-good { background:#13322a; color:#4cd7a5; }
   .t-neu { background:#22303c; color:#9db9d4; } .t-bad { background:#3a1a22; color:#f0708a; } .t-vbad { background:#5a1512; color:#ffb3ad; }
   .morebtn { display:block; margin:12px auto 0; background:var(--panel2); border:1px solid var(--border); color:var(--muted); border-radius:9px; padding:8px 26px; font-size:12px; font-weight:800; cursor:pointer; }
   .morebtn:hover { color:var(--gold); border-color:var(--gold-dim); }
-  .row3b { display:grid; grid-template-columns:1.15fr 1fr 1.15fr; gap:14px; margin-top:14px; }
+  .row3b { display:grid; grid-template-columns:1.1fr 1fr 1.1fr; gap:14px; margin-top:14px; }
   @media (max-width:1000px){ .row3b { grid-template-columns:1fr; } }
-  .alrow { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); font-weight:600; padding:7.5px 0; border-bottom:1px solid #ffffff0d; line-height:1.5; }
+  .alrow { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); font-weight:600; padding:8px 0; border-bottom:1px solid #ffffff0d; line-height:1.5; }
   .alrow:last-child { border-bottom:none; }
   .alrow .tx { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .bullets2 { font-size:12px; color:var(--muted); line-height:1.85; }
-  .bullets2 li { list-style:none; padding-left:21px; position:relative; margin-bottom:7px; }
-  .bullets2 li:before { content:"✓"; position:absolute; left:0; top:2px; width:14px; height:14px; border-radius:50%; background:#13322a; color:#4cd7a5; font-size:9px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .bullets2 { font-size:12px; color:var(--muted); line-height:1.85; margin:0; padding:0; }
+  .bullets2 li { list-style:none; padding-left:21px; position:relative; margin-bottom:9px; }
+  .bullets2 li:before { content:"✓"; position:absolute; left:0; top:1px; width:15px; height:15px; border-radius:50%; background:#13322a; color:#4cd7a5; font-size:9px; font-weight:800; display:flex; align-items:center; justify-content:center; }
   .dwrap { display:flex; gap:14px; align-items:center; }
-  .donut { width:116px; height:116px; border-radius:50%; position:relative; flex-shrink:0; }
-  .donut .hole { position:absolute; inset:27px; background:var(--panel); border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .donut { width:120px; height:120px; border-radius:50%; position:relative; flex-shrink:0; }
+  .donut .hole { position:absolute; inset:28px; background:var(--panel); border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; }
   .donut .hole b { font-size:13px; }
   .donut .hole small { font-size:9px; color:var(--dim); }
   .dlegend { flex:1; min-width:0; font-size:11px; }
-  .dlegend .r { display:flex; align-items:center; gap:6px; padding:2px 0; color:var(--muted); }
+  .dlegend .r { display:flex; align-items:center; gap:6px; padding:2.5px 0; color:var(--muted); }
   .dlegend .dot { width:8px; height:8px; border-radius:3px; flex-shrink:0; }
   .dlegend .lb { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .dlegend b { color:var(--text); font-variant-numeric:tabular-nums; }
-  .distbars { display:flex; align-items:flex-end; gap:10px; height:110px; padding:4px 6px 0; }
-  .distbars .col { flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; }
-  .distbars .bar { width:100%; border-radius:5px 5px 0 0; background:linear-gradient(180deg,#4cd7a5,#0f7a56); }
+  .distbars { display:flex; align-items:flex-end; gap:12px; height:150px; padding:4px 8px 0; }
+  .distbars .col { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; justify-content:flex-end; height:100%; }
+  .distbars .bar { width:100%; max-width:44px; border-radius:5px 5px 0 0; background:linear-gradient(180deg,#4cd7a5,#0f7a56); }
   .distbars .cnt { font-size:10px; color:var(--muted); font-weight:700; }
-  .distbars .lbx { font-size:9.5px; color:var(--dim); }
-  .nrow2 { display:flex; align-items:center; gap:8px; padding:7.5px 0; border-bottom:1px solid #ffffff0d; font-size:12px; font-weight:700; cursor:pointer; }
+  .distbars .lbx { font-size:9.5px; color:var(--dim); text-align:center; }
+  .nrow2 { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #ffffff0d; font-size:12px; font-weight:700; cursor:pointer; }
   .nrow2:last-child { border-bottom:none; }
   .nrow2:hover { color:var(--gold); }
   .nrow2 .rank { width:18px; height:18px; border-radius:5px; background:#13322a; color:#4cd7a5; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -73,7 +79,7 @@
 <div class="wrap">
   <span class="asof" id="asof"></span>
   <div class="page-title">공시 충격도</div>
-  <div class="page-sub">주요 공시를 충격도와 영향도로 분석합니다. (오픈DART 공시 기준)</div>
+  <div class="page-sub">주요 공시를 충격도와 영향도로 실시간 분석합니다. (오픈DART 공시 기준)</div>
   <div id="body"></div>
   <div class="footer"></div>
 </div>
@@ -96,7 +102,7 @@ if (STORE) for (const k of Object.keys(STORE)) if (STORE[k] && STORE[k].length) 
 if (STOREU) for (const k of Object.keys(STOREU)) if (STOREU[k] && STOREU[k].length) dset.add(k);
 const DATES = dset.size ? [...dset].sort().reverse()
                         : (FALLBACK.length ? [(MK.dart && MK.dart.date) || ""] : []);
-let SELD = dset.size ? "all" : (DATES[0] || "");
+let SELD = DATES[0] || "";   // 기본: 오늘(최신 접수일)
 
 if (!DATES.length) {
   box.innerHTML = `<div class="card" style="text-align:center;padding:56px;">
@@ -108,7 +114,6 @@ function renderAll() {
 const DDATE = SELD==="all" ? (DATES[0] || "") : SELD;
 
 // 항목: [기업명, 종목코드, 유형, 제목, 충격도(1~5), 호악재(-2~2), 접수번호, 시장(Y/K)]
-// 주가 반응: 당일 등락률 (data.js 코드 매칭)
 const codeMap = {};
 for (const k of Object.keys(ST.KR)) codeMap[ST.KR[k][0]] = k;
 const mapRow = r => {
@@ -124,32 +129,40 @@ const mapRow = r => {
 const ALLD = [];
 if (dset.size) {
   for (const dk of DATES) {
-    for (const r of ((STORE && STORE[dk]) || [])) {
-      const o = mapRow(r); o.date = dk;
-      if (dk !== DATES[0]) o.chg = null;
-      ALLD.push(o);
-    }
-    for (const r of ((STOREU && STOREU[dk]) || [])) {
-      const o = mapRow(r); o.date = dk;
-      if (dk !== DATES[0]) o.chg = null;
-      ALLD.push(o);
-    }
+    for (const r of ((STORE && STORE[dk]) || [])) { const o = mapRow(r); o.date = dk; if (dk !== DATES[0]) o.chg = null; ALLD.push(o); }
+    for (const r of ((STOREU && STOREU[dk]) || [])) { const o = mapRow(r); o.date = dk; if (dk !== DATES[0]) o.chg = null; ALLD.push(o); }
   }
 } else {
   for (const r of FALLBACK) { const o = mapRow(r); o.date = DDATE; ALLD.push(o); }
 }
 const ITEMS = SELD==="all" ? ALLD : ALLD.filter(x=>x.date===SELD);
+
 const toneLb = t => t>=2?["매우 호재","t-vgood"]:t===1?["호재","t-good"]:t===0?["중립","t-neu"]:t===-1?["악재","t-bad"]:["매우 악재","t-vbad"];
-const impCol = v => v>=5?"#f0645a":v>=4?"#e0a63e":v>=3?"#f0c948":"#8fd6b8";
+// 충격도 = 공시 유형 심각도(imp) + 당일 주가 반응 강도 → 1~5 (반응 데이터 없으면 유형 심각도)
+const impScore = x => {
+  if (x.chg == null) return x.imp;
+  const m = Math.min(1, Math.abs(x.chg)/12);
+  return Math.max(1, Math.min(5, x.imp - 0.5 + m));
+};
+const impCol = v => v>=4.5?"#f0645a":v>=3.5?"#e0a63e":v>=2.5?"#f0c948":"#8fd6b8";
 const dartUrl = no => "https://dart.fss.or.kr/dsaf001/main.do?rcpNo="+no;
 const logo = x => {
   const usFx = x.us ? (ST.US[x.code] ? (ST.US[x.code][1]==="NASDAQ"?".O":ST.US[x.code][1]==="NYSE"?".N":".A") : ".O") : "";
   const nv = `https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock${x.code}${usFx}.svg`;
   const ts = x.us ? nv : "https://thumb.tossinvest.com/image/resized/96x0/" + encodeURIComponent("https://static.toss.im/png-icons/securities/icn-sec-fill-"+x.code+".png");
-  return `<img src="${ts}" style="width:18px;height:18px;border-radius:50%;background:#fff;flex-shrink:0;vertical-align:-4px;margin-right:5px;" loading="lazy"
+  return `<img data-nm="${String(x.corp||"").replace(/"/g,"")}" src="${ts}" style="width:18px;height:18px;border-radius:50%;background:#fff;flex-shrink:0;vertical-align:-4px;margin-right:5px;" loading="lazy"
     onerror="if(!this.dataset.f){this.dataset.f=1;this.src='${nv}';}else{this.style.visibility='hidden';}">`;
 };
 const linkOf = x => x.us ? x.no : dartUrl(x.no);
+
+// ── 카운트/평균 헬퍼 (전일 대비 증감용)
+const stat = arr => { const g=arr.filter(x=>x.tone>0).length, b=arr.filter(x=>x.tone<0).length;
+  return { tot:arr.length, g, b, n:arr.length-g-b, avg: arr.length?arr.reduce((s,x)=>s+impScore(x),0)/arr.length:0 }; };
+const cur = stat(ITEMS);
+const prevDate = (SELD!=="all") ? DATES[DATES.indexOf(SELD)+1] : null;
+const prv = stat(prevDate ? ALLD.filter(x=>x.date===prevDate) : []);
+const hasPrev = !!prevDate;
+const dlt = d => hasPrev ? `전일 대비 ${d>=0?"+":""}${d}건` : "";
 
 // ── 상단 카드 5개
 const docIcon = `<svg width="23" height="24" viewBox="0 0 22 24" fill="none" stroke="#4cd7a5" stroke-width="1.8" stroke-linecap="round"><path d="M4 2h9l5 5v15H4z"/><path d="M13 2v5h5"/><line x1="7.5" y1="12" x2="14.5" y2="12"/><line x1="7.5" y1="16" x2="14.5" y2="16"/></svg>`;
@@ -157,92 +170,103 @@ const upThumb = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" str
 const dnThumb = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f0645a" stroke-width="1.8" stroke-linejoin="round"><path d="M17 14V3h3.5v11z"/><path d="M17 13l-4 8a2.2 2.2 0 0 1-2.5-2.2L11 15H5a2 2 0 0 1-2-2.4l1.5-7.2A2.5 2.5 0 0 1 7 3h10z"/></svg>`;
 const neuIcon = `<svg width="23" height="24" viewBox="0 0 22 24" fill="none" stroke="#9db9d4" stroke-width="1.8" stroke-linecap="round"><path d="M4 2h9l5 5v15H4z"/><path d="M13 2v5h5"/><line x1="7.5" y1="13.5" x2="14.5" y2="13.5"/></svg>`;
 const boltIcon = `<svg width="22" height="24" viewBox="0 0 22 24"><path d="M12 1L4 13.5h5.5L9 23l8.5-12.5H12z" fill="none" stroke="#f0c948" stroke-width="1.8" stroke-linejoin="round"/></svg>`;
-const miniLine = (id,c1,c2,seed) => { const pts=[]; let v=13;
-  for (let i=0;i<12;i++){ v=Math.max(5,Math.min(28,v+((seed>>(i%9))%7)-2.6)); pts.push(`${(i*6).toFixed(1)},${(34-v).toFixed(1)}`); }
-  return `<svg class="mini" width="72" height="34" viewBox="0 0 72 34"><defs>
+// 최근 며칠 일별 건수 미니 막대 (실데이터 기반)
+const dayCounts = fn => DATES.slice(0,10).reverse().map(dk => fn(ALLD.filter(x=>x.date===dk)));
+const miniBars = (id,c1,c2,vals) => { const mx=Math.max(...vals,1); let b="";
+  const n=vals.length, w=Math.max(4,Math.min(8,Math.floor(70/n)-2));
+  vals.forEach((v,i)=>{ const h=Math.max(2,Math.round(v/mx*28)); b+=`<rect x="${i*(70/n)}" y="${32-h}" width="${w}" height="${h}" rx="1.5" fill="url(#${id})"/>`; });
+  return `<svg class="mini" width="70" height="34" viewBox="0 0 74 34"><defs><linearGradient id="${id}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>${b}</svg>`; };
+const miniLine = (id,c1,c2,vals) => { const mx=Math.max(...vals,0.1), mn=Math.min(...vals,0), rg=(mx-mn)||1, n=vals.length;
+  const pts=vals.map((v,i)=>`${(i*(70/(n-1||1))).toFixed(1)},${(31-(v-mn)/rg*26).toFixed(1)}`);
+  return `<svg class="mini" width="70" height="34" viewBox="0 0 72 34"><defs>
     <linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>
     <linearGradient id="${id}f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c2}" stop-opacity="0.35"/><stop offset="1" stop-color="${c2}" stop-opacity="0"/></linearGradient></defs>
-    <polygon points="0,34 ${pts.join(" ")} 72,34" fill="url(#${id}f)"/>
+    <polygon points="0,34 ${pts.join(" ")} 70,34" fill="url(#${id}f)"/>
     <polyline points="${pts.join(" ")}" fill="none" stroke="url(#${id})" stroke-width="2"/></svg>`; };
-const miniBars = (id,c1,c2,seed) => { let b="";
-  for (let i=0;i<7;i++){ const h=7+((seed*(i+3))%15); b+=`<rect x="${i*9.5}" y="${34-h}" width="6.5" height="${h}" rx="2" fill="url(#${id})"/>`; }
-  return `<svg class="mini" width="70" height="34" viewBox="0 0 70 34"><defs><linearGradient id="${id}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>${b}</svg>`; };
-
-const goodN = ITEMS.filter(x=>x.tone>0).length;
-const badN = ITEMS.filter(x=>x.tone<0).length;
-const neuN = ITEMS.length - goodN - badN;
-const avgImp = (ITEMS.reduce((a,x)=>a+x.imp,0)/ITEMS.length).toFixed(1);
-const dlbl = SELD==="all" ? `최근 ${DATES.length}일 누적` : (DDATE ? `${DDATE.slice(4,6)}/${DDATE.slice(6,8)} 접수 기준` : "");
+const allLbl = SELD==="all" ? `최근 ${DATES.length}일 누적` : (DDATE ? `${DDATE.slice(4,6)}/${DDATE.slice(6,8)} 접수 기준` : "");
 const cards = `
 <div class="cards5">
-  <div class="scard"><span class="ic">${docIcon}</span><div class="l"><div class="lb">${SELD==="all"?"최근 30일 공시":"당일 공시"}</div><div class="vl num">${ST.num(ITEMS.length)}<small> 건</small></div><div class="sub">${dlbl}</div></div>${miniLine("dg1","#1d9e75","#4cd7a5",ITEMS.length%89+9)}</div>
-  <div class="scard"><span class="ic">${upThumb}</span><div class="l"><div class="lb">호재 공시</div><div class="vl num up">${goodN}<small> 건</small></div><div class="sub">공급계약 · 자사주 등</div></div>${miniBars("dg2","#0f7a56","#4cd7a5",goodN%41+13)}</div>
-  <div class="scard"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${dnThumb}</span><div class="l"><div class="lb">악재 공시</div><div class="vl num down">${badN}<small> 건</small></div><div class="sub">증자 · 소송 등</div></div>${miniBars("dg3","#7a2822","#f0645a",badN%37+7)}</div>
-  <div class="scard"><span class="ic" style="background:#9db9d41a;border-color:#9db9d444;">${neuIcon}</span><div class="l"><div class="lb">중립 공시</div><div class="vl num">${neuN}<small> 건</small></div><div class="sub">실적 · 지배구조 등</div></div>${miniBars("dg4","#3a4a5a","#9db9d4",neuN%31+11)}</div>
-  <div class="scard"><span class="ic" style="background:#f0c9481a;border-color:#c9a83255;">${boltIcon}</span><div class="l"><div class="lb">시장 영향도(평균)</div><div class="vl num">${avgImp}<small> / 5</small></div><div class="sub">충격도 평균</div></div>${miniLine("dg5","#8a6f1e","#f0c948",Math.round(avgImp*17)+5)}</div>
+  <div class="scard"><span class="ic">${docIcon}</span><div class="l"><div class="lb">${SELD==="all"?"최근 30일 공시":"오늘 전체 공시"}</div><div class="vl num">${ST.num(cur.tot)}<small> 건</small></div><div class="sub">${SELD==="all"?allLbl:(hasPrev?dlt(cur.tot-prv.tot):allLbl)}</div></div>${miniBars("dg1","#177052","#4cd7a5",dayCounts(a=>a.length))}</div>
+  <div class="scard"><span class="ic">${upThumb}</span><div class="l"><div class="lb">호재 공시</div><div class="vl num up">${cur.g}<small> 건</small></div><div class="sub">${hasPrev?dlt(cur.g-prv.g):"공급계약 · 자사주 등"}</div></div>${miniBars("dg2","#0f7a56","#4cd7a5",dayCounts(a=>a.filter(x=>x.tone>0).length))}</div>
+  <div class="scard"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${dnThumb}</span><div class="l"><div class="lb">악재 공시</div><div class="vl num down">${cur.b}<small> 건</small></div><div class="sub">${hasPrev?dlt(cur.b-prv.b):"증자 · 소송 등"}</div></div>${miniBars("dg3","#7a2822","#f0645a",dayCounts(a=>a.filter(x=>x.tone<0).length))}</div>
+  <div class="scard"><span class="ic" style="background:#9db9d41a;border-color:#9db9d444;">${neuIcon}</span><div class="l"><div class="lb">중립 공시</div><div class="vl num">${cur.n}<small> 건</small></div><div class="sub">${hasPrev?dlt(cur.n-prv.n):"실적 · 지배구조 등"}</div></div>${miniBars("dg4","#3a4a5a","#9db9d4",dayCounts(a=>a.filter(x=>x.tone===0).length))}</div>
+  <div class="scard"><span class="ic" style="background:#f0c9481a;border-color:#c9a83255;">${boltIcon}</span><div class="l"><div class="lb">시장 영향도(평균)</div><div class="vl num">${cur.avg.toFixed(1)}<small> / 5</small></div><div class="sub">${hasPrev?`전일 ${prv.avg.toFixed(1)}`:"충격도 평균"}</div></div>${miniLine("dg5","#8a6f1e","#f0c948",dayCounts(a=>a.length?a.reduce((s,x)=>s+impScore(x),0)/a.length:0))}</div>
 </div>`;
 
-// ── 충격도 TOP 테이블
+// ── 필터 상태
 let CAT = "all", SORT = "imp", MKT = "all", SHOW = 10, Q = "";
 const TYPES = ["유상증자","전환사채","공급계약","최대주주 변경","소송","실적·영업","감사의견","증권 발행","거래정지","투자주의·경고","실적 보고","주요 사건","지분 공시"];
 function pool(){
-  // 검색어는 30일 전체에서 찾되, 유형·시장 필터와 함께 적용
-  let p = Q ? ALLD.filter(x => x.corp.includes(Q) || x.code.includes(Q) || x.title.includes(Q))
-            : ITEMS.slice();
+  let p = Q ? ALLD.filter(x => x.corp.includes(Q) || x.code.includes(Q) || x.title.includes(Q)) : ITEMS.slice();
   p = p.filter(x => CAT==="all" || x.type===CAT || (CAT==="기타" && !TYPES.includes(x.type)));
   if (MKT!=="all") p = p.filter(x=>x.mkt===MKT);
   p = p.slice();
-  if (SORT==="imp") p.sort((a,b)=>b.imp-a.imp || Math.abs(b.chg||0)-Math.abs(a.chg||0));
+  if (SORT==="imp") p.sort((a,b)=>impScore(b)-impScore(a) || Math.abs(b.chg||0)-Math.abs(a.chg||0));
   else if (SORT==="chg") p.sort((a,b)=>Math.abs(b.chg||0)-Math.abs(a.chg||0));
   else if (SORT==="time") p.sort((a,b)=>((b.date||"")+b.no).localeCompare((a.date||"")+a.no));
   return p;
 }
-const tblCard = `
-<div class="card"><h3>최근 30일 공시
-  <span style="margin-left:auto;position:relative;flex-shrink:0;display:inline-flex;">
-    <input id="dscq" placeholder="기업명 · 코드 · 제목 검색" autocomplete="off"
-      style="width:250px;padding:8px 32px 8px 12px;font-size:12px;background:var(--panel2);border:1.5px solid var(--border);border-radius:9px;color:var(--text);outline:none;font-weight:500;">
-    <span class="mag">⌕</span></span></h3>
-  <div class="fbar" id="catbar" style="margin-bottom:6px;"></div>
-  <div class="fbar" id="selbar" style="justify-content:flex-end;"></div>
-  <table class="stbl"><thead><tr><th>공시일</th><th>종목명</th><th>공시 유형</th><th>공시 제목</th><th>충격도 (1~5)</th><th>영향도</th><th>주가 반응(당일)</th></tr></thead>
-  <tbody id="tbody"></tbody></table>
-  <button class="morebtn" id="morebtn">더보기 ▾</button>
+
+// ── 전체폭 필터 바 (칩 + 드롭다운 + 엑셀)
+const filterRow = `<div class="frow">
+  <div id="catbar" class="fbar" style="flex:1;"></div>
+  <div id="selbar" class="selbar"></div>
 </div>`;
 function drawBar(){
   document.getElementById("catbar").innerHTML =
     [["all","전체"]].concat(TYPES.map(t=>[t,t])).concat([["기타","기타"]]).map(([k,t])=>
       `<span class="fchip ${CAT===k?"on":""}" onclick="setCat('${k}')">${t}</span>`).join("");
   document.getElementById("selbar").innerHTML =
-    `<span style="display:flex;gap:7px;align-items:center;font-size:11px;color:var(--dim);">
-      <select onchange="setDate(this.value)">
-        <option value="all" ${SELD==="all"?"selected":""}>전체 (${DATES.length}일)</option>
-        ${DATES.map(d=>`<option value="${d}" ${d===SELD?"selected":""}>${d.slice(4,6)}/${d.slice(6,8)}</option>`).join("")}
-      </select>
-      <select onchange="setMkt(this.value)">
-        <option value="all" ${MKT==="all"?"selected":""}>전체 시장</option>
-        <option value="KOSPI" ${MKT==="KOSPI"?"selected":""}>코스피</option>
-        <option value="KOSDAQ" ${MKT==="KOSDAQ"?"selected":""}>코스닥</option>
-        <option value="미국" ${MKT==="미국"?"selected":""}>미국</option></select>
-      <select onchange="setSort(this.value)">
-        <option value="imp" ${SORT==="imp"?"selected":""}>충격도 높은 순</option>
-        <option value="chg" ${SORT==="chg"?"selected":""}>주가 반응 순</option>
-        <option value="time" ${SORT==="time"?"selected":""}>접수 순</option></select></span>`;
+    `<select onchange="setDate(this.value)">
+       ${DATES.map((d,i)=>`<option value="${d}" ${d===SELD?"selected":""}>${i===0?"오늘 ":""}${d.slice(4,6)}/${d.slice(6,8)}</option>`).join("")}
+       <option value="all" ${SELD==="all"?"selected":""}>전체 (${DATES.length}일)</option>
+     </select>
+     <select onchange="setMkt(this.value)">
+       <option value="all" ${MKT==="all"?"selected":""}>전체 시장</option>
+       <option value="KOSPI" ${MKT==="KOSPI"?"selected":""}>코스피</option>
+       <option value="KOSDAQ" ${MKT==="KOSDAQ"?"selected":""}>코스닥</option>
+       <option value="미국" ${MKT==="미국"?"selected":""}>미국</option></select>
+     <select onchange="setSort(this.value)">
+       <option value="imp" ${SORT==="imp"?"selected":""}>충격도 높은 순</option>
+       <option value="chg" ${SORT==="chg"?"selected":""}>주가 반응 순</option>
+       <option value="time" ${SORT==="time"?"selected":""}>접수 순</option></select>
+     <button class="xbtn" onclick="dlExcel()">엑셀 다운로드 ⬇</button>`;
 }
 window.setCat = k => { CAT=k; SHOW=10; drawBar(); drawTbl(); };
 window.setSort = v => { SORT=v; SHOW=10; drawTbl(); };
 window.setMkt = v => { MKT=v; SHOW=10; drawTbl(); };
 window.setDate = v => { SELD=v; renderAll(); };
+window.dlExcel = () => {
+  const p = pool();
+  const head = ["순위","종목명","코드","공시유형","공시제목","충격도","영향도","주가반응(%)","시장","공시일"];
+  const rows = p.map((x,i)=>[i+1,x.corp,x.code,x.type,x.title,impScore(x).toFixed(1),toneLb(x.tone)[0],x.chg!=null?x.chg:"",x.mkt,x.date||""]);
+  const csv = "﻿" + [head,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
+  a.download = `공시충격도_${SELD==="all"?"전체":DDATE}.csv`; a.click();
+};
+
+const tblCard = `
+<div class="card"><h3>${SELD==="all"?"공시 충격도 목록":"오늘의 공시 충격도 TOP 10"}
+  <span style="margin-left:auto;position:relative;flex-shrink:0;display:inline-flex;">
+    <input id="dscq" placeholder="기업명 · 코드 · 제목 검색" autocomplete="off"
+      style="width:230px;padding:8px 32px 8px 12px;font-size:12px;background:var(--panel2);border:1.5px solid var(--border);border-radius:9px;color:var(--text);outline:none;font-weight:500;">
+    <span class="mag">⌕</span></span></h3>
+  <table class="stbl"><thead><tr><th>순위</th><th>종목명</th><th>공시 유형</th><th>공시 제목</th><th>충격도 (1~5)</th><th>영향도</th><th>주가 반응(당일)</th></tr></thead>
+  <tbody id="tbody"></tbody></table>
+  <button class="morebtn" id="morebtn">더보기 ▾</button>
+  <div style="font-size:10px;color:var(--dim);margin-top:9px;">* 충격도 = 공시 유형 심각도 + 당일 주가 반응을 종합한 1~5 지표 (제목 키워드 기반 자동 분류)</div>
+</div>`;
 function drawTbl(){
   const p = pool();
   document.getElementById("tbody").innerHTML = p.slice(0,SHOW).map((x,i)=>{
-    const [tl,tc] = toneLb(x.tone);
+    const [tl,tc] = toneLb(x.tone); const sc = impScore(x);
     return `<tr>
-      <td class="num" style="color:var(--muted);font-size:11px;">${x.date?x.date.slice(4,6)+"/"+x.date.slice(6,8):"-"}</td>
+      <td class="rk" style="${i<3?"color:var(--gold);":""}">${i+1}</td>
       <td class="nm" ${x.key?`style="cursor:pointer;" onclick="location.href='${ST.stockUrl(x.src,x.key)}'"`:""}>${logo(x)}${x.corp}</td>
       <td><span class="tchg" style="${x.us?"background:#13303d;color:#66c6e8;":"background:#22303c;color:#9db9d4;"}">${x.type}</span></td>
       <td class="tt"><a href="${linkOf(x)}" target="_blank" rel="noopener" title="${x.title}">${x.title}</a></td>
-      <td><span class="impn" style="background:${impCol(x.imp)};">${x.imp}.0</span></td>
+      <td><span class="impn" style="background:${impCol(sc)};">${sc.toFixed(1)}</span></td>
       <td><span class="vbadge ${tc}">${tl}</span></td>
       <td class="num ${x.chg!=null?ST.cls(x.chg):""}" style="font-weight:800;">${x.chg!=null?ST.pct2(x.chg):"-"}</td>
     </tr>`;
@@ -250,44 +274,16 @@ function drawTbl(){
   document.getElementById("morebtn").style.display = p.length > SHOW ? "block" : "none";
 }
 
-// ── 하단 3분할
-const recent = ITEMS.slice(0,5);
-const alertCard = `<div class="card"><h3>실시간 공시 알림 <span class="more" style="cursor:default;">접수 최신순</span></h3>
-  ${recent.map(x=>`<div class="alrow">
-    <span class="tchg" style="background:#22303c;color:#9db9d4;flex-shrink:0;">${x.type}</span>
-    <span class="tx"><b style="color:var(--text);">${x.corp}</b> <a href="${linkOf(x)}" target="_blank" rel="noopener" style="color:var(--muted);">${x.title}</a></span>
-    <span class="impn" style="background:${impCol(x.imp)};flex-shrink:0;">${x.imp}.0</span></div>`).join("")}</div>`;
-
-const hotDisc = ITEMS.filter(x=>x.chg!=null).sort((a,b)=>Math.abs(b.chg)-Math.abs(a.chg)).slice(0,5);
-const hotCard = `<div class="card"><h3>시장 영향도 높은 공시</h3>
-  ${hotDisc.length ? hotDisc.map((x,i)=>`<div class="nrow2" ${x.key?`onclick="location.href='${ST.stockUrl(x.src,x.key)}'"`:""}>
-    <span class="rank">${i+1}</span><span class="tx">${x.corp}</span>
-    <span class="tchg" style="background:#22303c;color:#9db9d4;">${x.type}</span>
-    <b class="num ${ST.cls(x.chg)}" style="font-size:11.5px;">${ST.pct2(x.chg)}</b>
-    <span class="impn" style="background:${impCol(x.imp)};font-size:10px;">${x.imp}.0</span></div>`).join("")
-  : `<div style="font-size:12px;color:var(--dim);">주가 매칭 가능한 공시가 없습니다</div>`}</div>`;
-
-const sums = [];
-sums.push(`${goodN>badN?"호재":"악재"} 공시가 ${Math.abs(goodN-badN)}건 더 많아 시장 분위기 ${goodN>badN?"우호적":"보수적"}`);
-const big5 = ITEMS.filter(x=>x.imp>=5);
-if (big5.length) sums.push(`충격도 5.0 공시 ${big5.length}건 — ${big5.slice(0,2).map(x=>x.corp).join("·")} 주의 필요`);
-const sup = ITEMS.filter(x=>x.type==="공급계약");
-if (sup.length) sums.push(`공급계약 공시 ${sup.length}건, 수주 모멘텀 종목 확인`);
-const cap = ITEMS.filter(x=>x.type==="유상증자"||x.type==="전환사채");
-if (cap.length) sums.push(`증자·사채 발행 ${cap.length}건 — 단기 수급 부담 가능성`);
-sums.push("공시 원문은 제목 클릭 시 DART에서 확인할 수 있습니다");
-const sumCard = `<div class="card"><h3>공시 해석 요약</h3><ul class="bullets2">${sums.slice(0,5).map(s=>`<li>${s}</li>`).join("")}</ul></div>`;
-
 // ── 사이드: 유형별 분포 + 충격도 분포
 const typeCnt = {};
 for (const x of ITEMS) typeCnt[x.type] = (typeCnt[x.type]||0)+1;
-const tEntries = Object.entries(typeCnt).sort((a,b)=>b[1]-a[1]).slice(0,8);
-const DCOLS = ["#4cd7a5","#66c6e8","#f0c948","#8fd6b8","#e0a63e","#d6564a","#9db9d4","#c9c94e"];
+const tEntries = Object.entries(typeCnt).sort((a,b)=>b[1]-a[1]).slice(0,9);
+const DCOLS = ["#4cd7a5","#66c6e8","#f0c948","#8fd6b8","#e0a63e","#d6564a","#9db9d4","#c9c94e","#b483e0"];
 let acc = 0; const segs = [];
 const legend = tEntries.map(([k,c],i)=>{
-  const p = c/ITEMS.length*100;
-  segs.push(`${DCOLS[i%8]} ${acc}% ${acc+p}%`); acc += p;
-  return `<div class="r"><span class="dot" style="background:${DCOLS[i%8]};"></span><span class="lb">${k}</span><b>${c}건</b><span style="color:var(--dim);">(${p.toFixed(1)}%)</span></div>`;
+  const p = ITEMS.length?c/ITEMS.length*100:0;
+  segs.push(`${DCOLS[i%9]} ${acc}% ${acc+p}%`); acc += p;
+  return `<div class="r"><span class="dot" style="background:${DCOLS[i%9]};"></span><span class="lb">${k}</span><b>${c}건</b><span style="color:var(--dim);">(${p.toFixed(1)}%)</span></div>`;
 }).join("");
 if (acc < 100) segs.push(`#33413a ${acc}% 100%`);
 const distCard = `<div class="card"><h3>공시 유형별 분포</h3>
@@ -297,32 +293,60 @@ const distCard = `<div class="card"><h3>공시 유형별 분포</h3>
   </div></div>`;
 
 const impCnt = [0,0,0,0,0];
-for (const x of ITEMS) impCnt[Math.min(5,Math.max(1,x.imp))-1]++;
+for (const x of ITEMS) impCnt[Math.min(5,Math.max(1,Math.round(impScore(x))))-1]++;
 const mxI = Math.max(...impCnt,1);
 const impLb = ["1 (미미)","2 (낮음)","3 (보통)","4 (높음)","5 (매우)"];
-const impCard = `<div class="card"><h3>충격도 분포</h3>
+const impCard = `<div class="card" style="flex:1;"><h3>충격도 분포</h3>
   <div class="distbars">${impCnt.map((c,i)=>`
-    <div class="col"><span class="cnt num">${c}건</span>
-      <div class="bar" style="height:${Math.max(4,c/mxI*72)}px;${i>=3?"background:linear-gradient(180deg,#f0645a,#7a2822);":i===2?"background:linear-gradient(180deg,#f0c948,#8a6f1e);":""}"></div>
+    <div class="col"><span class="cnt num">${c}건<div style="font-size:9px;color:var(--dim);font-weight:600;">${ITEMS.length?(c/ITEMS.length*100).toFixed(1):0}%</div></span>
+      <div class="bar" style="height:${Math.max(4,c/mxI*104)}px;${i>=3?"background:linear-gradient(180deg,#f0645a,#7a2822);":i===2?"background:linear-gradient(180deg,#f0c948,#8a6f1e);":""}"></div>
       <span class="lbx">${impLb[i]}</span></div>`).join("")}
   </div></div>`;
 
-const critCard = `<div class="card" style="flex:1;"><h3>충격도 산정 기준</h3>
+// ── 하단 3분할 (전체폭)
+const recent = pool().slice(0,5);
+const alertCard = `<div class="card"><h3>실시간 공시 알림 <span class="more" style="cursor:default;">접수 최신순</span></h3>
+  ${ITEMS.slice().sort((a,b)=>((b.date||"")+b.no).localeCompare((a.date||"")+a.no)).slice(0,5).map(x=>`<div class="alrow">
+    <span class="tchg" style="background:#22303c;color:#9db9d4;flex-shrink:0;">${x.type}</span>
+    <span class="tx"><b style="color:var(--text);">${x.corp}</b> <a href="${linkOf(x)}" target="_blank" rel="noopener" style="color:var(--muted);">${x.title}</a></span>
+    <span class="impn" style="background:${impCol(impScore(x))};flex-shrink:0;">${impScore(x).toFixed(1)}</span></div>`).join("")}</div>`;
+
+const hotDisc = ITEMS.filter(x=>x.chg!=null).sort((a,b)=>Math.abs(b.chg)-Math.abs(a.chg)).slice(0,5);
+const hotCard = `<div class="card"><h3>시장 영향도 높은 공시 <span class="more" style="cursor:default;">주가 반응 순</span></h3>
+  ${hotDisc.length ? hotDisc.map((x,i)=>`<div class="nrow2" ${x.key?`onclick="location.href='${ST.stockUrl(x.src,x.key)}'"`:""}>
+    <span class="rank">${i+1}</span><span class="tx">${x.corp}</span>
+    <span class="tchg" style="background:#22303c;color:#9db9d4;">${x.type}</span>
+    <b class="num ${ST.cls(x.chg)}" style="font-size:11.5px;">${ST.pct2(x.chg)}</b>
+    <span class="impn" style="background:${impCol(impScore(x))};font-size:10px;">${impScore(x).toFixed(1)}</span></div>`).join("")
+  : `<div style="font-size:12px;color:var(--dim);">주가 매칭 가능한 공시가 없습니다</div>`}</div>`;
+
+const sums = [];
+sums.push(`${cur.g>=cur.b?"호재":"악재"} 공시가 ${Math.abs(cur.g-cur.b)}건 더 많아 시장 분위기 ${cur.g>=cur.b?"우호적":"보수적"}`);
+const big5 = ITEMS.filter(x=>impScore(x)>=4.5);
+if (big5.length) sums.push(`충격도 4.5+ 공시 ${big5.length}건 — ${big5.slice(0,2).map(x=>x.corp).join("·")} 주의 필요`);
+const sup = ITEMS.filter(x=>x.type==="공급계약");
+if (sup.length) sums.push(`공급계약 공시 ${sup.length}건, 수주 모멘텀 종목 확인`);
+const capd = ITEMS.filter(x=>x.type==="유상증자"||x.type==="전환사채");
+if (capd.length) sums.push(`증자·사채 발행 ${capd.length}건 — 단기 수급 부담 가능성`);
+sums.push("공시 원문은 제목 클릭 시 DART에서 확인할 수 있습니다");
+const sumCard = `<div class="card"><h3>공시 해석 요약</h3><ul class="bullets2">${sums.slice(0,5).map(s=>`<li>${s}</li>`).join("")}</ul></div>`;
+
+const critCard = `<div class="card"><h3>충격도 산정 기준</h3>
   <div style="font-size:11.5px;color:var(--muted);line-height:2.0;">
     <div>· <b style="color:#ffb3ad;">5점</b> 거래정지 · 상폐 · 횡령/배임 · 투자위험</div>
     <div>· <b style="color:#f0a05a;">4점</b> 유상증자 · 전환사채 · 대형 공급계약 · 소송</div>
     <div>· <b style="color:#f0c948;">3점</b> 실적 · 자사주 · 최대주주 변경 · 배당</div>
     <div>· <b style="color:#8fd6b8;">2점</b> 정정 · 정기보고서 · 기타</div>
   </div>
-  <div style="font-size:10.5px;color:var(--dim);margin-top:10px;">공시 제목 키워드 기반 자동 분류이며, 실제 영향과 다를 수 있습니다.</div></div>`;
+  <div style="font-size:10.5px;color:var(--dim);margin-top:10px;">충격도 = 유형 심각도 + 당일 주가 반응 종합. 제목 키워드 기반 자동 분류이며 실제 영향과 다를 수 있습니다.</div></div>`;
 
 box.innerHTML = `
-<div class="layout">
-  <div>${cards}${tblCard}
-    <div class="row3b">${alertCard}${hotCard}${sumCard}</div>
-  </div>
-  <div style="display:flex;flex-direction:column;gap:14px;height:100%;">${distCard}${impCard}${critCard}</div>
-</div>`;
+${cards}
+${filterRow}
+${tblCard}
+<div class="row3b">${distCard}${impCard}${critCard}</div>
+<div class="row3b">${alertCard}${hotCard}${sumCard}</div>`;
+
 drawBar(); drawTbl();
 document.getElementById("dscq").addEventListener("input", e => { Q = e.target.value.trim(); SHOW = 10; drawTbl(); });
 }
