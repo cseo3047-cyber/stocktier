@@ -55,8 +55,8 @@
   .hii { color:var(--dim); font-size:13px; margin-left:6px; }
   .tyrow { display:flex; align-items:center; gap:12px; background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.05); border-radius:10px; padding:9px 13px; }
   .tyrow .k { width:78px; flex-shrink:0; font-size:12px; color:var(--text); font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .tyrow .track { flex:1; height:16px; background:#0b2432; border-radius:8px; overflow:hidden; }
-  .tyrow .fill { height:100%; border-radius:8px; background:linear-gradient(90deg,#22d3ee,#2563eb); }
+  .tyrow .track { display:block; flex:1; height:16px; background:#0a1e2a; border:1px solid rgba(56,189,248,.12); border-radius:8px; overflow:hidden; }
+  .tyrow .fill { display:block; height:100%; min-width:6px; border-radius:8px; background:linear-gradient(90deg,#2ee6c6,#38bdf8 55%,#3b82f6); box-shadow:0 0 10px rgba(56,224,214,.5); }
   .tyrow .v { width:96px; text-align:right; flex-shrink:0; font-size:12px; white-space:nowrap; }
   .tyrow .v b { color:#fff; font-weight:800; }
   .tyrow .v .pc { color:#5ab0e0; font-weight:600; margin-left:4px; }
@@ -344,9 +344,9 @@ const critCard = `<div class="card" style="display:flex;flex-direction:column;">
   <h3><span style="width:26px;height:26px;border-radius:8px;background:#13322a;border:1px solid #2e5c47;display:inline-flex;align-items:center;justify-content:center;margin-right:2px;">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4cd7a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.5h6V4"/><path d="M8.5 12l2 2 4-4.5"/></svg></span>
     충격도 산정 기준</h3>
-  <div style="flex:1;display:flex;flex-direction:column;gap:9px;justify-content:center;margin:6px 0;">
+  <div style="flex:1;display:flex;flex-direction:column;gap:14px;justify-content:space-between;margin:10px 0;">
     ${critRows.map(([sc,col,desc])=>`
-      <div style="display:flex;align-items:center;gap:14px;background:linear-gradient(90deg,${col}22,transparent 62%);border:1px solid var(--border);border-left:3px solid ${col};border-radius:11px;padding:12px 15px;">
+      <div style="flex:1;min-height:58px;display:flex;align-items:center;gap:16px;background:linear-gradient(90deg,${col}26,transparent 60%);border:1px solid var(--border);border-left:4px solid ${col};border-radius:12px;padding:16px 18px;">
         <b style="color:${col};font-size:15px;flex-shrink:0;width:32px;">${sc}</b>
         <span style="width:1px;height:22px;background:var(--border);flex-shrink:0;"></span>
         <span style="font-size:13px;color:var(--text);font-weight:600;">${desc}</span></div>`).join("")}
