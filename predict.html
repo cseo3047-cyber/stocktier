@@ -56,9 +56,9 @@
   .mchk.ok { background:#2e8f70; box-shadow:0 1px 3px rgba(0,0,0,.28); }
   .mchk.ing { border:2px solid #4a5a62; }
 
-  .wkbars { display:flex; gap:10px; align-items:flex-end; justify-content:space-around; height:90px; padding:6px 4px 0; }
-  .wkcol { display:flex; flex-direction:column; align-items:center; gap:5px; flex:1; height:100%; justify-content:flex-end; }
-  .wkbar { width:16px; border-radius:4px 4px 0 0; display:flex; flex-direction:column; overflow:hidden; }
+  .wkbars { display:flex; gap:12px; align-items:flex-end; justify-content:space-around; height:130px; padding:6px 8px 0; }
+  .wkcol { display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; height:100%; justify-content:flex-end; max-width:60px; }
+  .wkbar { width:26px; border-radius:5px 5px 0 0; display:flex; flex-direction:column; overflow:hidden; }
 
   .colL { display:flex; flex-direction:column; }
   .colR { display:flex; flex-direction:column; gap:12px; }
@@ -237,16 +237,18 @@ function render(){
         <div style="font-size:11.5px;color:var(--muted);font-weight:700;text-align:center;background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:7px;">🔥 <b style="color:#e0c064;">${G.pstreak}연속</b> 적중 중</div>
       </div>
       <div class="card"><h3>🏆 적중 랭킹 <span class="more" onclick="document.getElementById('rankall').style.display='flex'">전체 보기 &gt;</span></h3><div id="ranks">불러오는 중...</div></div>
-      <div class="card" style="flex:1;"><h3>이번 주 성과 <span class="more" style="cursor:default;"><span style="color:#57b892;">■</span> 적중 <span style="color:#c47a72;">■</span> 오답</span></h3>
+      <div class="card" style="flex:1;display:flex;flex-direction:column;"><h3>이번 주 성과 <span class="more" style="cursor:default;"><span style="color:#57b892;">■</span> 적중 <span style="color:#c47a72;">■</span> 오답</span></h3>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
         ${wdays.length ? `<div class="wkbars">
           ${wdays.map(d=>{ const b=byday[d], t=b.ok+b.no;
-            return `<div class="wkcol"><div class="wkbar" style="height:${Math.round(t/wMax*70)}px;">
+            return `<div class="wkcol"><div class="wkbar" style="height:${Math.max(24,Math.round(t/wMax*104))}px;">
               <span style="flex:${b.no};background:#a85248;"></span><span style="flex:${b.ok};background:linear-gradient(180deg,#57b892,#2e7d63);"></span></div>
-              <span style="font-size:9.5px;color:var(--dim);">${d.slice(4,6)}/${d.slice(6,8)}</span></div>`;}).join("")}
+              <span style="font-size:10px;color:var(--dim);">${d.slice(4,6)}/${d.slice(6,8)}</span></div>`;}).join("")}
         </div>
-        <div style="display:flex;justify-content:space-around;font-size:11px;font-weight:700;margin-top:8px;border-top:1px solid #ffffff0d;padding-top:8px;">
+        <div style="display:flex;justify-content:space-around;font-size:11.5px;font-weight:700;margin-top:14px;border-top:1px solid #ffffff0d;padding-top:12px;">
           <span>적중 <b style="color:#6bbf9c;">${wOk}</b></span><span>오답 <b style="color:#cf888f;">${wNo}</b></span><span>적중률 <b style="color:var(--gold);">${wOk+wNo?Math.round(wOk/(wOk+wNo)*100):0}%</b></span></div>`
-        : `<div style="font-size:11.5px;color:var(--dim);padding:8px 0;">채점 기록이 쌓이면 표시됩니다.</div>`}
+        : `<div style="font-size:11.5px;color:var(--dim);padding:8px 0;text-align:center;">채점 기록이 쌓이면 표시됩니다.</div>`}
+        </div>
       </div>
     </div>
   </div>
