@@ -19,11 +19,11 @@
   .scard .vl small { font-size:12px; color:var(--dim); font-weight:600; }
   .scard .sub { font-size:10px; color:var(--dim); margin-top:3px; white-space:nowrap; }
   .scard svg.mini { flex-shrink:0; }
-  .fbar { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .fbar { display:flex; gap:9px; row-gap:9px; flex-wrap:wrap; align-items:center; }
   .fchip { font-size:11.5px; padding:6px 13px; border-radius:8px; border:1px solid var(--border); color:var(--muted); cursor:pointer; font-weight:700; transition:border-color .15s,color .15s; }
   .fchip:hover { border-color:var(--gold-dim); color:var(--text); }
   .fchip.on { background:#13322a; color:#4cd7a5; border-color:#2e5c47; }
-  .selbar { display:flex; gap:7px; align-items:center; flex-shrink:0; }
+  .selbar { display:flex; gap:9px; align-items:center; flex-shrink:0; }
   .selbar select { background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:7px; padding:6px 9px; font-size:11.5px; outline:none; }
   .xbtn { background:var(--panel2); border:1px solid var(--border); color:var(--muted); border-radius:7px; padding:6px 13px; font-size:11.5px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:border-color .15s,color .15s; }
   .xbtn:hover { border-color:var(--gold-dim); color:var(--gold); }
@@ -77,7 +77,7 @@
 <div class="wrap">
   <span class="asof" id="asof"></span>
   <div class="page-title">공시 충격도</div>
-  <div class="page-sub">주요 공시를 충격도와 영향도로 실시간 분석합니다. (오픈DART 공시 기준)</div>
+  <div class="page-sub">주요 공시를 충격도와 영향도로 실시간 분석합니다.</div>
   <div id="body"></div>
   <div class="footer"></div>
 </div>
@@ -176,9 +176,9 @@ const allLbl = SELD==="all" ? `최근 ${DATES.length}일 누적` : (DDATE ? `${D
 const cards = `
 <div class="cards5">
   <div class="scard"><span class="ic">${docIcon}</span><div class="l"><div class="lb">${SELD==="all"?"최근 30일 공시":"오늘 전체 공시"}</div><div class="vl num">${ST.num(cur.tot)}<small> 건</small></div><div class="sub">${SELD==="all"?allLbl:(hasPrev?dlt(cur.tot-prv.tot):allLbl)}</div></div>${miniBars("dg1","#177052","#4cd7a5",dayCounts(a=>a.length))}</div>
-  <div class="scard hov" onclick="openDetail('good')"><span class="ic">${upThumb}</span><div class="l"><div class="lb">호재 공시</div><div class="vl num up">${cur.g}<small> 건</small></div><div class="sub">${hasPrev?dlt(cur.g-prv.g):"공급계약 · 자사주 등"}</div></div>${miniBars("dg2","#0f7a56","#4cd7a5",dayCounts(a=>a.filter(x=>x.tone>0).length))}</div>
-  <div class="scard hov" onclick="openDetail('bad')"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${dnThumb}</span><div class="l"><div class="lb">악재 공시</div><div class="vl num down">${cur.b}<small> 건</small></div><div class="sub">${hasPrev?dlt(cur.b-prv.b):"증자 · 소송 등"}</div></div>${miniBars("dg3","#7a2822","#f0645a",dayCounts(a=>a.filter(x=>x.tone<0).length))}</div>
-  <div class="scard hov" onclick="openDetail('neu')"><span class="ic" style="background:#9db9d41a;border-color:#9db9d444;">${neuIcon}</span><div class="l"><div class="lb">중립 공시</div><div class="vl num">${cur.n}<small> 건</small></div><div class="sub">${hasPrev?dlt(cur.n-prv.n):"실적 · 지배구조 등"}</div></div>${miniBars("dg4","#3a4a5a","#9db9d4",dayCounts(a=>a.filter(x=>x.tone===0).length))}</div>
+  <div class="scard hov" onclick="openDetail('good')"><span class="ic">${upThumb}</span><div class="l"><div class="lb">호재 공시</div><div class="vl num up">${ST.num(cur.g)}<small> 건</small></div><div class="sub">${hasPrev?dlt(cur.g-prv.g):"공급계약 · 자사주 등"}</div></div>${miniBars("dg2","#0f7a56","#4cd7a5",dayCounts(a=>a.filter(x=>x.tone>0).length))}</div>
+  <div class="scard hov" onclick="openDetail('bad')"><span class="ic" style="background:#f0645a1a;border-color:#f0645a44;">${dnThumb}</span><div class="l"><div class="lb">악재 공시</div><div class="vl num down">${ST.num(cur.b)}<small> 건</small></div><div class="sub">${hasPrev?dlt(cur.b-prv.b):"증자 · 소송 등"}</div></div>${miniBars("dg3","#7a2822","#f0645a",dayCounts(a=>a.filter(x=>x.tone<0).length))}</div>
+  <div class="scard hov" onclick="openDetail('neu')"><span class="ic" style="background:#9db9d41a;border-color:#9db9d444;">${neuIcon}</span><div class="l"><div class="lb">중립 공시</div><div class="vl num">${ST.num(cur.n)}<small> 건</small></div><div class="sub">${hasPrev?dlt(cur.n-prv.n):"실적 · 지배구조 등"}</div></div>${miniBars("dg4","#3a4a5a","#9db9d4",dayCounts(a=>a.filter(x=>x.tone===0).length))}</div>
   <div class="scard hov" onclick="openDetail('imp')"><span class="ic" style="background:#f0c9481a;border-color:#c9a83255;">${boltIcon}</span><div class="l"><div class="lb">시장 영향도(평균)</div><div class="vl num">${cur.avg.toFixed(1)}<small> / 5</small></div><div class="sub">${hasPrev?`전일 ${prv.avg.toFixed(1)}`:"충격도 평균"}</div></div>${miniLine("dg5","#8a6f1e","#f0c948",dayCounts(a=>a.length?a.reduce((s,x)=>s+impScore(x),0)/a.length:0))}</div>
 </div>`;
 
@@ -201,12 +201,11 @@ const tblCard = `
     <input id="dscq" placeholder="기업명 · 코드 · 제목 검색" autocomplete="off"
       style="width:230px;padding:8px 32px 8px 12px;font-size:12px;background:var(--panel2);border:1.5px solid var(--border);border-radius:9px;color:var(--text);outline:none;font-weight:500;">
     <span class="mag">⌕</span></span></h3>
-  <div id="catbar" class="fbar" style="margin-bottom:8px;"></div>
-  <div id="selbar" class="selbar" style="justify-content:flex-end;margin-bottom:11px;"></div>
+  <div id="catbar" class="fbar" style="margin-bottom:12px;"></div>
+  <div id="selbar" class="selbar" style="justify-content:flex-end;margin-bottom:14px;"></div>
   <table class="stbl"><thead><tr><th>공시일</th><th>종목명</th><th>공시 유형</th><th>시장</th><th>공시 제목</th><th>충격도 (1~5)</th><th>영향도</th><th>주가 반응(당일)</th></tr></thead>
   <tbody id="tbody"></tbody></table>
   <button class="morebtn" id="morebtn">더보기 ▾</button>
-  <div style="font-size:10px;color:var(--dim);margin-top:9px;">* 충격도 = 공시 유형 심각도 + 당일 주가 반응을 종합한 1~5 지표 (제목 키워드 기반 자동 분류)</div>
 </div>`;
 function drawBar(){
   document.getElementById("catbar").innerHTML =
@@ -289,13 +288,13 @@ window.openDetail = kind => {
 const typeCnt = {};
 for (const x of ITEMS) typeCnt[x.type] = (typeCnt[x.type]||0)+1;
 const tEntries = Object.entries(typeCnt).sort((a,b)=>b[1]-a[1]).slice(0,9);
-const DCOLS = ["#2f7d63","#356f8c","#a88a34","#3d8570","#8a5a2c","#8a4038","#5a6f80","#767636","#634488"];
+const DCOLS = ["#4cd7a5","#4aa8d8","#f0c948","#5fd6b0","#e0954a","#f0645a","#8fb4d0","#d0d04a","#b483e0"];
 const mxT = Math.max(...tEntries.map(e=>e[1]),1);
 const typeBars = tEntries.map(([k,c],i)=>{
   const p = ITEMS.length?c/ITEMS.length*100:0;
   return `<div class="tybar"><span class="k">${k}</span>
-    <span class="track"><span class="fill" style="width:${(c/mxT*100).toFixed(1)}%;background:${DCOLS[i%DCOLS.length]};"></span></span>
-    <span class="v"><b style="color:var(--text);">${c}건</b> <span style="color:var(--dim);">${p.toFixed(1)}%</span></span></div>`;
+    <span class="track"><span class="fill" style="width:${Math.max(2,c/mxT*100).toFixed(1)}%;background:${DCOLS[i%DCOLS.length]};"></span></span>
+    <span class="v"><b style="color:var(--text);">${ST.num(c)}건</b> <span style="color:var(--dim);">${p.toFixed(1)}%</span></span></div>`;
 }).join("");
 const distCard = `<div class="card" style="display:flex;flex-direction:column;"><h3>공시 유형별 분포</h3>
   <div style="flex:1;display:flex;flex-direction:column;justify-content:center;margin-top:4px;">${typeBars || `<div style="font-size:12px;color:var(--dim);">데이터 없음</div>`}</div></div>`;
@@ -304,7 +303,7 @@ const impCnt = [0,0,0,0,0];
 for (const x of ITEMS) impCnt[Math.min(5,Math.max(1,Math.round(impScore(x))))-1]++;
 const mxI = Math.max(...impCnt,1);
 const impLb = ["1 (미미)","2 (낮음)","3 (보통)","4 (높음)","5 (매우)"];
-const impBg = i => i>=3?"linear-gradient(180deg,#a84038,#4a1210)":i===2?"linear-gradient(180deg,#a88a34,#5a4818)":"linear-gradient(180deg,#2f7d63,#0c4636)";
+const impBg = i => i>=3?"linear-gradient(180deg,#f0645a,#a83028)":i===2?"linear-gradient(180deg,#f0c948,#b8901e)":"linear-gradient(180deg,#4cd7a5,#1d8f6a)";
 const impCard = `<div class="card" style="display:flex;flex-direction:column;"><h3>충격도 분포</h3>
   <div class="distbars" style="flex:1;">${impCnt.map((c,i)=>`
     <div class="col"><span class="cnt num">${c}건<div style="font-size:9px;color:var(--dim);font-weight:600;">${ITEMS.length?(c/ITEMS.length*100).toFixed(1):0}%</div></span>
@@ -312,19 +311,30 @@ const impCard = `<div class="card" style="display:flex;flex-direction:column;"><
       <span class="lbx">${impLb[i]}</span></div>`).join("")}
   </div></div>`;
 
-const critCard = `<div class="card" style="display:flex;flex-direction:column;"><h3>충격도 산정 기준</h3>
-  <div style="flex:1;display:flex;flex-direction:column;justify-content:space-around;font-size:12px;color:var(--muted);line-height:1.55;padding:4px 0;">
-    <div>· <b style="color:#ffb3ad;">5점</b> 거래정지 · 상폐 · 횡령/배임 · 투자위험</div>
-    <div>· <b style="color:#f0a05a;">4점</b> 유상증자 · 전환사채 · 대형 공급계약 · 소송</div>
-    <div>· <b style="color:#f0c948;">3점</b> 실적 · 자사주 · 최대주주 변경 · 배당</div>
-    <div>· <b style="color:#8fd6b8;">2점</b> 정정 · 정기보고서 · 기타</div>
-    <div style="font-size:10.5px;color:var(--dim);">충격도 = 유형 심각도 + 당일 주가 반응 종합. 제목 키워드 기반 자동 분류이며 실제 영향과 다를 수 있습니다.</div>
-  </div></div>`;
+const critRows = [["5점","#f0645a","거래정지 · 상폐 · 횡령/배임 · 투자위험"],
+                  ["4점","#f0c948","유상증자 · 전환사채 · 대형 공급계약 · 소송"],
+                  ["3점","#4cd7a5","실적 · 자사주 · 최대주주 변경 · 배당"],
+                  ["2점","#4aa8d8","정정 · 정기보고서 · 기타"]];
+const critCard = `<div class="card" style="display:flex;flex-direction:column;">
+  <h3><span style="width:26px;height:26px;border-radius:8px;background:#13322a;border:1px solid #2e5c47;display:inline-flex;align-items:center;justify-content:center;margin-right:2px;">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4cd7a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.5h6V4"/><path d="M8.5 12l2 2 4-4.5"/></svg></span>
+    충격도 산정 기준</h3>
+  <div style="flex:1;display:flex;flex-direction:column;gap:9px;justify-content:center;margin:6px 0;">
+    ${critRows.map(([sc,col,desc])=>`
+      <div style="display:flex;align-items:center;gap:14px;background:linear-gradient(90deg,${col}22,transparent 62%);border:1px solid var(--border);border-left:3px solid ${col};border-radius:11px;padding:12px 15px;">
+        <b style="color:${col};font-size:15px;flex-shrink:0;width:32px;">${sc}</b>
+        <span style="width:1px;height:22px;background:var(--border);flex-shrink:0;"></span>
+        <span style="font-size:13px;color:var(--text);font-weight:600;">${desc}</span></div>`).join("")}
+  </div>
+  <div style="display:flex;gap:11px;align-items:flex-start;background:var(--panel2);border:1px solid var(--border);border-radius:11px;padding:12px 14px;">
+    <span style="color:#66c6e8;flex-shrink:0;font-size:15px;line-height:1.3;">ⓘ</span>
+    <span style="font-size:11px;color:var(--dim);line-height:1.7;">충격도 = 공시 유형 심각도 + 당일 주가 반응을 종합한 지표. 제목 키워드 기반 자동 분류이며 실제 영향과 다를 수 있습니다.</span></div>
+</div>`;
 
 // ── 하단 3분할
 const alertCard = `<div class="card" style="display:flex;flex-direction:column;"><h3>실시간 공시 알림 <span class="more" style="cursor:default;">접수 최신순</span></h3>
   <div style="flex:1;">${ITEMS.slice().sort((a,b)=>((b.date||"")+b.no).localeCompare((a.date||"")+a.no)).slice(0,5).map(x=>`<div class="alrow">
-    <span class="tchg" style="background:#22303c;color:#9db9d4;flex-shrink:0;">${x.type}</span>
+    <span class="tchg" style="background:#22303c;color:#9db9d4;flex-shrink:0;display:inline-flex;justify-content:center;width:76px;box-sizing:border-box;">${x.type}</span>
     <span class="tx"><b style="color:var(--text);">${x.corp}</b> <a href="${linkOf(x)}" target="_blank" rel="noopener" style="color:var(--muted);">${x.title}</a></span>
     <span class="impn" style="background:${impCol(impScore(x))};flex-shrink:0;">${impScore(x).toFixed(1)}</span></div>`).join("")}</div></div>`;
 
@@ -338,13 +348,14 @@ const hotCard = `<div class="card" style="display:flex;flex-direction:column;"><
   : `<div style="font-size:12px;color:var(--dim);">주가 매칭 가능한 공시가 없습니다</div>`}</div></div>`;
 
 const sums = [];
-sums.push(`${cur.g>=cur.b?"호재":"악재"} 공시가 ${Math.abs(cur.g-cur.b)}건 더 많아 시장 분위기 ${cur.g>=cur.b?"우호적":"보수적"}`);
-const big5 = ITEMS.filter(x=>impScore(x)>=4.5);
-if (big5.length) sums.push(`충격도 4.5+ 공시 ${big5.length}건 — ${big5.slice(0,2).map(x=>x.corp).join("·")} 주의 필요`);
-const sup = ITEMS.filter(x=>x.type==="공급계약");
-if (sup.length) sums.push(`공급계약 공시 ${sup.length}건, 수주 모멘텀 종목 확인`);
-const capd = ITEMS.filter(x=>x.type==="유상증자"||x.type==="전환사채");
-if (capd.length) sums.push(`증자·사채 발행 ${capd.length}건 — 단기 수급 부담 가능성`);
+const realTypes = tEntries.filter(([k])=>k!=="기타" && k!=="주요 사건");
+if (realTypes.length) sums.push(`가장 많은 공시 유형은 <b style="color:var(--text);">${realTypes[0][0]}</b> (${ST.num(realTypes[0][1])}건)`);
+const halt = ITEMS.filter(x=>x.type==="거래정지").length;
+if (halt) sums.push(`<b style="color:#f0708a;">거래정지 관련 ${ST.num(halt)}건</b> — 상장폐지·정리매매 리스크 점검 필요`);
+if (hotDisc.length) sums.push(`주가 반응 최대: <b style="color:var(--text);">${hotDisc[0].corp}</b> (<span class="${ST.cls(hotDisc[0].chg)}">${ST.pct2(hotDisc[0].chg)}</span>)`);
+const imp5 = ITEMS.filter(x=>Math.round(impScore(x))>=5).length;
+if (imp5) sums.push(`충격도 5 공시 <b style="color:var(--text);">${ST.num(imp5)}건</b> — 단기 변동성 확대 주의`);
+sums.push(`${cur.g>=cur.b?"호재":"악재"} 우위 (호재 ${ST.num(cur.g)} · 악재 ${ST.num(cur.b)}) — 시장 심리 <b style="color:var(--text);">${cur.g>=cur.b?"우호적":"보수적"}</b>`);
 sums.push("공시 원문은 제목 클릭 시 DART에서 확인할 수 있습니다");
 const sumCard = `<div class="card" style="display:flex;flex-direction:column;"><h3>공시 해석 요약</h3>
   <ul class="bullets2" style="flex:1;display:flex;flex-direction:column;justify-content:space-around;">${sums.slice(0,5).map(s=>`<li>${s}</li>`).join("")}</ul></div>`;
