@@ -7,43 +7,63 @@
 <link rel="stylesheet" href="style.css">
 <style>
   .wrap { max-width:1220px; }
-  .layout { display:grid; grid-template-columns:1fr 320px; gap:14px; align-items:start; }
+  .layout { display:grid; grid-template-columns:1fr 320px; gap:14px; align-items:stretch; }
   @media (max-width:1000px){ .layout { grid-template-columns:1fr; } }
   .statgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:14px; }
   @media (max-width:800px){ .statgrid { grid-template-columns:1fr; } }
   .sbox2 { background:linear-gradient(135deg,#0d2e3b,#123f4b); border:1px solid var(--border); border-radius:14px; padding:14px 17px; display:flex; align-items:center; gap:13px; }
-  .sbox2 .ic { width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:23px; flex-shrink:0; }
+  .sbox2 .ic { width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   .sbox2 .lb { font-size:11.5px; color:var(--muted); font-weight:700; }
   .sbox2 .vl { font-size:21px; font-weight:800; margin-top:3px; line-height:1.2; }
   .sbox2 .sub { font-size:10.5px; color:var(--dim); margin-top:3px; }
   .pbar { height:6px; border-radius:4px; background:#0d3a52; overflow:hidden; margin-top:7px; }
   .pbar i { display:block; height:100%; border-radius:4px; background:linear-gradient(90deg,#0f7a56,#4cd7a5); }
-  .qrow { background:linear-gradient(135deg,#0d2e3b,#123f4b); border:1px solid var(--border); border-radius:14px; padding:14px 16px; margin-bottom:11px; }
-  .qhead { display:flex; align-items:center; gap:12px; }
-  .qhead img { width:42px; height:42px; border-radius:50%; background:#fff; flex-shrink:0; }
-  .pickbtn { padding:11px 22px; border-radius:11px; border:1.5px solid var(--border); background:var(--panel2); color:var(--text); font-size:13px; font-weight:800; cursor:pointer; white-space:nowrap; }
+
+  .qrow { background:linear-gradient(135deg,#0d2e3b,#123f4b); border:1px solid var(--border); border-radius:14px; padding:15px 17px; margin-bottom:12px; }
+  .qhead { display:flex; align-items:center; gap:14px; }
+  .qhead .qlogo { width:44px; height:44px; border-radius:50%; background:#fff; flex-shrink:0; }
+  .qhead .qchart { flex-shrink:0; }
+  /* 등급 배지 폭 고정 → AA·AAA 관계없이 오른다/내린다 위치 불변 */
+  .qhead .tierb { flex-shrink:0; width:46px; text-align:center; box-sizing:border-box; }
+  .picks { display:flex; gap:10px; flex-shrink:0; }
+  .pickbtn { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-width:118px; padding:14px 20px; border-radius:12px; border:1.5px solid var(--border); background:var(--panel2); color:var(--text); font-size:15px; font-weight:800; cursor:pointer; white-space:nowrap; }
+  .pickbtn .ar { font-size:19px; line-height:1; }
   .pickbtn.up:hover, .pickbtn.up.sel { background:#13322a; border-color:#4cd7a5; color:#4cd7a5; }
   .pickbtn.dn:hover, .pickbtn.dn.sel { background:#3a1a22; border-color:#f0708a; color:#f0708a; }
   .pickbtn:disabled { cursor:default; opacity:.5; }
   .pickbtn.sel:disabled { opacity:1; }
+
   .rtbl { width:100%; border-collapse:collapse; font-size:12px; }
   .rtbl th { text-align:center; color:var(--dim); font-size:10.5px; font-weight:700; padding:7px 4px; border-bottom:1px solid var(--border); white-space:nowrap; }
-  .rtbl td { padding:8px 4px; border-bottom:1px solid #ffffff0d; text-align:center; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .rtbl td { padding:9px 4px; border-bottom:1px solid #ffffff0d; text-align:center; font-variant-numeric:tabular-nums; white-space:nowrap; }
   .rtbl td.nm { text-align:left; font-weight:700; }
+  .rtbl td.nm .av { vertical-align:middle; }
   .donut2 { width:96px; height:96px; border-radius:50%; position:relative; flex-shrink:0; }
   .donut2 .hole { position:absolute; inset:13px; background:var(--panel); border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  .rkrow { display:flex; align-items:center; gap:9px; padding:8px 0; border-bottom:1px solid #ffffff0d; font-size:12.5px; font-weight:700; }
+
+  .rkrow { display:flex; align-items:center; gap:9px; padding:8px 6px; border-bottom:1px solid #ffffff0d; font-size:12.5px; font-weight:700; box-sizing:border-box; }
   .rkrow:last-child { border-bottom:none; }
-  .rkrow .rank { width:20px; height:20px; border-radius:6px; background:var(--panel2); border:1px solid var(--border); color:var(--muted); font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-  .rkrow.me { background:#3d331322; border-radius:8px; padding-left:6px; padding-right:6px; }
+  .rkrow .rank { width:22px; text-align:center; flex-shrink:0; font-size:13px; font-weight:800; color:var(--muted); }
+  .rkrow.me { background:#3d331322; border-radius:8px; }
+
   .tiprow { display:flex; gap:11px; padding:9px 0; border-bottom:1px solid #ffffff0d; align-items:flex-start; }
   .tiprow:last-child { border-bottom:none; }
   .tiprow .tic { width:32px; height:32px; border-radius:9px; background:#13322a; border:1px solid #2e5c47; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
-  .misrow { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #ffffff0d; font-size:12px; font-weight:700; color:var(--muted); }
+
+  .misrow { display:flex; align-items:center; gap:11px; padding:10px 0; border-bottom:1px solid #ffffff0d; font-size:12.5px; font-weight:700; color:var(--text); }
   .misrow:last-child { border-bottom:none; }
+  .mchk { width:20px; height:20px; border-radius:50%; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; }
+  .mchk.ok { background:#1d9e75; box-shadow:0 1px 3px rgba(0,0,0,.28); }
+  .mchk.ing { border:2px solid #4a5a62; }
+
   .wkbars { display:flex; gap:10px; align-items:flex-end; justify-content:space-around; height:90px; padding:6px 4px 0; }
   .wkcol { display:flex; flex-direction:column; align-items:center; gap:5px; flex:1; height:100%; justify-content:flex-end; }
   .wkbar { width:16px; border-radius:4px 4px 0 0; display:flex; flex-direction:column; overflow:hidden; }
+
+  .colL { display:flex; flex-direction:column; }
+  .colR { display:flex; flex-direction:column; gap:12px; }
+  .lbot { display:grid; grid-template-columns:1.55fr 1fr; gap:14px; align-items:stretch; margin-top:14px; flex:1; }
+  .lbot > .card { display:flex; flex-direction:column; }
 </style>
 </head>
 <body>
@@ -82,8 +102,29 @@ for (let i=0; QS.length<3 && i<30; i++){
   const idx = hashOf(DDATE + ":" + i) % POOL.length;
   if (!QS.includes(POOL[idx])) QS.push(POOL[idx]);
 }
-const logo = x => `<img src="https://thumb.tossinvest.com/image/resized/96x0/${encodeURIComponent("https://static.toss.im/png-icons/securities/icn-sec-fill-"+x.e[0]+".png")}" loading="lazy"
-  onerror="if(!this.dataset.f){this.dataset.f=1;this.src='https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock${x.e[0]}.svg';}else{this.style.visibility='hidden';}">`;
+
+// 종목 아이콘: 네이버 로고 URL(로드 시 common.js가 국내는 아바타로 자동 대체) — 핫링크 아님
+const stlogo = (nm, code, size, cls) => `<img${cls?` class="${cls}"`:""} data-nm="${String(nm||"").replace(/"/g,"")}" style="width:${size}px;height:${size}px;border-radius:50%;background:#fff;flex-shrink:0;vertical-align:middle;" src="https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock${code}.svg">`;
+const codeOf = nm => { const e = ST.get("kr", nm); return e ? e[0] : ""; };
+
+// 5년 추이 라인 차트 (data.js spk = 상대 주가 점 배열)
+function chart5y(arr, w, h){
+  if (!Array.isArray(arr) || arr.length < 2) return `<span style="display:inline-block;width:${w}px;height:${h}px;"></span>`;
+  const mn = Math.min(...arr), mx = Math.max(...arr), rg = (mx-mn)||1;
+  const X = i => (i/(arr.length-1)*(w-2)+1).toFixed(1);
+  const Y = p => (h-4-(p-mn)/rg*(h-8)).toFixed(1);
+  const line = arr.map((p,i)=>`${X(i)},${Y(p)}`).join(" ");
+  const up = arr[arr.length-1] >= arr[0];
+  const col = up ? "#4cd7a5" : "#f0645a";
+  const gid = "g5"+Math.random().toString(36).slice(2,7);
+  const area = `${X(0)},${h} ` + line + ` ${X(arr.length-1)},${h}`;
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="flex-shrink:0;display:block;">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".28"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+    <polygon points="${area}" fill="url(#${gid})"/>
+    <polyline points="${line}" fill="none" stroke="${col}" stroke-width="1.7" stroke-linejoin="round"/></svg>`;
+}
+
+const OKICON = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`;
 
 let G = null;
 async function load(){
@@ -116,48 +157,53 @@ function render(){
 
   box.innerHTML = `
   <div class="statgrid">
-    <div class="sbox2"><span class="ic" style="background:linear-gradient(135deg,#1d9e75,#0d5c66);">✅</span>
+    <div class="sbox2"><span class="ic" style="background:linear-gradient(135deg,#1d9e75,#0d5c66);"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9.5"/><path d="M9 11l3 3L22 4"/></svg></span>
       <div style="flex:1;"><div class="lb">오늘 진행률</div><div class="vl num">${doneN} <span style="font-size:13px;color:var(--muted);">/ 3 문제</span></div>
       <div class="pbar"><i style="width:${Math.round(doneN/3*100)}%;"></i></div></div>
       <b class="num" style="font-size:13px;color:#4cd7a5;">${Math.round(doneN/3*100)}%</b></div>
-    <div class="sbox2"><span class="ic" style="background:linear-gradient(135deg,#f0a818,#c9611d);">📊</span>
+    <div class="sbox2"><span class="ic" style="background:linear-gradient(135deg,#f0a818,#c9611d);"><svg width="23" height="23" viewBox="0 0 24 24" fill="#fff"><rect x="3" y="12.5" width="4.4" height="7.5" rx="1"/><rect x="9.8" y="7" width="4.4" height="13" rx="1"/><rect x="16.6" y="3" width="4.4" height="17" rx="1"/></svg></span>
       <div><div class="lb">누적 적중률</div><div class="vl num" style="color:${rate>=60?"#4cd7a5":rate>=40?"#f0c948":"var(--text)"};">${rate}%</div>
       <div class="sub">적중 ${G.hit} / 전체 ${G.total}</div></div></div>
-    <div class="sbox2"><span class="ic" style="background:linear-gradient(135deg,#ff6a2a,#c9302a);">🔥</span>
+    <div class="sbox2"><span class="ic" style="background:linear-gradient(135deg,#ff6a2a,#c9302a);"><svg width="22" height="24" viewBox="0 0 22 24" fill="#fff"><path d="M11 1.5c.6 3.8-2.8 5.4-2.8 9.2 0-1.6-1.2-2.6-1.2-2.6-2 1.8-3.5 4-3.5 7.1a7.5 7.5 0 0 0 15 0c0-3.4-2.2-5.4-3-7.6-.9 1.7-2.4 2.6-3.6 2.9 1.3-2.8 .7-6.4-.9-9z"/></svg></span>
       <div><div class="lb">현재 연속 적중</div><div class="vl num">${G.pstreak} <span style="font-size:13px;color:var(--muted);">연속</span></div>
       <div class="sub">최고 기록 ${G.pbest}연속</div></div></div>
   </div>
   <div class="layout">
-    <div>
+    <div class="colL">
       <div class="card" style="margin-bottom:14px;"><h3>오늘의 3문제 <span class="more" style="cursor:default;">${DDATE.slice(4,6)}/${DDATE.slice(6,8)} 종가 기준 → 다음 거래일 종가로 판정</span></h3>
         ${QS.map(x=>{
           const picked = today.picks[x.e[0]];
           const g = ST.gradeOf(ST.score(x.e,false)).g;
           return `<div class="qrow">
-            <div class="qhead">${logo(x)}
+            <div class="qhead">${stlogo(x.key, x.e[0], 44, "qlogo")}
               <div style="flex:1;min-width:0;">
-                <b style="font-size:14.5px;">${x.key}</b>
-                <div class="num" style="font-size:11.5px;color:var(--dim);margin-top:2px;">현재가 ${ST.num(x.e[2])}원 · 오늘 <span class="${ST.cls(x.e[3])}">${ST.pct2(x.e[3])}</span></div>
+                <b style="font-size:15px;">${x.key}</b>
+                <div class="num" style="font-size:12px;color:var(--dim);margin-top:3px;">현재가 ${ST.num(x.e[2])}원 · 오늘 <span class="${ST.cls(x.e[3])}">${ST.pct2(x.e[3])}</span></div>
               </div>
-              <span style="flex-shrink:0;">${ST.spark(x.e[12], 84, 30)}</span>
-              <button class="pickbtn up ${picked==="up"?"sel":""}" data-c="${x.e[0]}" data-p="up" ${picked?"disabled":""}>⬆ 오른다</button>
-              <button class="pickbtn dn ${picked==="down"?"sel":""}" data-c="${x.e[0]}" data-p="down" ${picked?"disabled":""}>⬇ 내린다</button>
-              <span class="tierb tier-${g}" style="flex-shrink:0;">${g}</span>
+              <span class="qchart">${chart5y(x.e[19], 132, 42)}</span>
+              <div class="picks">
+                <button class="pickbtn up ${picked==="up"?"sel":""}" data-c="${x.e[0]}" data-p="up" ${picked?"disabled":""}><span class="ar">⬆</span> 오른다</button>
+                <button class="pickbtn dn ${picked==="down"?"sel":""}" data-c="${x.e[0]}" data-p="down" ${picked?"disabled":""}><span class="ar">⬇</span> 내린다</button>
+              </div>
+              <span class="tierb tier-${g}">${g}</span>
             </div>
-            ${picked?`<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-top:9px;">
+            ${picked?`<div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;margin-top:11px;">
               <span style="color:#4cd7a5;">✓ 예측 완료 — 다음 거래일에 결과가 공개됩니다</span>
               <span style="color:var(--dim);">🕐 정답 공개 D-1</span></div>`:""}
           </div>`;}).join("")}
       </div>
-      <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:14px;align-items:stretch;">
+      <div class="lbot">
         <div class="card"><h3>최근 채점 결과</h3>
-          ${G.res.length ? `<table class="rtbl"><thead><tr><th>날짜</th><th>종목명</th><th>내 예측</th><th>종가 변화</th><th>판정</th></tr></thead><tbody>
-            ${G.res.slice(0,6).map(j=>`<tr>
-              <td style="color:var(--dim);">${j.d?`${j.d.slice(4,6)}/${j.d.slice(6,8)}`:"-"}</td>
-              <td class="nm">${j.name}</td>
+          ${G.res.length ? `<table class="rtbl"><thead><tr><th>날짜</th><th>종목명</th><th>내 예측</th><th>종가(실제)</th><th>수익률/변동</th><th>판정</th></tr></thead><tbody>
+            ${G.res.slice(0,6).map(j=>{
+              const ret = (j.p0 && j.p1) ? (j.p1/j.p0-1)*100 : 0;
+              return `<tr>
+              <td style="color:var(--text);">${j.d?`${j.d.slice(4,6)}/${j.d.slice(6,8)}`:"-"}</td>
+              <td class="nm">${stlogo(j.name, codeOf(j.name), 20, "av")} ${j.name}</td>
               <td class="${j.pick==="up"?"up":"down"}">${j.pick==="up"?"▲ 오른다":"▼ 내린다"}</td>
-              <td class="num" style="color:var(--dim);font-size:11px;">${ST.num(j.p0)} → ${ST.num(j.p1)}</td>
-              <td style="font-weight:800;color:${j.ok?"#4cd7a5":"#f0708a"};">${j.ok?"✓ 적중":"✗ 오답"}</td></tr>`).join("")}
+              <td class="num" style="font-weight:700;">${ST.num(j.p1)}원</td>
+              <td class="num ${ST.cls(ret)}" style="font-weight:700;">${ret>=0?"+":""}${ret.toFixed(2)}%</td>
+              <td style="font-weight:800;color:${j.ok?"#4cd7a5":"#f0708a"};">${j.ok?"✓ 적중":"✗ 오답"}</td></tr>`;}).join("")}
           </tbody></table>`
           : `<div style="font-size:12px;color:var(--dim);padding:10px 0;">아직 채점된 예측이 없습니다. 예측 후 다음 거래일에 확인하세요!</div>`}
         </div>
@@ -168,7 +214,7 @@ function render(){
         </div>
       </div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:12px;">
+    <div class="colR">
       <div class="card"><h3>내 전적</h3>
         <div style="display:flex;align-items:center;gap:16px;padding:6px 0;">
           <div class="donut2" style="background:conic-gradient(#4cd7a5 0% ${rate}%, #0d3a52 ${rate}% 100%);">
@@ -192,10 +238,10 @@ function render(){
           <span>적중 <b style="color:#4cd7a5;">${wOk}</b></span><span>오답 <b style="color:#f0708a;">${wNo}</b></span><span>적중률 <b style="color:var(--gold);">${wOk+wNo?Math.round(wOk/(wOk+wNo)*100):0}%</b></span></div>`
         : `<div style="font-size:11.5px;color:var(--dim);padding:8px 0;">채점 기록이 쌓이면 표시됩니다.</div>`}
       </div>
-      <div class="card"><h3>오늘의 미션</h3>
-        <div class="misrow"><span>${doneN>=3?"✅":"⭕"}</span><span style="flex:1;">3문제 모두 참여</span><span style="color:${doneN>=3?"#4cd7a5":"var(--dim)"};">${doneN>=3?"완료":doneN+"/3"}</span></div>
-        <div class="misrow"><span>${G.pstreak>=2?"✅":"⭕"}</span><span style="flex:1;">2연속 적중 달성</span><span style="color:${G.pstreak>=2?"#4cd7a5":"var(--dim)"};">${G.pstreak>=2?"완료":Math.min(G.pstreak,2)+"/2"}</span></div>
-        <div class="misrow"><span>✅</span><span style="flex:1;">최근 결과 확인</span><span style="color:#4cd7a5;">완료</span></div>
+      <div class="card" style="flex:1;"><h3>오늘의 미션</h3>
+        <div class="misrow"><span class="mchk ${doneN>=3?"ok":"ing"}">${doneN>=3?OKICON:""}</span><span style="flex:1;">3문제 모두 참여</span><span style="color:${doneN>=3?"#4cd7a5":"var(--dim)"};">${doneN>=3?"완료":doneN+"/3"}</span></div>
+        <div class="misrow"><span class="mchk ${G.pstreak>=2?"ok":"ing"}">${G.pstreak>=2?OKICON:""}</span><span style="flex:1;">2연속 적중 달성</span><span style="color:${G.pstreak>=2?"#4cd7a5":"var(--dim)"};">${G.pstreak>=2?"완료":Math.min(G.pstreak,2)+"/2"}</span></div>
+        <div class="misrow"><span class="mchk ok">${OKICON}</span><span style="flex:1;">최근 결과 확인</span><span style="color:#4cd7a5;">완료</span></div>
         <div style="font-size:10px;color:var(--dim);margin-top:8px;">🕐 미션은 매일 데이터 업데이트 시 초기화됩니다.</div>
       </div>
     </div>
