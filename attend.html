@@ -7,13 +7,15 @@
 <link rel="stylesheet" href="style.css">
 <style>
   .wrap { max-width:1220px; }
-  .layout { display:grid; grid-template-columns:1fr 320px; gap:14px; align-items:stretch; }
+  .layout { display:grid; grid-template-columns:1fr 400px; gap:14px; align-items:stretch; }
   @media (max-width:1000px){ .layout { grid-template-columns:1fr; } }
   .statgrid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px; }
   @media (max-width:900px){ .statgrid { grid-template-columns:repeat(2,1fr); } }
   .sbox2 { background:linear-gradient(135deg,#0d2e3b,#123f4b); border:1px solid var(--border); border-radius:14px; padding:14px 16px; display:flex; align-items:center; gap:12px; }
   .sbox2 .ic { width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:23px; flex-shrink:0; }
   .sbox2 .ic.coin { background:radial-gradient(circle at 35% 30%,#ffd95e,#c9611d); border-radius:50%; color:#5c3300; font-size:22px; font-weight:900; font-family:inherit; }
+  .sbox2 .ic.ico { background:rgba(255,255,255,.06); }
+  .sbox2 .ic.ico img { display:block; }
   .sbox2 .lb { font-size:11.5px; color:var(--muted); font-weight:700; }
   .sbox2 .vl { font-size:21px; font-weight:800; margin-top:3px; line-height:1.2; }
   .sbox2 .sub { font-size:10.5px; color:var(--dim); margin-top:3px; }
@@ -161,29 +163,21 @@ function render(){
 
   box.innerHTML = `
   <div class="statgrid">
-    <div class="sbox2"><span class="ic" style="background:linear-gradient(135deg,#ff6a2a,#c9302a);">🔥</span>
+    <div class="sbox2"><span class="ic ico"><img alt="" src="att-fire.png" width="34" height="34"></span>
       <div><div class="lb">연속 출석</div><div class="vl num">${G.streak}<span style="font-size:13px;color:var(--muted);">일</span></div><div class="sub">최고 기록 ${G.best}일</div></div></div>
-    <div class="sbox2"><span class="ic" style="background:linear-gradient(135deg,#1d9e75,#0d5c66);">📅</span>
+    <div class="sbox2"><span class="ic ico"><img alt="" src="att-cal.png" width="34" height="34"></span>
       <div style="flex:1;"><div class="lb">이번 달 출석</div><div class="vl num">${mc} <span style="font-size:13px;color:var(--muted);">/ ${daysIn}일</span></div>
       <div class="pbar"><i class="grn" style="width:${Math.round(mc/daysIn*100)}%;"></i></div></div></div>
-    <div class="sbox2"><span class="ic coin">P</span>
+    <div class="sbox2"><span class="ic ico"><img alt="" src="att-coin.png" width="34" height="34"></span>
       <div><div class="lb">출석 포인트</div><div class="vl num" style="color:#f0c948;">${G.pts.toLocaleString("ko-KR")}<span style="font-size:13px;">P</span></div><div class="sub">누적 획득 포인트</div></div></div>
-    <div class="sbox2"><span class="ic" style="background:linear-gradient(135deg,#f0a818,#8a5a1d);">🎖️</span>
+    <div class="sbox2"><span class="ic" style="background:linear-gradient(135deg,#f0a818,#8a5a1d);"><svg width="21" height="23" viewBox="0 0 20 22" fill="#fff"><path d="M10 2.5l1.95 3.95 4.35.63-3.15 3.07.74 4.35L10 12.98l-3.89 2.05.74-4.35L3.7 7.6l4.35-.63z"/><circle cx="10" cy="9" r="7.2" fill="none" stroke="#fff" stroke-width="1.4" opacity=".55"/></svg></span>
       <div style="flex:1;"><div class="lb">다음 배지까지</div><div class="vl num">${toNext}<span style="font-size:13px;color:var(--muted);">일 남음</span></div>
       <div class="pbar"><i style="width:${ringPct}%;"></i></div><div class="sub" style="text-align:right;">${Math.min(G.streak,next[0])} / ${next[0]}일</div></div></div>
   </div>
   <div class="layout">
     <div style="display:flex;flex-direction:column;">
       <div class="card">
-        <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;align-items:center;">
-          <div id="calbox">${calHtml()}</div>
-          <div style="text-align:center;">
-            <div style="display:flex;justify-content:center;">
-              <div class="ring" style="background:conic-gradient(#f0c948 0% ${ringPct}%, #0d3a52 ${ringPct}% 100%);">
-                <div class="hole"><b class="num" style="font-size:15px;">${Math.min(G.streak,next[0])} / ${next[0]}</b><span style="font-size:9px;color:var(--dim);">연속 목표</span></div></div>
-            </div>
-          </div>
-        </div>
+        <div id="calbox">${calHtml()}</div>
       </div>
       <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:14px;margin-top:14px;align-items:stretch;flex:1;">
         <div class="card" style="display:flex;flex-direction:column;"><h3>최근 출석 기록</h3>
