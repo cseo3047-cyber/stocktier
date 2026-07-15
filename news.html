@@ -31,6 +31,8 @@
   .smrow .tm { color:var(--dim); font-size:10.5px; flex-shrink:0; width:74px; font-variant-numeric:tabular-nums; }
   .smrow .tx { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); }
   .smrow .src { color:var(--muted); font-size:10.5px; flex-shrink:0; }
+  .smhead { display:flex; gap:10px; align-items:center; padding:0 2px 7px; border-bottom:1px solid var(--border); font-size:10px; color:var(--dim); font-weight:700; }
+  .smhead .tx { flex:1; min-width:0; }
   .fbar { display:flex; gap:9px; row-gap:9px; flex-wrap:wrap; align-items:center; }
   .fchip { font-size:11.5px; padding:6px 13px; border-radius:8px; border:1px solid var(--border); color:var(--muted); cursor:pointer; font-weight:700; transition:border-color .15s,color .15s; }
   .fchip:hover { border-color:var(--gold-dim); color:var(--text); }
@@ -222,20 +224,21 @@ const newsRows = list => list.map(x=>`
     <span class="tm">${x.tm||"-"}</span><span class="tx">${esc(x.t)}</span>
     <span class="src">${esc(x.office)}</span>${impBadge(x)}</div>`).join("")
   || `<div style="font-size:12px;color:var(--dim);padding:14px 0;">표시할 항목이 없습니다.</div>`;
+const newsHead = `<div class="smhead"><span style="width:74px;flex-shrink:0;">시간</span><span class="tx">제목</span><span style="flex-shrink:0;">출처</span><span style="width:42px;text-align:center;flex-shrink:0;">영향도</span></div>`;
 window.openStat = which => {
   const title = document.getElementById("sm_title"), body = document.getElementById("sm_body"), foot = document.getElementById("sm_foot");
   foot.innerHTML = "";
   if (which === "all") {
     title.innerHTML = "📰 전체 뉴스 <span style='font-size:11px;color:var(--dim);font-weight:600;'>· " + ITEMS.length + "건</span>";
-    body.innerHTML = newsRows(ITEMS);
+    body.innerHTML = newsHead + newsRows(ITEMS);
   } else if (which === "mk") {
     title.innerHTML = "📊 시장 영향 뉴스 <span style='font-size:11px;color:var(--dim);font-weight:600;'>· 영향도 중간 이상 " + mkNews.length + "건</span>";
-    body.innerHTML = newsRows(mkNews);
+    body.innerHTML = newsHead + newsRows(mkNews);
   } else if (which === "dart") {
     const dk = dDates[dDates.length-1] || "";
     const items = (DARTS[dk] || []).slice().sort((a,b)=>(b[4]||0)-(a[4]||0)).slice(0,30);
     title.innerHTML = "📄 주요 공시 <span style='font-size:11px;color:var(--dim);font-weight:600;'>· " + (dk?`${dk.slice(4,6)}/${dk.slice(6,8)} 접수`:"") + " " + dToday + "건 중 충격도 상위</span>";
-    body.innerHTML = items.map(x=>`
+    body.innerHTML = (items.length ? `<div class="smhead"><span style="width:92px;flex-shrink:0;">기업명</span><span style="flex-shrink:0;">유형</span><span class="tx">공시 제목</span><span style="width:48px;text-align:center;flex-shrink:0;">충격도</span></div>` : "") + items.map(x=>`
       <div class="smrow" onclick="window.open('https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${x[6]}','_blank')">
         <span class="tm" style="width:auto;max-width:92px;overflow:hidden;text-overflow:ellipsis;color:var(--text);font-weight:700;font-size:11.5px;">${esc(x[0])}</span>
         <span class="src" style="background:var(--panel2);border:1px solid var(--border);border-radius:5px;padding:1.5px 7px;">${esc(x[2])}</span>
@@ -245,7 +248,7 @@ window.openStat = which => {
     foot.innerHTML = `<button class="morebtn" style="margin:0;display:inline-block;" onclick="location.href='disclosure.html'">공시 충격도 페이지로 이동 →</button>`;
   } else {
     title.innerHTML = "📑 전문가 리포트 <span style='font-size:11px;color:var(--dim);font-weight:600;'>· " + REPORTS.length + "건</span>";
-    body.innerHTML = REPORTS.map(r=>`
+    body.innerHTML = (REPORTS.length ? `<div class="smhead"><span style="width:92px;flex-shrink:0;">증권사</span><span class="tx">제목</span><span style="width:40px;text-align:right;flex-shrink:0;">날짜</span></div>` : "") + REPORTS.map(r=>`
       <div class="smrow" onclick="window.open('${r[3]}','_blank')">
         <span class="tm" style="width:auto;max-width:92px;overflow:hidden;text-overflow:ellipsis;color:var(--muted);font-weight:700;">${esc(r[0])}</span>
         <span class="tx">${esc(r[1])}</span><span class="src">${r[2]||""}</span></div>`).join("")

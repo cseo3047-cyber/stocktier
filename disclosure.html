@@ -82,6 +82,8 @@
   .dmrow { display:flex; align-items:center; gap:9px; padding:8px 0; border-bottom:1px solid #ffffff0d; font-size:12px; }
   .dmrow:last-child { border-bottom:none; }
   .dmrow .tx { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; }
+  .dmhead { display:flex; align-items:center; gap:9px; padding:0 0 7px; border-bottom:1px solid var(--border); font-size:10px; color:var(--dim); font-weight:700; }
+  .dmhead .tx { flex:1; min-width:0; }
 </style>
 </head>
 <body>
@@ -284,7 +286,13 @@ window.openDetail = kind => {
     ? `<div style="font-size:11.5px;color:var(--muted);line-height:1.9;margin-bottom:10px;">평균 충격도 <b style="color:var(--gold);">${cur.avg.toFixed(1)} / 5</b> · 호재 <b style="color:#4cd7a5;">${g}</b> · 악재 <b style="color:#f0708a;">${b}</b> · 중립 <b style="color:#9db9d4;">${n}</b></div>`
     : `<div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;">${title.replace(" 상세","")} 총 <b style="color:var(--text);">${list.length}건</b> · 충격도 높은 순</div>`;
   document.getElementById("dmTitle").textContent = `${title} (${list.length}건)`;
-  document.getElementById("dmBody").innerHTML = head + (list.length ? list.slice(0,80).map(x=>{
+  const colHead = `<div class="dmhead">
+    <span style="width:56px;flex-shrink:0;">유형</span>
+    <span class="tx">기업명 · 공시 제목</span>
+    <span style="width:52px;text-align:center;flex-shrink:0;">판정</span>
+    <span style="width:40px;text-align:center;flex-shrink:0;">충격도</span>
+    <span style="width:58px;text-align:right;flex-shrink:0;">등락률</span></div>`;
+  document.getElementById("dmBody").innerHTML = head + colHead + (list.length ? list.slice(0,80).map(x=>{
     const [tl,tc] = toneLb(x.tone);
     return `<div class="dmrow">
       <span class="tchg" style="${x.us?"background:#13303d;color:#66c6e8;":"background:#22303c;color:#9db9d4;"};flex-shrink:0;">${x.type}</span>
