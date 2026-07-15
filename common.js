@@ -426,6 +426,24 @@ window.ST = (function () {
       + ` &nbsp;·&nbsp; <a href="terms.html" style="color:var(--muted);text-decoration:underline;">이용약관</a>`
       + (window.LOGO_DEV_KEY ? ` &nbsp;·&nbsp; <a href="https://logo.dev" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:underline;">Logos by Logo.dev</a>` : "")
       + `<div style="margin-top:7px;font-size:11px;color:var(--dim);">© 2026 Stocktier. All rights reserved. · 콘텐츠·디자인·코드의 무단 복제·배포·도용을 금합니다.</div>`;
+    // 주요 목록·표 hover 시 녹색 테두리 (전 페이지 공통 — 페이지별 스타일보다 나중에 주입되어 우선 적용)
+    const hoverCss = document.createElement("style");
+    hoverCss.textContent = `
+      table.stbl tbody tr:hover td, table.ptbl tbody tr:hover td, table.rtbl tbody tr:hover td,
+      table.rt tbody tr:hover td, table.ntbl tbody tr:hover td {
+        background:#4cd7a50d !important;
+        box-shadow: inset 0 1px 0 #4cd7a5, inset 0 -1px 0 #4cd7a5; }
+      table.stbl tbody tr:hover td:first-child, table.ptbl tbody tr:hover td:first-child,
+      table.rtbl tbody tr:hover td:first-child, table.rt tbody tr:hover td:first-child,
+      table.ntbl tbody tr:hover td:first-child {
+        box-shadow: inset 1px 1px 0 #4cd7a5, inset 0 -1px 0 #4cd7a5; border-radius:8px 0 0 8px; }
+      table.stbl tbody tr:hover td:last-child, table.ptbl tbody tr:hover td:last-child,
+      table.rtbl tbody tr:hover td:last-child, table.rt tbody tr:hover td:last-child,
+      table.ntbl tbody tr:hover td:last-child {
+        box-shadow: inset -1px 1px 0 #4cd7a5, inset 0 -1px 0 #4cd7a5; border-radius:0 8px 8px 0; }
+      .nrow2:hover, .evrow:hover, .dmrow:hover, .alrow:hover, .smrow:hover, .flashrow:hover {
+        box-shadow: inset 0 0 0 1px #4cd7a5; border-radius:8px; background:#4cd7a50d; }`;
+    document.head.appendChild(hoverCss);
     // 로그인 UI + Firebase 초기화
     setupLoginUI();
     initFirebase();
