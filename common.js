@@ -442,8 +442,52 @@ window.ST = (function () {
       table.ntbl tbody tr:hover td:last-child {
         box-shadow: inset -1px 1px 0 #4cd7a5, inset 0 -1px 0 #4cd7a5; border-radius:0 8px 8px 0; }
       .nrow2:hover, .evrow:hover, .dmrow:hover, .alrow:hover, .smrow:hover, .flashrow:hover {
-        box-shadow: inset 0 0 0 1px #4cd7a5; border-radius:8px; background:#4cd7a50d; }`;
+        box-shadow: inset 0 0 0 1px #4cd7a5; border-radius:8px; background:#4cd7a50d; }
+      /* ── 모바일 대응 (전 페이지 공통) ── */
+      @media (max-width: 760px) {
+        .wrap { padding-left: 10px !important; padding-right: 10px !important; max-width: 100% !important; }
+        .nav { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+        .nav .brand { font-size: 17px; }
+        .nav .spacer { display: none; }
+        .nav .nsearch { flex: 1; min-width: 0; order: 2; }
+        .nav .nsearch input { width: 100% !important; min-width: 0; box-sizing: border-box; }
+        .nav .bell { order: 3; }
+        .nav .loginbtn { order: 4; }
+        .nav .menu { order: 5; width: 100%; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .nav .menu::-webkit-scrollbar { display: none; }
+        .nav .menu a { white-space: nowrap; padding: 7px 10px; font-size: 13px; }
+        .nav .navdrop .dmenu { position: fixed !important; left: 10px !important; right: 10px !important; }
+        .page-title { font-size: 22px !important; }
+        .page-sub { font-size: 12px !important; }
+        h3 input { width: 110px !important; min-width: 0 !important; }
+        table.stbl, table.ptbl, table.rtbl, table.rt, table.ntbl { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .cards4, .cards5, .statgrid, .sumrow { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+        .seasonrow { gap: 8px; }
+        .footer { font-size: 10.5px; }
+      }
+      @media (max-width: 480px) {
+        .cards4, .cards5, .statgrid, .sumrow { grid-template-columns: 1fr !important; }
+        .nav .menu a { padding: 7px 8px; font-size: 12.5px; }
+      }
+      .navdrop.open .dmenu { display: block !important; }`;
     document.head.appendChild(hoverCss);
+    // 터치 기기: 드롭다운은 hover가 없으므로 첫 탭 = 메뉴 열기, 두 번째 탭 = 이동
+    if (window.matchMedia && window.matchMedia("(hover: none)").matches) {
+      document.querySelectorAll(".navdrop > a").forEach(a => {
+        const nd = a.parentElement;
+        if (!nd.querySelector(".dmenu")) return;
+        a.addEventListener("click", e => {
+          if (!nd.classList.contains("open")) {
+            e.preventDefault();
+            document.querySelectorAll(".navdrop.open").forEach(o => o.classList.remove("open"));
+            nd.classList.add("open");
+          }
+        });
+      });
+      document.addEventListener("click", e => {
+        if (!e.target.closest(".navdrop")) document.querySelectorAll(".navdrop.open").forEach(o => o.classList.remove("open"));
+      });
+    }
     // 로그인 UI + Firebase 초기화
     setupLoginUI();
     initFirebase();
