@@ -116,6 +116,7 @@
     <div style="display:flex;flex-direction:column;gap:14px;">
       <div class="card"><h3>실시간 속보 <span class="more" onclick="document.getElementById('newscard').scrollIntoView({behavior:'smooth'})">더보기 ›</span></h3><div id="flash"></div></div>
       <div class="card"><h3>업종별 뉴스 온도</h3><div id="temper"></div></div>
+      <div class="card"><h3>뉴스 최다 언급 종목 TOP 5</h3><div id="mentions"></div></div>
     </div>
   </div>
   <div class="row2m">
@@ -328,7 +329,7 @@ document.getElementById("flash").innerHTML = ITEMS.slice(0,5).map(x=>`
     const upAdj = up ? Math.round((up[1] || 0) * 6 * 10) / 10 : 0;
     sc = Math.max(5, Math.min(95, Math.round(sc + upAdj)));
     return { nm, sc, hits: det.length, det, upNm: up ? up[0] : null, upChg: up ? (up[1]||0) : null, upAdj };
-  }).sort((a,b) => b.sc - a.sc || b.hits - a.hits).slice(0, 6);
+  }).sort((a,b) => b.sc - a.sc || b.hits - a.hits).slice(0, 4);
   window.TEMPER = rows;
   document.getElementById("temper").innerHTML = rows.map((r, i) => {
     const [lb, col] = lbOf(r.sc);
@@ -360,6 +361,30 @@ document.getElementById("flash").innerHTML = ITEMS.slice(0,5).map(x=>`
       + `<div style="font-size:10.5px;color:var(--dim);margin-top:10px;border-top:1px solid var(--border);padding-top:9px;">※ 재미용 가공 지표로, 투자 판단의 근거가 될 수 없습니다.</div>`;
     document.getElementById("statmodal").style.display = "flex";
   };
+})();
+
+// ══ 뉴스 최다 언급 종목 TOP 5 ══
+(function(){
+  const cnt = {};
+  for (const x of ITEMS)
+    for (const m of x.matched) {
+      const k = m[0] + "|" + m[1];
+      cnt[k] = (cnt[k] || 0) + 1;
+    }
+  const top = Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  document.getElementById("mentions").innerHTML = top.length ? top.map(([k, n], i) => {
+    const src = k.slice(0, k.indexOf("|")), key = k.slice(k.indexOf("|")+1);
+    const e = ST.get(src, key);
+    const chg = e ? (e[3] || 0) : 0;
+    return `<div style="display:flex;align-items:center;gap:11px;padding:9px 2px;border-bottom:1px solid #ffffff0d;font-size:12.5px;font-weight:700;cursor:pointer;"
+      onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color=''"
+      onclick="location.href='${ST.stockUrl(src, key)}'">
+      <span style="width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;${i<3?"background:#1d9e75;color:#fff;":"background:var(--panel2);border:1px solid var(--border);color:var(--muted);"}">${i+1}</span>
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ST.displayName(src, key)}</span>
+      <span class="num" style="color:var(--muted);font-size:11.5px;flex-shrink:0;">${n}회</span>
+      <b class="num ${ST.cls(chg)}" style="width:62px;text-align:right;flex-shrink:0;">${ST.pct2(chg)} ${chg>0?"▲":chg<0?"▼":""}</b></div>`;
+  }).join("")
+  : `<div style="font-size:12px;color:var(--dim);padding:8px 0;">오늘 뉴스 제목에서 매칭된 종목이 없습니다.</div>`;
 })();
 
 // ══ 시장 요약 ══
