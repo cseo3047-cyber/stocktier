@@ -38,7 +38,10 @@
   .stbl th { text-align:center; color:var(--dim); font-size:10.5px; font-weight:700; padding:7px 4px; border-bottom:1px solid var(--border); white-space:nowrap; }
   .stbl td { padding:8px 4px; border-bottom:1px solid #ffffff0d; text-align:center; font-variant-numeric:tabular-nums; white-space:nowrap; }
   .stbl tr { cursor:pointer; }
-  .stbl tr:hover td { background:var(--panel2); }
+  .stbl tbody tr:hover td { background:#4cd7a50d; border-top:1px solid #4cd7a5; border-bottom:1px solid #4cd7a5; }
+  .stbl tbody tr:hover td:first-child { border-left:1px solid #4cd7a5; }
+  .stbl tbody tr:hover td:last-child { border-right:1px solid #4cd7a5; }
+  .fbar input[type="date"] { background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:7px; padding:4px 7px; font-size:11px; outline:none; color-scheme:dark; }
   .stbl td.nm { text-align:left; font-weight:700; max-width:160px; overflow:hidden; text-overflow:ellipsis; }
   .tchg { font-size:10px; font-weight:800; border-radius:5px; padding:1.5px 6px; }
   .vbadge { display:inline-flex; padding:2px 10px; border-radius:7px; font-size:10.5px; font-weight:800; }
@@ -93,11 +96,6 @@
         <tbody id="tbody"></tbody></table>
         <button class="morebtn" id="morebtn">더보기 ▾</button>
       </div>
-      <div class="row3b">
-        <div class="card"><h3>오늘 발표 일정</h3><div id="todaylist"></div></div>
-        <div class="card"><h3>실적 / 경제 이벤트 체크</h3><div id="evcheck"></div></div>
-        <div class="card"><h3>다음 주 주요 종목</h3><div id="nextwk"></div></div>
-      </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;height:100%;">
       <div class="card hovc" onclick="openEidx()" title="클릭하면 산정 방식이 열려요"><h3>어닝 이벤트 지수 <span style="margin-left:auto;font-size:10px;color:var(--gold);font-weight:700;">산정 방식 ›</span></h3><div id="eidx"></div></div>
@@ -107,6 +105,12 @@
         <div style="font-size:10.5px;color:var(--dim);margin-top:8px;">미국은 나스닥 공시 기준 · 국내 "예상"은 분기 공시 기한 기반 추정입니다.</div>
       </div>
     </div>
+  </div>
+
+  <div class="row3b">
+    <div class="card"><h3>오늘 발표 일정</h3><div id="todaylist"></div></div>
+    <div class="card"><h3>실적 / 경제 이벤트 체크</h3><div id="evcheck"></div></div>
+    <div class="card"><h3>다음 주 주요 종목</h3><div id="nextwk"></div></div>
   </div>
 
   <div class="footer"></div>
@@ -136,28 +140,31 @@ const WD = ["일","월","화","수","목","금","토"];
 const EARNK = (window.STOCK_MARKET && window.STOCK_MARKET.earn) || null;
 const EARNU = (window.STOCK_MARKET_US && window.STOCK_MARKET_US.earn) || null;
 const hashOf = s => { let h=7; for (const c of String(s)) h=(h*31+c.charCodeAt(0))>>>0; return h; };
-function earnInfo(x){
+const MIND = new Date(today0); MIND.setDate(MIND.getDate()-45);   // 과거 45일까지 조회 가능
+function earnDates(x){
+  const out = [];
   const m = x.us ? EARNU : EARNK;
   const v = m && m[x.us ? x.key : x.e[0]];
   if (v) { const t = String(v);
     const d = t.length>=8 ? new Date(+t.slice(0,4), +t.slice(4,6)-1, +t.slice(6,8)) : new Date(today0.getFullYear(), +t.slice(0,2)-1, +t.slice(2,4));
-    if (d >= today0) return { d, est:false }; }
-  if (!x.us) { const h = hashOf(x.e[0]); const dl = [[3,31],[5,15],[8,14],[11,16]];
-    for (let k=0;k<9;k++){ const d = new Date(today0.getFullYear()+Math.floor(k/4), dl[k%4][0]-1, dl[k%4][1]);
-      d.setDate(d.getDate()-(h%16)); if (d>=today0) return { d, est:true }; } }
-  return null;
+    if (d >= MIND && dday(d) <= 45) out.push({ d, est:false }); }
+  if (!x.us && !out.length) { const h = hashOf(x.e[0]); const dl = [[3,31],[5,15],[8,14],[11,16]];
+    for (let k=0;k<13;k++){ const d = new Date(today0.getFullYear()-1+Math.floor(k/4), dl[k%4][0]-1, dl[k%4][1]);
+      d.setDate(d.getDate()-(h%16));
+      if (d >= MIND && dday(d) <= 45) out.push({ d, est:true }); } }
+  return out;
 }
 
-// 향후 45일 내 발표 예정 종목
+// 과거 45일 ~ 향후 45일 발표 종목 (발표일별 1행)
 const CAL = [];
 for (const x of ST.all()) {
   const us = x.src==="us";
-  const eo = earnInfo({...x, us});
-  if (!eo || dday(eo.d) > 45) continue;
+  const eds = earnDates({...x, us});
+  if (!eds.length) continue;
   const sc = ST.score(x.e, us);
   const capKRW = us ? x.e[8]*13.5 : x.e[8];   // 억원 환산(근사)
   const imp = capKRW >= 100000 ? "High" : capKRW >= 10000 ? "Medium" : "Low";
-  CAL.push({ ...x, us, eo, sc, g: ST.gradeOf(sc), imp });
+  for (const eo of eds) CAL.push({ ...x, us, eo, sc, g: ST.gradeOf(sc), imp });
 }
 CAL.sort((a,b)=> a.eo.d-b.eo.d || b.e[8]-a.e[8]);
 
@@ -183,9 +190,10 @@ const logo = x => {
     onerror="if(!this.dataset.f){this.dataset.f=1;this.src='${nv}';}else{this.style.visibility='hidden';}">`;
 };
 
+const inWeek = x => dday(x.eo.d)>=0 && dday(x.eo.d)<=7;
 const todayN = CAL.filter(x=>dday(x.eo.d)===0).length;
-const weekN = CAL.filter(x=>dday(x.eo.d)<=7).length;
-const hiN = CAL.filter(x=>x.imp==="High" && dday(x.eo.d)<=7).length;
+const weekN = CAL.filter(inWeek).length;
+const hiN = CAL.filter(x=>x.imp==="High" && inWeek(x)).length;
 const ecoEv = (ST.EVENTS||[]).map(e=>({d:new Date(e[0]+"T00:00:00"), flag:e[1], type:e[2], t:e[3]})).filter(x=>x.d>=today0);
 const ecoN = ecoEv.filter(x=>dday(x.d)<=30).length;
 document.getElementById("cards").innerHTML = `
@@ -214,10 +222,10 @@ window.openStat = which => {
     body.innerHTML = head + rows(byCap(CAL.filter(x=>dday(x.eo.d)===0)).slice(0,40));
   } else if (which === "week") {
     title.innerHTML = `🗓 이번 주 발표 종목 <span style="font-size:11px;color:var(--dim);font-weight:600;">· D-7 이내 ${weekN}개</span>`;
-    body.innerHTML = head + rows(byCap(CAL.filter(x=>dday(x.eo.d)<=7)).slice(0,50));
+    body.innerHTML = head + rows(byCap(CAL.filter(inWeek)).slice(0,50));
   } else if (which === "hi") {
     title.innerHTML = `🔥 고영향 발표 <span style="font-size:11px;color:var(--dim);font-weight:600;">· 이번 주 대형주 ${hiN}개</span>`;
-    body.innerHTML = head + rows(byCap(CAL.filter(x=>x.imp==="High" && dday(x.eo.d)<=7)));
+    body.innerHTML = head + rows(byCap(CAL.filter(x=>x.imp==="High" && inWeek(x))));
   } else {
     title.innerHTML = `🌐 경제 이벤트 <span style="font-size:11px;color:var(--dim);font-weight:600;">· 30일 이내 ${ecoN}개</span>`;
     const tyStyle2 = t => t==="금리" ? "background:#3d3313;color:#f0c948;" : t==="만기" ? "background:#3a1a22;color:#f0708a;" : "background:#13303d;color:#4cc3d7;";
@@ -244,10 +252,14 @@ const CATDEF = {
   semi: { t:"반도체", f: x => /반도체|semicon/i.test(indOf(x)) },
   bio:  { t:"바이오", f: x => /바이오|제약|생명|헬스케어|bio|pharma/i.test(indOf(x)) },
 };
+let R1 = null, R2 = null;   // 사용자 지정 기간 (과거 조회 가능)
 function pool(){
-  // 검색 시 기간 필터는 45일 전체로 확장, 분류·시장 필터는 함께 적용
-  let p = Q ? CAL.slice()
-            : CAL.filter(x => PER==="today" ? dday(x.eo.d)===0 : PER==="week" ? dday(x.eo.d)<=7 : PER==="month" ? dday(x.eo.d)<=31 : true);
+  // 검색 시 기간 필터는 전체로 확장, 분류·시장 필터는 함께 적용
+  let p;
+  if (Q) p = CAL.slice();
+  else if (R1 || R2) p = CAL.filter(x => (!R1 || x.eo.d >= R1) && (!R2 || x.eo.d <= R2));
+  else p = CAL.filter(x => { const n = dday(x.eo.d);
+    return PER==="today" ? n===0 : PER==="week" ? (n>=0 && n<=7) : PER==="month" ? (n>=0 && n<=31) : n>=0; });
   p = p.filter(CATDEF[CAT].f);
   if (MKT==="kr") p = p.filter(x=>!x.us);
   else if (MKT==="us") p = p.filter(x=>x.us);
@@ -260,22 +272,32 @@ function pool(){
   return p;
 }
 document.getElementById("calq").addEventListener("input", e => { Q = e.target.value.trim(); SHOW = 15; drawTbl(); });
+const dstr = d => d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}` : "";
 function drawBar(){
   document.getElementById("catbar").innerHTML =
     `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;width:100%;">` +
-    PERS.map(([k,t])=>`<span class="fchip ${PER===k?"on":""}" onclick="setPer('${k}')">${t}</span>`).join("") +
-    `<span style="margin-left:auto;display:flex;gap:7px;align-items:center;font-size:11px;color:var(--dim);">
+    PERS.map(([k,t])=>`<span class="fchip ${PER===k && !R1 && !R2 ?"on":""}" onclick="setPer('${k}')">${t}</span>`).join("") + `</div>` +
+    `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;width:100%;margin-top:8px;">` +
+    Object.keys(CATDEF).map(k=>`<span class="fchip ${CAT===k?"on":""}" onclick="setCat('${k}')">${CATDEF[k].t}</span>`).join("") +
+    `<span style="margin-left:auto;display:flex;gap:7px;align-items:center;font-size:11px;color:var(--dim);flex-wrap:wrap;">
+      기간 <input type="date" id="rd1" value="${dstr(R1)}" onchange="setRange()"> ~ <input type="date" id="rd2" value="${dstr(R2)}" onchange="setRange()">
+      ${R1||R2?`<span class="fchip" style="padding:4px 9px;" onclick="clearRange()">✕ 해제</span>`:""}
       정렬 <select onchange="setSort(this.value)">
         <option value="date" ${SORT==="date"?"selected":""}>발표일 순</option>
         <option value="cap" ${SORT==="cap"?"selected":""}>시가총액 순</option></select>
       시장 <select onchange="setMkt(this.value)">
         <option value="all" ${MKT==="all"?"selected":""}>전체</option>
         <option value="kr" ${MKT==="kr"?"selected":""}>국내</option>
-        <option value="us" ${MKT==="us"?"selected":""}>미국</option></select></span></div>` +
-    `<div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;margin-top:8px;">` +
-    Object.keys(CATDEF).map(k=>`<span class="fchip ${CAT===k?"on":""}" onclick="setCat('${k}')">${CATDEF[k].t}</span>`).join("") + `</div>`;
+        <option value="us" ${MKT==="us"?"selected":""}>미국</option></select></span></div>`;
 }
-window.setPer = k => { PER=k; SHOW=15; drawBar(); drawTbl(); };
+window.setRange = () => {
+  const v1 = document.getElementById("rd1").value, v2 = document.getElementById("rd2").value;
+  R1 = v1 ? new Date(v1+"T00:00:00") : null;
+  R2 = v2 ? new Date(v2+"T23:59:59") : null;
+  SHOW = 15; drawBar(); drawTbl();
+};
+window.clearRange = () => { R1 = R2 = null; SHOW = 15; drawBar(); drawTbl(); };
+window.setPer = k => { PER=k; R1=R2=null; SHOW=15; drawBar(); drawTbl(); };
 window.setCat = k => { CAT=k; SHOW=15; drawBar(); drawTbl(); };
 window.setSort = v => { SORT=v; SHOW=15; drawTbl(); };
 window.setMkt = v => { MKT=v; SHOW=15; drawTbl(); };
@@ -292,7 +314,7 @@ function drawTbl(){
   document.getElementById("tbody").innerHTML = p.slice(0,SHOW).map((x,i)=>`
     <tr onclick="openSrc('${x.src}','${String(x.key).replace(/'/g,"\\'")}')" title="클릭하면 발표 일정 출처로 이동해요">
       <td class="num" style="color:var(--muted);">${i+1}</td>
-      <td class="num" style="color:${dday(x.eo.d)<=1?"#f0c948":"var(--muted)"};font-weight:700;">${fmtMD(x.eo.d)} (${WD[x.eo.d.getDay()]})${dday(x.eo.d)===0?" 오늘":""}</td>
+      <td class="num" style="color:${dday(x.eo.d)<0?"var(--dim)":dday(x.eo.d)<=1?"#f0c948":"var(--muted)"};font-weight:700;">${fmtMD(x.eo.d)} (${WD[x.eo.d.getDay()]})${dday(x.eo.d)===0?" 오늘":dday(x.eo.d)<0?" 지난":""}</td>
       <td class="nm">${logo(x)}${ST.displayName(x.src,x.key)}</td>
       <td class="num" style="color:var(--dim);font-size:11px;">${x.e[0]}</td>
       <td style="color:var(--muted);font-size:11px;">${x.e[1]}</td>
@@ -318,7 +340,7 @@ drawBar(); drawTbl();
   : `<div style="font-size:12px;color:var(--dim);padding:10px 0;">오늘 발표 예정 종목이 없습니다</div>`;
 
   const mix = [];
-  for (const x of CAL.filter(x=>x.imp==="High" && dday(x.eo.d)<=14).slice(0,4))
+  for (const x of CAL.filter(x=>x.imp==="High" && dday(x.eo.d)>=0 && dday(x.eo.d)<=14).slice(0,4))
     mix.push([x.eo.d, `${ST.displayName(x.src,x.key)} 실적 발표${x.eo.est?" (예상)":""}`, "실적"]);
   for (const ev of ecoEv.filter(x=>dday(x.d)<=21).slice(0,4)) mix.push([ev.d, ev.flag+" "+ev.t, ev.type]);
   mix.sort((a,b)=>a[0]-b[0]);
@@ -334,7 +356,7 @@ drawBar(); drawTbl();
   const idx = clip(40 + weekN*0.8 + hiN*4 + ecoEv.filter(x=>dday(x.d)<=7).length*6);
   const gcol = idx>=70?"#f0645a":idx>=40?"#f0c948":"#4cd7a5";
   // 이번 주 발표 종목들의 평균 지표 (수급/모멘텀/펀더멘털/서프라이즈 가능성/리스크)
-  const wk = CAL.filter(x=>dday(x.eo.d)<=7);
+  const wk = CAL.filter(inWeek);
   const avg = f => wk.length ? clip(wk.reduce((s,x)=>s+f(x),0)/wk.length) : 50;
   const mSup = avg(x => (x.us || x.e[17]==null) ? 50 : clip(((x.e[17]>0?1:0)+(x.e[18]>0?1:0))*27+40));
   const mMom = avg(x => clip(50 + (x.e[14]||0)*3 + (x.e[15]||0)*1.2));
@@ -360,7 +382,7 @@ drawBar(); drawTbl();
     </div>
     <div style="font-size:10px;color:var(--dim);margin-top:8px;">이번 주 발표 종목 평균 · 한산 0~39 · 주목 40~69 · 집중 70~100</div>`;
 
-  const t5 = CAL.filter(x=>dday(x.eo.d)<=7).sort((a,b)=>b.e[8]*(b.us?13.5:1)-a.e[8]*(a.us?13.5:1)).slice(0,5);
+  const t5 = CAL.filter(inWeek).sort((a,b)=>b.e[8]*(b.us?13.5:1)-a.e[8]*(a.us?13.5:1)).slice(0,5);
   document.getElementById("top5").innerHTML = t5.map((x,i)=>`
     <div class="nrow2" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
       <span class="rank">${i+1}</span><span class="tx">${ST.displayName(x.src,x.key)}</span>
