@@ -383,10 +383,10 @@ window.ST = (function () {
     const menu =
       drop("오늘의 시장", [["market.html", flag("kr")+"국내 시장"], ["market_us.html", flag("us")+"미국 시장"]]) +
       drop("종목 분석", [["tier.html","📊 티어 랭킹"], ["risk.html","⚠️ 리스크 워치"], ["compare.html","⚔️ 종목 비교"]]) +
-      link("chart.html", "차트") +
       drop("시장 정보", [["calendar.html","📅 실적 캘린더"], ["news.html","📰 뉴스"], ["disclosure.html","📄 공시 충격도"]]) +
       drop("내 투자", [["watchlist.html","⭐ 관심종목"], ["portfolio.html","💼 포트폴리오 진단"], ["simulator.html","🧮 시뮬레이터"]]) +
-      drop("게임", [["predict.html","🎯 예측 게임"], ["attend.html","🔥 출석 체크"], ["league.html","🏆 모의투자 리그"]]);
+      drop("게임", [["predict.html","🎯 예측 게임"], ["attend.html","🔥 출석 체크"], ["league.html","🏆 모의투자 리그"]]) +
+      link("chart.html", "차트");
     document.getElementById("nav").innerHTML = `
       <a class="brand" href="index.html"><span class="mark"><i></i><i></i><i></i></span>Stocktier</a>
       <div class="menu">${menu}</div>
