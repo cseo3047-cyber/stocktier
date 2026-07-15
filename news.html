@@ -23,6 +23,14 @@
   .scard .vl small { font-size:12px; color:var(--dim); font-weight:600; }
   .scard .sub { font-size:10px; color:var(--dim); margin-top:3px; white-space:nowrap; }
   .scard svg.mini { flex-shrink:0; }
+  .scard.hov { cursor:pointer; transition:border-color .15s, box-shadow .15s; }
+  .scard.hov:hover { border-color:#4cd7a5; box-shadow:0 0 0 1px #4cd7a555; }
+  .smrow { display:flex; gap:10px; align-items:center; padding:9px 2px; border-bottom:1px solid #ffffff0d; font-size:12px; font-weight:600; cursor:pointer; }
+  .smrow:last-child { border-bottom:none; }
+  .smrow:hover .tx { color:var(--gold); }
+  .smrow .tm { color:var(--dim); font-size:10.5px; flex-shrink:0; width:74px; font-variant-numeric:tabular-nums; }
+  .smrow .tx { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); }
+  .smrow .src { color:var(--muted); font-size:10.5px; flex-shrink:0; }
   .fbar { display:flex; gap:9px; row-gap:9px; flex-wrap:wrap; align-items:center; }
   .fchip { font-size:11.5px; padding:6px 13px; border-radius:8px; border:1px solid var(--border); color:var(--muted); cursor:pointer; font-weight:700; transition:border-color .15s,color .15s; }
   .fchip:hover { border-color:var(--gold-dim); color:var(--text); }
@@ -115,6 +123,16 @@
   <div class="footer"></div>
 </div>
 
+<div id="statmodal" style="position:fixed;inset:0;background:#000000aa;display:none;align-items:center;justify-content:center;z-index:300;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;width:min(560px,92vw);max-height:80vh;display:flex;flex-direction:column;padding:22px 24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <b id="sm_title" style="font-size:16px;"></b>
+      <span style="cursor:pointer;color:var(--muted);padding:2px 6px;font-size:16px;" onclick="document.getElementById('statmodal').style.display='none'">✕</span></div>
+    <div id="sm_body" style="overflow:auto;flex:1;"></div>
+    <div id="sm_foot" style="margin-top:12px;text-align:right;"></div>
+  </div>
+</div>
+
 <script src="data.js"></script>
 <script src="data_us.js"></script>
 <script src="dart.js"></script>
@@ -191,10 +209,50 @@ const rMap = {};
 REPORTS.forEach(r=>{ if (r[2]) rMap[r[2]] = (rMap[r[2]]||0)+1; });
 const rBars = Object.keys(rMap).sort().slice(-7).map(k=>rMap[k]);
 document.getElementById("cards4").innerHTML = `
-  <div class="scard"><span class="ic g">${ICONS.list}</span><div class="l"><div class="lb">전체 뉴스</div><div class="vl num">${ITEMS.length} <small>건</small></div><div class="sub">+${todayN} 오늘</div></div>${miniArea(cumArr,"#4cd7a5")}</div>
-  <div class="scard"><span class="ic y">${ICONS.net}</span><div class="l"><div class="lb">시장 영향 뉴스</div><div class="vl num">${mkNews.length} <small>건</small></div><div class="sub">영향도 중간 이상</div></div>${miniBars(hourly(mkNews),"#f0c948")}</div>
-  <div class="scard" style="cursor:pointer;" onclick="location.href='disclosure.html'"><span class="ic r">${ICONS.doc}</span><div class="l"><div class="lb">주요 공시</div><div class="vl num">${dToday} <small>건</small></div><div class="sub">오늘 접수 · 클릭 시 이동</div></div>${miniBars(dBars,"#f0708a")}</div>
-  <div class="scard" style="cursor:pointer;" onclick="document.getElementById('reports').scrollIntoView({behavior:'smooth'})"><span class="ic g">${ICONS.docs}</span><div class="l"><div class="lb">전문가 리포트</div><div class="vl num">${REPORTS.length} <small>건</small></div><div class="sub">+${rToday} 오늘</div></div>${miniBars(rBars,"#4cd7a5")}</div>`;
+  <div class="scard hov" onclick="openStat('all')"><span class="ic g">${ICONS.list}</span><div class="l"><div class="lb">전체 뉴스</div><div class="vl num">${ITEMS.length} <small>건</small></div><div class="sub">+${todayN} 오늘</div></div>${miniArea(cumArr,"#4cd7a5")}</div>
+  <div class="scard hov" onclick="openStat('mk')"><span class="ic y">${ICONS.net}</span><div class="l"><div class="lb">시장 영향 뉴스</div><div class="vl num">${mkNews.length} <small>건</small></div><div class="sub">영향도 중간 이상</div></div>${miniBars(hourly(mkNews),"#f0c948")}</div>
+  <div class="scard hov" onclick="openStat('dart')"><span class="ic r">${ICONS.doc}</span><div class="l"><div class="lb">주요 공시</div><div class="vl num">${dToday} <small>건</small></div><div class="sub">오늘 접수</div></div>${miniBars(dBars,"#f0708a")}</div>
+  <div class="scard hov" onclick="openStat('rep')"><span class="ic g">${ICONS.docs}</span><div class="l"><div class="lb">전문가 리포트</div><div class="vl num">${REPORTS.length} <small>건</small></div><div class="sub">+${rToday} 오늘</div></div>${miniBars(rBars,"#4cd7a5")}</div>`;
+
+// ══ 통계 카드 팝업 (헤더 + 목록) ══
+const esc = s => String(s).replace(/</g,"&lt;");
+const impBadge = x => `<span class="impb ${x.imp===3?"i-high":x.imp===2?"i-mid":"i-low"}" style="flex-shrink:0;">${x.imp===3?"높음":x.imp===2?"중간":"낮음"}</span>`;
+const newsRows = list => list.map(x=>`
+  <div class="smrow" onclick="window.open('${x.url}','_blank')">
+    <span class="tm">${x.tm||"-"}</span><span class="tx">${esc(x.t)}</span>
+    <span class="src">${esc(x.office)}</span>${impBadge(x)}</div>`).join("")
+  || `<div style="font-size:12px;color:var(--dim);padding:14px 0;">표시할 항목이 없습니다.</div>`;
+window.openStat = which => {
+  const title = document.getElementById("sm_title"), body = document.getElementById("sm_body"), foot = document.getElementById("sm_foot");
+  foot.innerHTML = "";
+  if (which === "all") {
+    title.innerHTML = "📰 전체 뉴스 <span style='font-size:11px;color:var(--dim);font-weight:600;'>· " + ITEMS.length + "건</span>";
+    body.innerHTML = newsRows(ITEMS);
+  } else if (which === "mk") {
+    title.innerHTML = "📊 시장 영향 뉴스 <span style='font-size:11px;color:var(--dim);font-weight:600;'>· 영향도 중간 이상 " + mkNews.length + "건</span>";
+    body.innerHTML = newsRows(mkNews);
+  } else if (which === "dart") {
+    const dk = dDates[dDates.length-1] || "";
+    const items = (DARTS[dk] || []).slice().sort((a,b)=>(b[4]||0)-(a[4]||0)).slice(0,30);
+    title.innerHTML = "📄 주요 공시 <span style='font-size:11px;color:var(--dim);font-weight:600;'>· " + (dk?`${dk.slice(4,6)}/${dk.slice(6,8)} 접수`:"") + " " + dToday + "건 중 충격도 상위</span>";
+    body.innerHTML = items.map(x=>`
+      <div class="smrow" onclick="window.open('https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${x[6]}','_blank')">
+        <span class="tm" style="width:auto;max-width:92px;overflow:hidden;text-overflow:ellipsis;color:var(--text);font-weight:700;font-size:11.5px;">${esc(x[0])}</span>
+        <span class="src" style="background:var(--panel2);border:1px solid var(--border);border-radius:5px;padding:1.5px 7px;">${esc(x[2])}</span>
+        <span class="tx" style="font-size:11.5px;">${esc(x[3])}</span>
+        <span class="impb ${x[4]>=5?"i-high":x[4]>=3?"i-mid":"i-low"}" style="flex-shrink:0;">충격 ${x[4]||"-"}</span></div>`).join("")
+      || `<div style="font-size:12px;color:var(--dim);padding:14px 0;">오늘 접수된 공시가 없습니다.</div>`;
+    foot.innerHTML = `<button class="morebtn" style="margin:0;display:inline-block;" onclick="location.href='disclosure.html'">공시 충격도 페이지로 이동 →</button>`;
+  } else {
+    title.innerHTML = "📑 전문가 리포트 <span style='font-size:11px;color:var(--dim);font-weight:600;'>· " + REPORTS.length + "건</span>";
+    body.innerHTML = REPORTS.map(r=>`
+      <div class="smrow" onclick="window.open('${r[3]}','_blank')">
+        <span class="tm" style="width:auto;max-width:92px;overflow:hidden;text-overflow:ellipsis;color:var(--muted);font-weight:700;">${esc(r[0])}</span>
+        <span class="tx">${esc(r[1])}</span><span class="src">${r[2]||""}</span></div>`).join("")
+      || `<div style="font-size:12px;color:var(--dim);padding:14px 0;">리포트 데이터가 아직 없어요. 다음 데이터 수집부터 표시됩니다.</div>`;
+  }
+  document.getElementById("statmodal").style.display = "flex";
+};
 
 // ══ 주요 뉴스 표 ══
 const CATS = ["전체","시장","기업","정책","산업","해외","종목 매칭"];
@@ -263,9 +321,20 @@ function mkTile(nm, o, unit){
   return `<div class="mkt"><div class="nm2">${nm}</div><div class="pr num">${(+o.price).toLocaleString("ko-KR")}${unit||""}</div>
     <div class="ch num ${up?"up":"down"}">${o.chg>0?"+":""}${(+o.chg).toLocaleString("ko-KR")} (${o.ratio>0?"+":""}${o.ratio}%)</div>${sp}</div>`;
 }
+// 환율: 이력(fxHist)이 있으면 지수 타일과 같은 그래프 표시
+function fxTile(){
+  if (!MK.fx) return "";
+  const h = MK.fxHist || [];
+  if (h.length > 2) {
+    const prev = h[h.length-2];
+    const chg = Math.round((MK.fx - prev) * 100) / 100;
+    const ratio = prev ? Math.round(chg / prev * 10000) / 100 : 0;
+    return mkTile("원/달러 환율", { price: MK.fx, chg: chg, ratio: ratio, hist: h }, "원");
+  }
+  return `<div class="mkt"><div class="nm2">원/달러 환율</div><div class="pr num">${(+MK.fx).toLocaleString("ko-KR")}원</div><div class="ch" style="color:var(--dim);">전일 기준</div></div>`;
+}
 document.getElementById("mktgrid").innerHTML =
-  mkTile("KOSPI", MK.kospi) + mkTile("KOSDAQ", MK.kosdaq) + mkTile("코스피200", MK.kpi200)
-  + (MK.fx ? `<div class="mkt"><div class="nm2">원/달러 환율</div><div class="pr num">${(+MK.fx).toLocaleString("ko-KR")}원</div><div class="ch" style="color:var(--dim);">전일 기준</div></div>` : "");
+  mkTile("KOSPI", MK.kospi) + mkTile("KOSDAQ", MK.kosdaq) + mkTile("코스피200", MK.kpi200) + fxTile();
 
 // ══ 기관 & 외국인 동향 (전일 순매수 상위/하위) ══
 (function(){
