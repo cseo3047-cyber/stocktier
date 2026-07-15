@@ -34,6 +34,8 @@
   .smhead { display:flex; gap:10px; align-items:center; padding:0 2px 7px; border-bottom:1px solid var(--border); font-size:10px; color:var(--dim); font-weight:700; }
   .smhead .tx { flex:1; min-width:0; }
   .smhead span { text-align:center !important; }
+  .temprow { display:flex; align-items:center; gap:10px; padding:9px 8px; margin:0 -6px; font-size:12.5px; font-weight:700; border:1px solid transparent; border-radius:9px; cursor:pointer; transition:border-color .15s, background .15s; }
+  .temprow:hover { border-color:#4cd7a5; background:#4cd7a50d; }
   .fbar { display:flex; gap:9px; row-gap:9px; flex-wrap:wrap; align-items:center; }
   .fchip { font-size:11.5px; padding:6px 13px; border-radius:8px; border:1px solid var(--border); color:var(--muted); cursor:pointer; font-weight:700; transition:border-color .15s,color .15s; }
   .fchip:hover { border-color:var(--gold-dim); color:var(--text); }
@@ -113,7 +115,7 @@
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;">
       <div class="card"><h3>실시간 속보 <span class="more" onclick="document.getElementById('newscard').scrollIntoView({behavior:'smooth'})">더보기 ›</span></h3><div id="flash"></div></div>
-      <div class="card"><h3>업종별 뉴스 온도 <span class="more" style="cursor:default;">뉴스 감성 + 업종 등락 반영</span></h3><div id="temper"></div></div>
+      <div class="card"><h3>업종별 뉴스 온도</h3><div id="temper"></div></div>
     </div>
   </div>
   <div class="row2m">
@@ -309,31 +311,55 @@ document.getElementById("flash").innerHTML = ITEMS.slice(0,5).map(x=>`
   const POS = ["상승","급등","호조","최대","수주","개선","기대","확대","돌파","성장","호실적","반등","강세","훈풍","최고"];
   const NEG = ["하락","급락","우려","부진","적자","규제","소송","감소","약세","리스크","침체","둔화","쇼크","불안","최저"];
   const UP = MK.upjong || [];
+  const lbOf = s => s >= 65 ? ["긍정","#2fd6a3"] : s >= 50 ? ["중립","#f0c948"] : s >= 35 ? ["주의","#f5920b"] : ["부정","#f0645a"];
   const rows = SECTORS.map(([nm, kws]) => {
-    let sc = 50, hits = 0;
+    let sc = 50;
+    const det = [];
     for (const x of ITEMS) {
       if (!kws.some(k => x.t.includes(k))) continue;
-      hits++;
-      if (POS.some(k => x.t.includes(k))) sc += 7;
-      else if (NEG.some(k => x.t.includes(k))) sc -= 7;
-      else sc += 1;
+      let pts = 1, ty = "중립";
+      if (POS.some(k => x.t.includes(k))) { pts = 7; ty = "긍정"; }
+      else if (NEG.some(k => x.t.includes(k))) { pts = -7; ty = "부정"; }
+      sc += pts;
+      det.push({ t: x.t, url: x.url, ty, pts });
     }
     // 업종 등락률 반영 (당일 시장 반응)
     const up = UP.find(u => kws.some(k => String(u[0]).includes(k)) || String(u[0]).includes(nm.slice(0,3)));
-    if (up) sc += (up[1] || 0) * 6;
-    sc = Math.max(5, Math.min(95, Math.round(sc)));
-    return { nm, sc, hits };
+    const upAdj = up ? Math.round((up[1] || 0) * 6 * 10) / 10 : 0;
+    sc = Math.max(5, Math.min(95, Math.round(sc + upAdj)));
+    return { nm, sc, hits: det.length, det, upNm: up ? up[0] : null, upChg: up ? (up[1]||0) : null, upAdj };
   }).sort((a,b) => b.sc - a.sc || b.hits - a.hits).slice(0, 6);
-  const lbOf = s => s >= 65 ? ["긍정","#2fd6a3"] : s >= 50 ? ["중립","#f0c948"] : s >= 35 ? ["주의","#f5920b"] : ["부정","#f0645a"];
-  document.getElementById("temper").innerHTML = rows.map(r => {
+  window.TEMPER = rows;
+  document.getElementById("temper").innerHTML = rows.map((r, i) => {
     const [lb, col] = lbOf(r.sc);
-    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #ffffff0d;font-size:12.5px;font-weight:700;">
+    return `<div class="temprow" onclick="openTemper(${i})" title="클릭하면 산정 이유가 열려요">
       <span style="width:66px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.nm}</span>
       <span style="width:32px;flex-shrink:0;color:${col};font-weight:800;">${lb}</span>
       <div style="flex:1;height:8px;background:var(--panel2);border:1px solid var(--border);border-radius:5px;overflow:hidden;"><i style="display:block;height:100%;width:${r.sc}%;border-radius:5px;background:${col};"></i></div>
       <b class="num" style="width:24px;text-align:right;color:${col};">${r.sc}</b></div>`;
-  }).join("")
-  + `<div style="font-size:10px;color:var(--dim);margin-top:8px;">오늘 수집된 뉴스 제목의 긍·부정 키워드와 업종 등락률로 산정한 재미용 지표입니다.</div>`;
+  }).join("");
+  // 산정 이유 팝업
+  window.openTemper = i => {
+    const r = rows[i];
+    const [lb, col] = lbOf(r.sc);
+    const tyCol = t => t === "긍정" ? "#2fd6a3" : t === "부정" ? "#f0645a" : "#9db9d4";
+    document.getElementById("sm_title").innerHTML = `🌡 ${r.nm} 뉴스 온도 <span style="color:${col};font-size:13px;">${r.sc}점 · ${lb}</span>`;
+    const line = (k, v) => `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 2px;border-bottom:1px solid #ffffff0d;font-size:12px;"><span style="color:var(--muted);font-weight:600;">${k}</span><span class="num" style="font-weight:800;">${v}</span></div>`;
+    document.getElementById("sm_body").innerHTML =
+      `<div style="font-size:11.5px;color:var(--muted);line-height:1.7;margin-bottom:10px;">기본 50점에서 <b style="color:var(--text);">관련 뉴스의 긍·부정</b>(긍정 +7 · 부정 −7 · 중립 +1)과 <b style="color:var(--text);">당일 업종 등락률 × 6</b>을 더해 계산합니다.</div>`
+      + line("기본 점수", "50")
+      + (r.det.length ? r.det.slice(0, 10).map(d => `
+        <div class="smrow" onclick="window.open('${d.url}','_blank')">
+          <span class="tx" style="font-size:11.5px;">${esc(d.t)}</span>
+          <span style="flex-shrink:0;color:${tyCol(d.ty)};font-size:10.5px;font-weight:800;">${d.ty}</span>
+          <b class="num" style="flex-shrink:0;color:${d.pts>0?"#2fd6a3":"#f0645a"};font-size:11px;">${d.pts>0?"+":""}${d.pts}</b></div>`).join("")
+        + (r.det.length > 10 ? `<div style="font-size:10.5px;color:var(--dim);padding:6px 2px;">외 ${r.det.length-10}건</div>` : "")
+      : `<div style="font-size:11.5px;color:var(--dim);padding:8px 2px;">오늘 이 업종 관련 뉴스가 없어 기본 점수에서 시작합니다.</div>`)
+      + (r.upNm != null ? line(`업종 등락률 (${esc(r.upNm)}) ${r.upChg>0?"+":""}${r.upChg}% × 6`, `<span style="color:${r.upAdj>=0?"#2fd6a3":"#f0645a"};">${r.upAdj>0?"+":""}${r.upAdj}점</span>`) : "")
+      + line("뉴스 온도 (5~95 제한)", `<b style="color:${col};">${r.sc} / 100</b>`)
+      + `<div style="font-size:10.5px;color:var(--dim);margin-top:10px;border-top:1px solid var(--border);padding-top:9px;">※ 재미용 가공 지표로, 투자 판단의 근거가 될 수 없습니다.</div>`;
+    document.getElementById("statmodal").style.display = "flex";
+  };
 })();
 
 // ══ 시장 요약 ══
