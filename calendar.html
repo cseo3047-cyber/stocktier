@@ -38,10 +38,25 @@
   .stbl th { text-align:center; color:var(--dim); font-size:10.5px; font-weight:700; padding:7px 4px; border-bottom:1px solid var(--border); white-space:nowrap; }
   .stbl td { padding:8px 4px; border-bottom:1px solid #ffffff0d; text-align:center; font-variant-numeric:tabular-nums; white-space:nowrap; }
   .stbl tr { cursor:pointer; }
-  .stbl tbody tr:hover td { background:#4cd7a50d; border-top:1px solid #4cd7a5; border-bottom:1px solid #4cd7a5; }
-  .stbl tbody tr:hover td:first-child { border-left:1px solid #4cd7a5; }
-  .stbl tbody tr:hover td:last-child { border-right:1px solid #4cd7a5; }
-  .fbar input[type="date"] { background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:7px; padding:4px 7px; font-size:11px; outline:none; color-scheme:dark; }
+  .stbl tbody tr:hover td { background:#4cd7a50d; box-shadow: inset 0 1px 0 #4cd7a5, inset 0 -1px 0 #4cd7a5; }
+  .stbl tbody tr:hover td:first-child { box-shadow: inset 1px 1px 0 #4cd7a5, inset 0 -1px 0 #4cd7a5; border-radius:8px 0 0 8px; }
+  .stbl tbody tr:hover td:last-child { box-shadow: inset -1px 1px 0 #4cd7a5, inset 0 -1px 0 #4cd7a5; border-radius:0 8px 8px 0; }
+  /* 사이트 테마 커스텀 기간 달력 */
+  #calpop { position:fixed; z-index:320; background:var(--panel); border:1px solid var(--gold-dim); border-radius:14px; padding:14px 16px; width:252px; box-shadow:0 14px 34px rgba(0,0,0,.5); }
+  #calpop .cph { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; font-size:13px; font-weight:800; }
+  #calpop .cph .nav2 { cursor:pointer; color:var(--muted); padding:2px 9px; border-radius:7px; font-size:14px; }
+  #calpop .cph .nav2:hover { background:var(--panel2); color:var(--gold); }
+  #calpop .cgrid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+  #calpop .cwd { text-align:center; font-size:9.5px; color:var(--dim); font-weight:700; padding:3px 0; }
+  #calpop .cd { text-align:center; font-size:11px; padding:5.5px 0; border-radius:7px; cursor:pointer; color:var(--text); font-variant-numeric:tabular-nums; border:1px solid transparent; }
+  #calpop .cd:hover { border-color:#4cd7a5; }
+  #calpop .cd.dim2 { color:var(--dim); opacity:.45; }
+  #calpop .cd.today2 { border-color:var(--gold-dim); }
+  #calpop .cd.inr { background:#13322a; color:#4cd7a5; }
+  #calpop .cd.edge { background:#1d9e75; color:#fff; font-weight:800; }
+  #calpop .cpf { display:flex; justify-content:space-between; margin-top:10px; font-size:11px; font-weight:700; }
+  #calpop .cpf span { cursor:pointer; color:var(--muted); }
+  #calpop .cpf span:hover { color:var(--gold); }
   .stbl td.nm { text-align:left; font-weight:700; max-width:160px; overflow:hidden; text-overflow:ellipsis; }
   .tchg { font-size:10px; font-weight:800; border-radius:5px; padding:1.5px 6px; }
   .vbadge { display:inline-flex; padding:2px 10px; border-radius:7px; font-size:10.5px; font-weight:800; }
@@ -114,6 +129,12 @@
   </div>
 
   <div class="footer"></div>
+</div>
+
+<div id="calpop" style="display:none;">
+  <div class="cph"><span class="nav2" onclick="cpNav(-1)">‹</span><span id="cptitle"></span><span class="nav2" onclick="cpNav(1)">›</span></div>
+  <div class="cgrid" id="cpgrid"></div>
+  <div class="cpf"><span onclick="clearRange();closeCalPop()">✕ 해제</span><span id="cphint" style="cursor:default;color:var(--dim);"></span><span onclick="cpToday()">오늘</span></div>
 </div>
 
 <div id="statmodal" style="position:fixed;inset:0;background:#000000aa;display:none;align-items:center;justify-content:center;z-index:300;" onclick="if(event.target===this)this.style.display='none'">
@@ -272,16 +293,16 @@ function pool(){
   return p;
 }
 document.getElementById("calq").addEventListener("input", e => { Q = e.target.value.trim(); SHOW = 15; drawTbl(); });
-const dstr = d => d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}` : "";
 function drawBar(){
+  const rlabel = (R1||R2) ? `${R1?fmtMD(R1):"…"} ~ ${R2?fmtMD(R2):"…"}` : "날짜 선택";
   document.getElementById("catbar").innerHTML =
     `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;width:100%;">` +
     PERS.map(([k,t])=>`<span class="fchip ${PER===k && !R1 && !R2 ?"on":""}" onclick="setPer('${k}')">${t}</span>`).join("") + `</div>` +
     `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;width:100%;margin-top:8px;">` +
     Object.keys(CATDEF).map(k=>`<span class="fchip ${CAT===k?"on":""}" onclick="setCat('${k}')">${CATDEF[k].t}</span>`).join("") +
     `<span style="margin-left:auto;display:flex;gap:7px;align-items:center;font-size:11px;color:var(--dim);flex-wrap:wrap;">
-      기간 <input type="date" id="rd1" value="${dstr(R1)}" onchange="setRange()"> ~ <input type="date" id="rd2" value="${dstr(R2)}" onchange="setRange()">
-      ${R1||R2?`<span class="fchip" style="padding:4px 9px;" onclick="clearRange()">✕ 해제</span>`:""}
+      기간 <span class="fchip ${R1||R2?"on":""}" id="rangebtn" onclick="toggleCalPop(event)">📅 ${rlabel}</span>
+      ${R1||R2?`<span class="fchip" style="padding:5px 9px;" onclick="clearRange()">✕</span>`:""}
       정렬 <select onchange="setSort(this.value)">
         <option value="date" ${SORT==="date"?"selected":""}>발표일 순</option>
         <option value="cap" ${SORT==="cap"?"selected":""}>시가총액 순</option></select>
@@ -290,13 +311,52 @@ function drawBar(){
         <option value="kr" ${MKT==="kr"?"selected":""}>국내</option>
         <option value="us" ${MKT==="us"?"selected":""}>미국</option></select></span></div>`;
 }
-window.setRange = () => {
-  const v1 = document.getElementById("rd1").value, v2 = document.getElementById("rd2").value;
-  R1 = v1 ? new Date(v1+"T00:00:00") : null;
-  R2 = v2 ? new Date(v2+"T23:59:59") : null;
-  SHOW = 15; drawBar(); drawTbl();
+window.clearRange = () => { R1 = R2 = null; SHOW = 15; drawBar(); drawTbl(); drawCalPop(); };
+
+// ── 사이트 테마 기간 달력 (시작일 → 종료일 순서로 두 번 클릭)
+let CPV = new Date(today0.getFullYear(), today0.getMonth(), 1);
+window.toggleCalPop = ev => {
+  const p = document.getElementById("calpop");
+  if (p.style.display === "block") { p.style.display = "none"; return; }
+  const r = ev.target.getBoundingClientRect();
+  p.style.display = "block";
+  p.style.top = Math.min(window.innerHeight - 340, r.bottom + 8) + "px";
+  p.style.left = Math.max(8, Math.min(window.innerWidth - 270, r.left - 60)) + "px";
+  drawCalPop();
 };
-window.clearRange = () => { R1 = R2 = null; SHOW = 15; drawBar(); drawTbl(); };
+window.closeCalPop = () => { document.getElementById("calpop").style.display = "none"; };
+window.cpNav = n => { CPV = new Date(CPV.getFullYear(), CPV.getMonth()+n, 1); drawCalPop(); };
+window.cpToday = () => { CPV = new Date(today0.getFullYear(), today0.getMonth(), 1); drawCalPop(); };
+window.cpPick = ts => {
+  const d = new Date(ts);
+  if (!R1 || (R1 && R2)) { R1 = d; R2 = null; }
+  else { R2 = new Date(d); R2.setHours(23,59,59);
+    if (R2 < R1) { const t = new Date(R1); R1 = new Date(R2.getFullYear(),R2.getMonth(),R2.getDate()); R2 = new Date(t.getFullYear(),t.getMonth(),t.getDate(),23,59,59); } }
+  SHOW = 15; drawBar(); drawTbl(); drawCalPop();
+  if (R1 && R2) setTimeout(closeCalPop, 250);
+};
+function drawCalPop(){
+  const p = document.getElementById("calpop");
+  if (p.style.display !== "block") return;
+  document.getElementById("cptitle").textContent = `${CPV.getFullYear()}년 ${CPV.getMonth()+1}월`;
+  document.getElementById("cphint").textContent = !R1 ? "시작일 선택" : !R2 ? "종료일 선택" : "";
+  const first = new Date(CPV.getFullYear(), CPV.getMonth(), 1);
+  const start = new Date(first); start.setDate(1 - first.getDay());
+  let html = WD.map(w=>`<span class="cwd">${w}</span>`).join("");
+  for (let i=0; i<42; i++){
+    const d = new Date(start); d.setDate(start.getDate()+i);
+    const isOther = d.getMonth() !== CPV.getMonth();
+    const isToday = d.getTime() === today0.getTime();
+    const inR = R1 && R2 && d >= R1 && d <= R2;
+    const isEdge = (R1 && d.getTime() === new Date(R1.getFullYear(),R1.getMonth(),R1.getDate()).getTime())
+      || (R2 && d.getTime() === new Date(R2.getFullYear(),R2.getMonth(),R2.getDate()).getTime());
+    html += `<span class="cd ${isOther?"dim2":""} ${isToday?"today2":""} ${isEdge?"edge":inR?"inr":""}" onclick="cpPick(${d.getTime()})">${d.getDate()}</span>`;
+  }
+  document.getElementById("cpgrid").innerHTML = html;
+}
+document.addEventListener("click", e => {
+  if (!e.target.closest("#calpop") && !e.target.closest("#rangebtn")) closeCalPop();
+});
 window.setPer = k => { PER=k; R1=R2=null; SHOW=15; drawBar(); drawTbl(); };
 window.setCat = k => { CAT=k; SHOW=15; drawBar(); drawTbl(); };
 window.setSort = v => { SORT=v; SHOW=15; drawTbl(); };
@@ -332,7 +392,8 @@ drawBar(); drawTbl();
 // ── 하단 3분할
 (function(){
   const todays = CAL.filter(x=>dday(x.eo.d)===0).sort((a,b)=>b.e[8]*(b.us?13.5:1)-a.e[8]*(a.us?13.5:1)).slice(0,6);
-  document.getElementById("todaylist").innerHTML = todays.length ? todays.map(x=>`
+  const tdHead = `<div class="smhead"><span style="width:66px;flex-shrink:0;">시장</span><span class="tx">종목명 · 내용</span><span style="width:56px;flex-shrink:0;">중요도</span></div>`;
+  document.getElementById("todaylist").innerHTML = todays.length ? tdHead + todays.map(x=>`
     <div class="evrow" style="cursor:pointer;" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
       <span class="dt">${x.us?"미국":"국내"}</span>
       <span class="tx"><b style="color:var(--text);">${ST.displayName(x.src,x.key)}</b> ${x.eo.est?"잠정실적 (예상)":"실적 발표"}</span>
@@ -345,7 +406,8 @@ drawBar(); drawTbl();
   for (const ev of ecoEv.filter(x=>dday(x.d)<=21).slice(0,4)) mix.push([ev.d, ev.flag+" "+ev.t, ev.type]);
   mix.sort((a,b)=>a[0]-b[0]);
   const tyStyle = t => t==="실적" ? "background:#3a1a22;color:#f0708a;" : t==="금리" ? "background:#3d3313;color:#f0c948;" : "background:#13303d;color:#4cc3d7;";
-  document.getElementById("evcheck").innerHTML = mix.slice(0,6).map(([d,t,ty])=>`
+  const evHead = `<div class="smhead"><span style="width:66px;flex-shrink:0;">일자</span><span class="tx">이벤트</span><span style="width:40px;flex-shrink:0;">구분</span></div>`;
+  document.getElementById("evcheck").innerHTML = evHead + mix.slice(0,6).map(([d,t,ty])=>`
     <div class="evrow"><span class="dt">${fmtMD(d)} (${WD[d.getDay()]})</span><span class="tx">${t}</span>
       <span class="tchg" style="${tyStyle(ty)}">${ty}</span></div>`).join("");
 
@@ -395,8 +457,9 @@ drawBar(); drawTbl();
 
   // 다음 주 주요 종목 (D+8 ~ D+14, 시총 순) — 열 시작 위치 고정 정렬
   const nx = CAL.filter(x=>dday(x.eo.d)>=8 && dday(x.eo.d)<=14)
-    .sort((a,b)=>b.e[8]*(b.us?13.5:1)-a.e[8]*(a.us?13.5:1)).slice(0,8);
-  document.getElementById("nextwk").innerHTML = nx.length ? nx.map(x=>`
+    .sort((a,b)=>b.e[8]*(b.us?13.5:1)-a.e[8]*(a.us?13.5:1)).slice(0,6);
+  const nxHead = `<div class="smhead"><span class="tx">종목명</span><span style="width:42px;flex-shrink:0;">발표일</span><span style="width:36px;flex-shrink:0;">구분</span><span style="width:56px;flex-shrink:0;">중요도</span></div>`;
+  document.getElementById("nextwk").innerHTML = nx.length ? nxHead + nx.map(x=>`
     <div class="nrow2" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
       <span class="tx">${logo(x)}${ST.displayName(x.src,x.key)}</span>
       <span class="num" style="color:var(--dim);font-size:11px;width:42px;text-align:right;flex-shrink:0;">${fmtMD(x.eo.d)}</span>
