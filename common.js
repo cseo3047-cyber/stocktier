@@ -336,17 +336,19 @@ window.ST = (function () {
     const ud = document.createElement("div");
     ud.id = "userdrop";
     ud.style.cssText = "position:fixed;display:none;background:var(--panel);border:1px solid var(--border);border-radius:11px;min-width:158px;padding:6px;z-index:310;box-shadow:0 10px 26px rgba(0,0,0,.45);";
+    const udIc = ic => `<span style="display:inline-block;width:21px;text-align:center;margin-right:4px;">${ic}</span>`;
     ud.innerHTML = `
-      <div class="udit" data-act="my" style="padding:9px 13px;border-radius:8px;font-size:13px;color:var(--text);font-weight:600;cursor:pointer;">👤 마이페이지</div>
-      <div class="udit" data-act="watch" style="padding:9px 13px;border-radius:8px;font-size:13px;color:var(--text);font-weight:600;cursor:pointer;">★ 관심종목</div>
+      <div class="udit" data-act="my" style="padding:9px 13px;border-radius:8px;font-size:13px;color:var(--text);font-weight:600;cursor:pointer;">${udIc("👤")}마이페이지</div>
+      <div class="udit" data-act="watch" style="padding:9px 13px;border-radius:8px;font-size:13px;color:var(--text);font-weight:600;cursor:pointer;">${udIc("★")}관심종목</div>
       <div style="height:1px;background:var(--border);margin:5px 8px;"></div>
-      <div class="udit" data-act="out" style="padding:9px 13px;border-radius:8px;font-size:13px;color:#f0708a;font-weight:600;cursor:pointer;">로그아웃</div>`;
+      <div class="udit" data-act="out" style="padding:9px 13px;border-radius:8px;font-size:13px;color:#f0708a;font-weight:600;cursor:pointer;">${udIc("🚪")}로그아웃</div>`;
     document.body.appendChild(ud);
     const uds = document.createElement("style");
     uds.textContent = "#userdrop .udit:hover{background:var(--panel2);}";
     document.head.appendChild(uds);
     ud.addEventListener("click", e => {
-      const act = e.target.dataset && e.target.dataset.act;
+      const it = e.target.closest(".udit");
+      const act = it && it.dataset.act;
       ud.style.display = "none";
       if (act === "my") location.href = "mypage.html";
       else if (act === "watch") location.href = "watchlist.html";
