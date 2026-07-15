@@ -113,7 +113,7 @@
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;">
       <div class="card"><h3>실시간 속보 <span class="more" onclick="document.getElementById('newscard').scrollIntoView({behavior:'smooth'})">더보기 ›</span></h3><div id="flash"></div></div>
-      <div class="card"><h3>관련 리포트 <span class="more" onclick="window.open('https://finance.naver.com/research/','_blank')">더보기 ›</span></h3><div id="reports"></div></div>
+      <div class="card"><h3>업종별 뉴스 온도 <span class="more" style="cursor:default;">뉴스 감성 + 업종 등락 반영</span></h3><div id="temper"></div></div>
     </div>
   </div>
   <div class="row2m">
@@ -301,14 +301,47 @@ document.getElementById("flash").innerHTML = ITEMS.slice(0,5).map(x=>`
     <span class="tx">${x.t.replace(/</g,"&lt;")}</span>
   </div>`).join("") || `<div style="font-size:12px;color:var(--dim);">수집된 뉴스가 없습니다.</div>`;
 
-// ══ 관련 리포트 (증권사 리서치 — 제목·출처·날짜만, 원문 링크) ══
-document.getElementById("reports").innerHTML = (MK.reports||[]).slice(0,8).map(r=>`
-  <div class="reprow" onclick="window.open('${r[3]}','_blank')">
-    <span class="firm">${String(r[0]).replace(/</g,"&lt;")}</span>
-    <span class="tx">${String(r[1]).replace(/</g,"&lt;")}</span>
-    <span class="dt num">${r[2]||""}</span>
-  </div>`).join("")
-  || `<div style="font-size:12px;color:var(--dim);line-height:1.7;">리포트 데이터가 아직 없어요.<br>다음 데이터 수집(평일 19시)부터 표시됩니다.</div>`;
+// ══ 업종별 뉴스 온도 (뉴스 제목 감성 + 업종 등락률 반영) ══
+(function(){
+  const SECTORS = [
+    ["반도체", ["반도체","HBM","파운드리","D램","낸드","칩"]],
+    ["2차전지", ["2차전지","배터리","전지","양극재","음극재"]],
+    ["바이오", ["바이오","제약","신약","임상"]],
+    ["자동차", ["자동차","전기차","완성차","모빌리티"]],
+    ["조선", ["조선","선박","해운"]],
+    ["금융", ["금융","은행","증권","보험"]],
+    ["유통", ["유통","백화점","이커머스","마트"]],
+    ["IT·플랫폼", ["플랫폼","AI","소프트웨어","게임","인터넷"]],
+  ];
+  const POS = ["상승","급등","호조","최대","수주","개선","기대","확대","돌파","성장","호실적","반등","강세","훈풍","최고"];
+  const NEG = ["하락","급락","우려","부진","적자","규제","소송","감소","약세","리스크","침체","둔화","쇼크","불안","최저"];
+  const UP = MK.upjong || [];
+  const rows = SECTORS.map(([nm, kws]) => {
+    let sc = 50, hits = 0;
+    for (const x of ITEMS) {
+      if (!kws.some(k => x.t.includes(k))) continue;
+      hits++;
+      if (POS.some(k => x.t.includes(k))) sc += 7;
+      else if (NEG.some(k => x.t.includes(k))) sc -= 7;
+      else sc += 1;
+    }
+    // 업종 등락률 반영 (당일 시장 반응)
+    const up = UP.find(u => kws.some(k => String(u[0]).includes(k)) || String(u[0]).includes(nm.slice(0,3)));
+    if (up) sc += (up[1] || 0) * 6;
+    sc = Math.max(5, Math.min(95, Math.round(sc)));
+    return { nm, sc, hits };
+  }).sort((a,b) => b.sc - a.sc || b.hits - a.hits).slice(0, 6);
+  const lbOf = s => s >= 65 ? ["긍정","#2fd6a3"] : s >= 50 ? ["중립","#f0c948"] : s >= 35 ? ["주의","#f5920b"] : ["부정","#f0645a"];
+  document.getElementById("temper").innerHTML = rows.map(r => {
+    const [lb, col] = lbOf(r.sc);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #ffffff0d;font-size:12.5px;font-weight:700;">
+      <span style="width:66px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.nm}</span>
+      <span style="width:32px;flex-shrink:0;color:${col};font-weight:800;">${lb}</span>
+      <div style="flex:1;height:8px;background:var(--panel2);border:1px solid var(--border);border-radius:5px;overflow:hidden;"><i style="display:block;height:100%;width:${r.sc}%;border-radius:5px;background:${col};"></i></div>
+      <b class="num" style="width:24px;text-align:right;color:${col};">${r.sc}</b></div>`;
+  }).join("")
+  + `<div style="font-size:10px;color:var(--dim);margin-top:8px;">오늘 수집된 뉴스 제목의 긍·부정 키워드와 업종 등락률로 산정한 재미용 지표입니다.</div>`;
+})();
 
 // ══ 시장 요약 ══
 function mkTile(nm, o, unit){
