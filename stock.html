@@ -139,7 +139,12 @@ if (!s) {
   const clip = v => Math.max(0, Math.min(100, Math.round(v)));
   const wonN = v => Math.round(v).toLocaleString("ko-KR");
 
-  const supply = (!us && s.length>18 && s[17]!=null) ? clip(((s[17]>0?1:0)+(s[18]>0?1:0))*27+40) : 50;
+  // 수급: 국내 = 전일 외인·기관 순매수 방향 / 미국·데이터 없음 = 거래량×주가 방향으로 추정
+  const volAct = vol3m>0 ? Math.min(1, Math.max(0, (volToday/vol3m - 0.8) / 1.2)) : 0;      // 활성도 0~1 (0.8배↓=0, 2배↑=1)
+  const volDlt = volPrev>0 ? Math.min(1, Math.max(0, (volToday/volPrev - 0.9) / 1.1)) : 0;  // 전일 대비 증가 0~1
+  const volDir = chg>0 ? 1 : chg<0 ? -1 : 0;                                                // 당일 주가 방향
+  const supplyVol = Math.max(0, Math.min(100, Math.round(50 + volDir*(volAct*32 + volDlt*13))));
+  const supply = (!us && s.length>18 && s[17]!=null) ? clip(((s[17]>0?1:0)+(s[18]>0?1:0))*27+40) : supplyVol;
   const momentum = clip(50 + (r1w||0)*3 + (r1m||0)*1.2);
   const value = per>0 ? clip(100 - per*(us?1.2:2)) : 30;
   const funda = clip(50 + roe*2.2);
@@ -781,9 +786,14 @@ if (!s) {
     document.getElementById("smtitle").textContent = T[kind] || T.total;
     let html = "";
     if (kind === "supply") {
-      html = us
-        ? intro("미국 종목은 일별 기관·외국인 수급 데이터가 제공되지 않아 <b style='color:var(--text);'>기준값 50점</b>으로 고정됩니다.")
-          + sirow("수급 점수", "50 / 100")
+      const useVol = us || !(s.length>18 && s[17]!=null);
+      html = useVol
+        ? intro((us?"미국 종목은 일별 기관·외국인 수급 데이터가 제공되지 않아":"이 종목은 수급 데이터가 없어") + " <b style='color:var(--text);'>거래량 × 주가 방향</b>으로 추정합니다.<br>거래가 평소보다 늘며 <b style='color:#4cd7a5;'>오르면 매수세 유입(+)</b>, 늘며 <b style='color:#f0708a;'>내리면 매도 압력(−)</b>, 한산하면 중립(50)에 가까워요.")
+          + sirow("기본 점수", "50")
+          + sirow("거래량 배율 (3개월 평균 대비)", surge.toFixed(2)+"배 → 활성도 "+Math.round(volAct*100)+"%", volDir*volAct*32)
+          + sirow("전일 대비 거래량", volPrev>0?(volToday/volPrev).toFixed(2)+"배":"-", volDir*volDlt*13)
+          + sirow("당일 주가 방향", volDir>0?"상승 (+)":volDir<0?"하락 (−)":"보합 (0)")
+          + sirow("수급 점수 (0~100 제한)", `<b style="color:var(--gold);">${supply} / 100</b>`)
         : intro("전일 외국인·기관의 순매수 방향으로 계산합니다.<br><b style='color:var(--text);'>기본 40점 + 외국인 순매수 시 +27점 + 기관 순매수 시 +27점</b>")
           + sirow("기본 점수", "40")
           + sirow("외국인 순매수(전일)", qtyStr(s[17]), (s[17]||0)>0?27:0)
