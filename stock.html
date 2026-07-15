@@ -172,6 +172,13 @@ if (!s) {
     if (v) { const t = String(v);
       const d = t.length>=8 ? new Date(+t.slice(0,4), +t.slice(4,6)-1, +t.slice(6,8)) : new Date(today0.getFullYear(), +t.slice(0,2)-1, +t.slice(2,4));
       if (d >= today0) earnD = d; }
+    // 국내 2순위: DART 실적 공시 이력 기반 추정 (직전 발표 +91일, "예상" 표시)
+    if (!earnD && !us) {
+      const ee = window.STOCK_MARKET && window.STOCK_MARKET.earnEst && window.STOCK_MARKET.earnEst[code];
+      if (ee) { const t = String(ee);
+        const d = new Date(+t.slice(0,4), +t.slice(4,6)-1, +t.slice(6,8));
+        if (d >= today0) { earnD = d; earnEst = true; } }
+    }
     if (!earnD && !us) {
       let h = 7; for (const c of String(code)) h = (h*31 + c.charCodeAt(0)) >>> 0;
       const dl = [[3,31],[5,15],[8,14],[11,16]];

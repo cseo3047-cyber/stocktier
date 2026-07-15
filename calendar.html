@@ -159,6 +159,7 @@ const fmtMD = d => `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate
 const WD = ["일","월","화","수","목","금","토"];
 
 const EARNK = (window.STOCK_MARKET && window.STOCK_MARKET.earn) || null;
+const EARNKE = (window.STOCK_MARKET && window.STOCK_MARKET.earnEst) || null;   // DART 공시 이력 기반 추정
 const EARNU = (window.STOCK_MARKET_US && window.STOCK_MARKET_US.earn) || null;
 const hashOf = s => { let h=7; for (const c of String(s)) h=(h*31+c.charCodeAt(0))>>>0; return h; };
 const MIND = new Date(today0); MIND.setDate(MIND.getDate()-45);   // 과거 45일까지 조회 가능
@@ -169,6 +170,12 @@ function earnDates(x){
   if (v) { const t = String(v);
     const d = t.length>=8 ? new Date(+t.slice(0,4), +t.slice(4,6)-1, +t.slice(6,8)) : new Date(today0.getFullYear(), +t.slice(0,2)-1, +t.slice(2,4));
     if (d >= MIND && dday(d) <= 45) out.push({ d, est:false }); }
+  // 국내 2순위: DART 실적 공시 이력 기반 추정 (직전 발표 +91일)
+  if (!x.us && !out.length && EARNKE && EARNKE[x.e[0]]) {
+    const t = String(EARNKE[x.e[0]]);
+    const d = new Date(+t.slice(0,4), +t.slice(4,6)-1, +t.slice(6,8));
+    if (d >= MIND && dday(d) <= 45) out.push({ d, est:true });
+  }
   if (!x.us && !out.length) { const h = hashOf(x.e[0]); const dl = [[3,31],[5,15],[8,14],[11,16]];
     for (let k=0;k<13;k++){ const d = new Date(today0.getFullYear()-1+Math.floor(k/4), dl[k%4][0]-1, dl[k%4][1]);
       d.setDate(d.getDate()-(h%16));
@@ -388,6 +395,11 @@ function drawTbl(){
 }
 document.getElementById("morebtn").addEventListener("click", () => { SHOW += 15; drawTbl(); });
 drawBar(); drawTbl();
+// 더보기로 표가 늘어나도 사이드바(평가 기준 포함) 높이는 처음 상태로 고정
+requestAnimationFrame(() => {
+  const side = document.querySelector(".layout > div:nth-child(2)");
+  if (side && side.offsetHeight) { side.style.height = side.offsetHeight + "px"; side.style.overflow = "hidden"; side.style.alignSelf = "start"; }
+});
 
 // ── 하단 3분할
 (function(){
