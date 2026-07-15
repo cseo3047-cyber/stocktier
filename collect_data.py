@@ -238,6 +238,66 @@ def idx_hist(symbol, count=1250):
         return []
 
 
+def earn_news(top_stocks):
+    """시총 상위 종목의 네이버 종목뉴스 '제목'에서 실적 발표 예정일 추출 (다수결)
+       — '○월 ○일 실적 발표' 류 패턴이 2개 이상 기사에서 일치할 때만 채택"""
+    import html as _h
+    out = {}
+    today = datetime.date.today()
+    lim = today + datetime.timedelta(days=60)
+
+    def parse_dates(t):
+        ds = []
+        for mm, dd in re.findall(r"(\d{1,2})\s*월\s*(\d{1,2})\s*일", t):
+            try:
+                d = datetime.date(today.year, int(mm), int(dd))
+                if d < today - datetime.timedelta(days=5):
+                    d = datetime.date(today.year + 1, int(mm), int(dd))
+                ds.append(d)
+            except ValueError:
+                pass
+        if not ds:
+            m = re.search(r"(?:오는|이달|내달)\s*(\d{1,2})\s*일", t)
+            if m:
+                dd = int(m.group(1))
+                for mo in (today.month, today.month % 12 + 1):
+                    try:
+                        yr = today.year + (1 if (mo < today.month) else 0)
+                        d = datetime.date(yr, mo, dd)
+                        if d >= today:
+                            ds.append(d)
+                            break
+                    except ValueError:
+                        pass
+        return ds
+
+    for st in top_stocks:
+        code, name = st["code"], st["name"]
+        try:
+            r = requests.get(f"https://finance.naver.com/item/news_news.naver?code={code}&page=1",
+                             headers=PC_HEADERS, timeout=12)
+            r.encoding = "euc-kr"
+            titles = [_h.unescape(re.sub(r"<[^>]+>", "", t)).strip()
+                      for t in re.findall(r'class="title">\s*<a[^>]*>(.*?)</a>', r.text, re.S)][:20]
+            votes = {}
+            for t in titles:
+                if "실적" not in t or not re.search(r"발표|컨퍼런스|컨콜|공시|어닝", t):
+                    continue
+                for d in parse_dates(t):
+                    if today <= d <= lim:
+                        votes[d] = votes.get(d, 0) + 1
+            if votes:
+                best = max(votes.items(), key=lambda kv: kv[1])
+                if best[1] >= 2:   # 2개 이상 기사에서 같은 날짜 → 채택
+                    out[code] = best[0].strftime("%Y%m%d")
+                    print(f"[뉴스 실적일] {name}: {best[0]} (기사 {best[1]}건 일치)", flush=True)
+            time.sleep(0.15)
+        except Exception as e:
+            print("[진단] 뉴스 실적일 실패:", name, str(e)[:80], flush=True)
+    print("뉴스 기반 실적 발표일:", len(out), "종목", flush=True)
+    return out
+
+
 def market_extra():
     """지수(+3개월 추이) + 업종 + 테마"""
     mk = {}
@@ -494,6 +554,8 @@ def market_extra():
         print("리서치 리포트:", len(out), "건", flush=True)
         return out
 
+    DSTORE = {}   # dart_disclosures가 만든 30일 누적 store 공유용
+
     def dart_disclosures():
         """오픈DART 공시 수집 (GitHub Secret: DART_API_KEY) — 유형 분류 + 충격도/호악재 판정"""
         key = os.environ.get("DART_API_KEY", "").strip()
@@ -570,6 +632,7 @@ def market_extra():
             time.sleep(0.3)
         cutoff = (d0 - datetime.timedelta(days=30)).strftime("%Y%m%d")
         store = {k: v for k, v in store.items() if k >= cutoff}
+        DSTORE["s"] = store
         with open("dart.js", "w", encoding="utf-8") as f:
             f.write("window.STOCK_DART=" + json.dumps(store, ensure_ascii=False,
                                                       separators=(",", ":")) + ";\n")
@@ -615,8 +678,55 @@ def market_extra():
     mk["theme"] = groups("theme", 30)
     mk["news"] = news_kr()
     mk["reports"] = reports_scrape()
-    mk["earn"] = {}   # 국내 실적 발표 예정일: 무료 공개 소스 없음(브라우저 확인 완료) — 미국은 collect_us에서 수집
     mk["dart"] = dart_disclosures()
+
+    # ── 국내 실적 발표일 (2단 개선) ──
+    # 1) EARN_FIX: 기업 IR로 확정된 일정을 여기에 직접 추가 (최우선, "공시" 배지)
+    #    형식: "종목코드": "YYYYMMDD" — 분기마다 갱신
+    EARN_FIX = {
+        "000660": "20260722",   # SK하이닉스 (확정 IR 일정)
+    }
+    tstr = datetime.date.today().strftime("%Y%m%d")
+    mk["earn"] = {k: v for k, v in EARN_FIX.items() if v >= tstr}
+
+    # 2) earnhist.js: DART 실적 공시 이력을 매일 누적 → 직전 발표일 + 91일로 다음 분기 추정
+    #    (해시 추정보다 정확 · 분기가 지날수록 커버리지 증가, "예상" 배지)
+    def earn_est():
+        hist = {}
+        try:
+            with open("earnhist.js", encoding="utf-8") as f:
+                m2 = re.search(r"window\.STOCK_EARNHIST=(\{.*\});", f.read(), re.S)
+                if m2:
+                    hist = json.loads(m2.group(1))
+        except Exception:
+            hist = {}
+        for ds, items in (DSTORE.get("s") or {}).items():
+            for it in items:
+                try:
+                    if it[2] == "실적·영업" and it[1] and (it[1] not in hist or ds > hist[it[1]]):
+                        hist[it[1]] = ds
+                except Exception:
+                    pass
+        try:
+            with open("earnhist.js", "w", encoding="utf-8") as f:
+                f.write("window.STOCK_EARNHIST=" + json.dumps(hist, separators=(",", ":")) + ";\n")
+        except Exception as e:
+            print("[진단] earnhist 저장 실패:", str(e)[:100], flush=True)
+        out = {}
+        t0 = datetime.date.today()
+        for code, ds in hist.items():
+            try:
+                d = datetime.date(int(ds[:4]), int(ds[4:6]), int(ds[6:8]))
+            except Exception:
+                continue
+            while d < t0:
+                d += datetime.timedelta(days=91)
+            if (d - t0).days <= 60 and code not in EARN_FIX:
+                out[code] = d.strftime("%Y%m%d")
+        print("실적 추정(DART 공시 이력 기반):", len(out), "종목 / 이력", len(hist), "종목", flush=True)
+        return out
+
+    mk["earnEst"] = earn_est()
     print("지수:", [k for k in mk if k not in ("upjong", "theme")],
           "/ 업종", len(mk.get("upjong", [])), "/ 테마", len(mk.get("theme", [])), flush=True)
     return mk
@@ -628,6 +738,13 @@ def main():
         sys.exit("종목 목록 수집 실패: " + str(len(stocks)))
 
     market = market_extra()
+    # 뉴스 다수결 기반 실적 발표일 (시총 상위 30종목) — 수동 등록(EARN_FIX)이 있으면 그쪽 우선
+    try:
+        news_earn = earn_news(sorted(stocks, key=lambda s: -(s.get("cap") or 0))[:30])
+        for c, d in news_earn.items():
+            market.setdefault("earn", {}).setdefault(c, d)
+    except Exception as e:
+        print("[진단] 뉴스 실적일 병합 실패:", str(e)[:100], flush=True)
     ind_map, thm_map = build_group_maps()
 
     # 이전 수급 이력(flows.js) 로드 — 최근 120거래일(약 6개월) 누적 유지
