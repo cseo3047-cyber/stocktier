@@ -410,6 +410,49 @@ def market_extra():
         print("뉴스:", len(out), "건", flush=True)
         return out
 
+    def reports_scrape():
+        """네이버 증권 리서치(산업분석/투자정보) 목록 → [[증권사, 제목, MM/DD, 링크], ...] 최대 8건
+           제목·출처·날짜만 수집하고 원문 링크로 연결 (뉴스와 동일한 저작권 정책)"""
+        import html as _h
+        out, seen = [], set()
+        for path in ("industry_list", "invest_list"):
+            try:
+                r = S.get(f"https://finance.naver.com/research/{path}.naver",
+                          headers=PC_HEADERS, timeout=15)
+                r.encoding = "euc-kr"
+                if r.status_code != 200:
+                    print(f"[진단] 리서치 {path} status={r.status_code}", flush=True)
+                    continue
+                for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", r.text, re.S):
+                    a = re.search(r'href="(/research/\w+_read\.naver\?[^"]+)"[^>]*>(.*?)</a>', tr, re.S)
+                    d = re.search(r"(\d{2})\.(\d{2})\.(\d{2})", tr)
+                    if not a or not d:
+                        continue
+                    title = _h.unescape(re.sub(r"<[^>]+>", "", a.group(2))).strip()
+                    if not title or title in seen:
+                        continue
+                    # 증권사: 제목 <a>가 든 td 다음 td의 텍스트
+                    tds = re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)
+                    firm = ""
+                    for i2, td in enumerate(tds):
+                        if "_read.naver" in td and i2 + 1 < len(tds):
+                            firm = re.sub(r"<[^>]+>", "", tds[i2 + 1]).strip()
+                            break
+                    if not firm:
+                        continue
+                    seen.add(title)
+                    url = "https://finance.naver.com" + _h.unescape(a.group(1))
+                    out.append([firm, title, f"{d.group(2)}/{d.group(3)}", url])
+                    if len(out) >= 8:
+                        break
+                time.sleep(0.2)
+            except Exception as e:
+                print("[진단] 리서치 수집 실패:", str(e)[:120], flush=True)
+            if len(out) >= 8:
+                break
+        print("리서치 리포트:", len(out), "건", flush=True)
+        return out
+
     def dart_disclosures():
         """오픈DART 공시 수집 (GitHub Secret: DART_API_KEY) — 유형 분류 + 충격도/호악재 판정"""
         key = os.environ.get("DART_API_KEY", "").strip()
@@ -515,6 +558,7 @@ def market_extra():
     mk["upjong"] = groups("upjong", 100) or upjong_scrape()
     mk["theme"] = groups("theme", 30)
     mk["news"] = news_kr()
+    mk["reports"] = reports_scrape()
     mk["earn"] = {}   # 국내 실적 발표 예정일: 무료 공개 소스 없음(브라우저 확인 완료) — 미국은 collect_us에서 수집
     mk["dart"] = dart_disclosures()
     print("지수:", [k for k in mk if k not in ("upjong", "theme")],

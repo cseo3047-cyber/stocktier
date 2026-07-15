@@ -56,10 +56,12 @@
   .flashrow .dot { width:7px; height:7px; border-radius:50%; background:#f0645a; margin-top:5px; flex-shrink:0; box-shadow:0 0 6px #f0645a88; }
   .flashrow .tm { color:var(--dim); font-size:11px; flex-shrink:0; font-variant-numeric:tabular-nums; margin-top:1px; }
   .flashrow .tx { flex:1; min-width:0; color:var(--text); line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  .issrow { display:flex; align-items:center; gap:9px; padding:8px 0; border-bottom:1px solid #ffffff0d; font-size:12.5px; font-weight:700; }
-  .issrow:last-child { border-bottom:none; }
-  .issrow .rank { width:19px; height:19px; border-radius:6px; background:#13322a; color:#4cd7a5; font-size:10.5px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-  .issrow .tx { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .reprow { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #ffffff0d; font-size:12px; font-weight:600; cursor:pointer; }
+  .reprow:last-child { border-bottom:none; }
+  .reprow:hover .tx { color:var(--gold); }
+  .reprow .firm { width:78px; flex-shrink:0; color:var(--muted); font-size:11px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .reprow .tx { flex:1; min-width:0; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .reprow .dt { color:var(--dim); font-size:10.5px; flex-shrink:0; }
   .row2m { display:grid; grid-template-columns:1.15fr 1fr; gap:14px; margin-top:14px; align-items:stretch; }
   @media (max-width:1000px){ .row2m { grid-template-columns:1fr; } }
   .mktgrid { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
@@ -97,18 +99,17 @@
         <table class="ntbl"><thead><tr><th>시간</th><th>제목</th><th>출처</th><th>카테고리</th><th>영향 종목</th><th>영향도</th></tr></thead><tbody id="tbody"></tbody></table>
         <button class="morebtn" id="morebtn">더보기</button>
       </div>
-      <div class="row2m">
-        <div class="card"><h3>시장 요약</h3><div class="mktgrid" id="mktgrid"></div></div>
-        <div class="card"><h3>기관 &amp; 외국인 동향 <span class="more" style="cursor:default;">전일 순매수 기준</span></h3>
-          <table class="ftbl"><thead><tr><th>구분</th><th>순매수 상위</th><th></th><th>순매도 상위</th><th></th></tr></thead><tbody id="fbody"></tbody></table>
-          <div id="fidx" style="font-size:10.5px;color:var(--dim);font-weight:700;margin-top:9px;"></div>
-        </div>
-      </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;">
       <div class="card"><h3>실시간 속보 <span class="more" onclick="document.getElementById('newscard').scrollIntoView({behavior:'smooth'})">더보기 ›</span></h3><div id="flash"></div></div>
-      <div class="card"><h3>오늘의 산업 이슈 <span class="more" onclick="location.href='market.html'">더보기 ›</span></h3><div id="indiss"></div></div>
-      <div class="card"><h3>오늘의 테마 <span class="more" onclick="location.href='market.html'">더보기 ›</span></h3><div id="thmiss"></div></div>
+      <div class="card"><h3>관련 리포트 <span class="more" onclick="window.open('https://finance.naver.com/research/','_blank')">더보기 ›</span></h3><div id="reports"></div></div>
+    </div>
+  </div>
+  <div class="row2m">
+    <div class="card"><h3>시장 요약</h3><div class="mktgrid" id="mktgrid"></div></div>
+    <div class="card"><h3>기관 &amp; 외국인 동향 <span class="more" style="cursor:default;">전일 순매수 기준</span></h3>
+      <table class="ftbl"><thead><tr><th>구분</th><th>순매수 상위</th><th></th><th>순매도 상위</th><th></th></tr></thead><tbody id="fbody"></tbody></table>
+      <div id="fidx" style="font-size:10.5px;color:var(--dim);font-weight:700;margin-top:9px;"></div>
     </div>
   </div>
   <div class="footer"></div>
@@ -155,7 +156,7 @@ const ICONS = {
   list: `<svg width="22" height="22" viewBox="0 0 22 22"><g stroke="#4cd7a5" stroke-width="2" stroke-linecap="round"><line x1="3" y1="5" x2="6" y2="5"/><line x1="9" y1="5" x2="19" y2="5"/><line x1="3" y1="11" x2="6" y2="11"/><line x1="9" y1="11" x2="19" y2="11"/><line x1="3" y1="17" x2="6" y2="17"/><line x1="9" y1="17" x2="19" y2="17"/></g></svg>`,
   net: `<svg width="22" height="22" viewBox="0 0 22 22"><g stroke="#f0c948" stroke-width="1.6" fill="none"><circle cx="6" cy="6" r="2.6"/><circle cx="16" cy="8" r="2.6"/><circle cx="10" cy="16" r="2.6"/><line x1="8" y1="7" x2="13.5" y2="7.6"/><line x1="7" y1="8.3" x2="9" y2="13.6"/><line x1="14.6" y1="10.2" x2="11.4" y2="14"/></g></svg>`,
   doc: `<svg width="22" height="22" viewBox="0 0 22 22"><g stroke="#f0708a" stroke-width="1.7" fill="none" stroke-linecap="round"><rect x="4" y="3" width="14" height="16" rx="2"/><line x1="7.5" y1="8" x2="14.5" y2="8"/><line x1="7.5" y1="11.5" x2="14.5" y2="11.5"/><line x1="7.5" y1="15" x2="11.5" y2="15"/></g></svg>`,
-  link: `<svg width="22" height="22" viewBox="0 0 22 22"><g stroke="#38bdf8" stroke-width="1.8" fill="none" stroke-linecap="round"><path d="M9 13a4 4 0 0 0 5.6.4l2.6-2.6a4 4 0 1 0-5.6-5.6L10.4 6.4"/><path d="M13 9a4 4 0 0 0-5.6-.4L4.8 11.2a4 4 0 1 0 5.6 5.6l1.2-1.2"/></g></svg>`
+  docs: `<svg width="22" height="22" viewBox="0 0 22 22"><g stroke="#4cd7a5" stroke-width="1.6" fill="none" stroke-linecap="round"><rect x="6.5" y="2.5" width="12" height="14" rx="2"/><path d="M4.5 6.5v11a2 2 0 0 0 2 2h9"/><line x1="10" y1="6.5" x2="15" y2="6.5"/><line x1="10" y1="9.5" x2="15" y2="9.5"/><line x1="10" y1="12.5" x2="13" y2="12.5"/></g></svg>`
 };
 function miniArea(vals, col){
   if (!vals.length) return "";
@@ -178,17 +179,22 @@ function hourly(items){
   return ks.slice(-8).map(k=>m[k]);
 }
 const mkNews = ITEMS.filter(x=>x.imp>=2);
-const mkMatch = ITEMS.filter(x=>x.matched.length);
 const dDates = Object.keys(DARTS).sort();
 const dToday = dDates.length ? (DARTS[dDates[dDates.length-1]]||[]).length : 0;
 const dBars = dDates.slice(-7).map(d=>(DARTS[d]||[]).length);
 let cum = 0;
 const cumArr = hourly(ITEMS).map(v=>cum+=v);
+// 전문가 리포트 통계 (증권사 리서치)
+const REPORTS = MK.reports || [];
+const rToday = REPORTS.filter(r=>r[2]===todayMD).length;
+const rMap = {};
+REPORTS.forEach(r=>{ if (r[2]) rMap[r[2]] = (rMap[r[2]]||0)+1; });
+const rBars = Object.keys(rMap).sort().slice(-7).map(k=>rMap[k]);
 document.getElementById("cards4").innerHTML = `
   <div class="scard"><span class="ic g">${ICONS.list}</span><div class="l"><div class="lb">전체 뉴스</div><div class="vl num">${ITEMS.length} <small>건</small></div><div class="sub">+${todayN} 오늘</div></div>${miniArea(cumArr,"#4cd7a5")}</div>
   <div class="scard"><span class="ic y">${ICONS.net}</span><div class="l"><div class="lb">시장 영향 뉴스</div><div class="vl num">${mkNews.length} <small>건</small></div><div class="sub">영향도 중간 이상</div></div>${miniBars(hourly(mkNews),"#f0c948")}</div>
   <div class="scard" style="cursor:pointer;" onclick="location.href='disclosure.html'"><span class="ic r">${ICONS.doc}</span><div class="l"><div class="lb">주요 공시</div><div class="vl num">${dToday} <small>건</small></div><div class="sub">오늘 접수 · 클릭 시 이동</div></div>${miniBars(dBars,"#f0708a")}</div>
-  <div class="scard"><span class="ic b">${ICONS.link}</span><div class="l"><div class="lb">종목 매칭 뉴스</div><div class="vl num">${mkMatch.length} <small>건</small></div><div class="sub">제목 내 종목명 감지</div></div>${miniBars(hourly(mkMatch),"#38bdf8")}</div>`;
+  <div class="scard" style="cursor:pointer;" onclick="document.getElementById('reports').scrollIntoView({behavior:'smooth'})"><span class="ic g">${ICONS.docs}</span><div class="l"><div class="lb">전문가 리포트</div><div class="vl num">${REPORTS.length} <small>건</small></div><div class="sub">+${rToday} 오늘</div></div>${miniBars(rBars,"#4cd7a5")}</div>`;
 
 // ══ 주요 뉴스 표 ══
 const CATS = ["전체","시장","기업","정책","산업","해외","종목 매칭"];
@@ -233,10 +239,14 @@ document.getElementById("flash").innerHTML = ITEMS.slice(0,5).map(x=>`
     <span class="tx">${x.t.replace(/</g,"&lt;")}</span>
   </div>`).join("") || `<div style="font-size:12px;color:var(--dim);">수집된 뉴스가 없습니다.</div>`;
 
-// ══ 오늘의 산업 이슈 / 테마 ══
-const issRow = (g,i) => `<div class="issrow"><span class="rank">${i+1}</span><span class="tx">${g[0]}</span><b class="num ${ST.cls(g[1])}">${ST.pct2(g[1])}</b></div>`;
-document.getElementById("indiss").innerHTML = (MK.upjong||[]).slice().sort((a,b)=>b[1]-a[1]).slice(0,5).map(issRow).join("") || `<div style="font-size:12px;color:var(--dim);">데이터 수집 중</div>`;
-document.getElementById("thmiss").innerHTML = (MK.theme||[]).slice().sort((a,b)=>b[1]-a[1]).slice(0,5).map(issRow).join("") || `<div style="font-size:12px;color:var(--dim);">데이터 수집 중</div>`;
+// ══ 관련 리포트 (증권사 리서치 — 제목·출처·날짜만, 원문 링크) ══
+document.getElementById("reports").innerHTML = (MK.reports||[]).slice(0,8).map(r=>`
+  <div class="reprow" onclick="window.open('${r[3]}','_blank')">
+    <span class="firm">${String(r[0]).replace(/</g,"&lt;")}</span>
+    <span class="tx">${String(r[1]).replace(/</g,"&lt;")}</span>
+    <span class="dt num">${r[2]||""}</span>
+  </div>`).join("")
+  || `<div style="font-size:12px;color:var(--dim);line-height:1.7;">리포트 데이터가 아직 없어요.<br>다음 데이터 수집(평일 19시)부터 표시됩니다.</div>`;
 
 // ══ 시장 요약 ══
 function mkTile(nm, o, unit){
