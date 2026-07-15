@@ -441,7 +441,8 @@ window.ST = (function () {
       table.rtbl tbody tr:hover td:last-child, table.rt tbody tr:hover td:last-child,
       table.ntbl tbody tr:hover td:last-child {
         box-shadow: inset -1px 1px 0 #4cd7a5, inset 0 -1px 0 #4cd7a5; border-radius:0 8px 8px 0; }
-      .nrow2:hover, .evrow:hover, .dmrow:hover, .alrow:hover, .smrow:hover, .flashrow:hover {
+      .nrow2:hover, .evrow:hover, .dmrow:hover, .alrow:hover, .smrow:hover, .flashrow:hover,
+      .rowlist .row:hover, .gaugerow:hover, .issrow:hover, .temprow:hover {
         box-shadow: inset 0 0 0 1px #4cd7a5; border-radius:8px; background:#4cd7a50d; }
       /* ── 모바일 대응 (전 페이지 공통) ── */
       @media (max-width: 760px) {
