@@ -395,8 +395,9 @@ function drawTbl(){
 }
 document.getElementById("morebtn").addEventListener("click", () => { SHOW += 15; drawTbl(); });
 drawBar(); drawTbl();
-// 더보기로 표가 늘어나도 사이드바(평가 기준 포함) 높이는 처음 상태로 고정
+// 더보기로 표가 늘어나도 사이드바(평가 기준 포함) 높이는 처음 상태로 고정 (모바일 1열에서는 미적용)
 requestAnimationFrame(() => {
+  if (window.innerWidth < 1150) return;
   const side = document.querySelector(".layout > div:nth-child(2)");
   if (side && side.offsetHeight) { side.style.height = side.offsetHeight + "px"; side.style.overflow = "hidden"; side.style.alignSelf = "start"; }
 });
