@@ -27,6 +27,9 @@
   .smrow .tx { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); font-weight:700; }
   .smhead { display:flex; gap:10px; align-items:center; padding:0 2px 7px; border-bottom:1px solid var(--border); font-size:10px; color:var(--dim); font-weight:700; }
   .smhead .tx { flex:1; min-width:0; }
+  .smhead span { text-align:center !important; }
+  .card.hovc { cursor:pointer; transition:border-color .15s, box-shadow .15s; }
+  .card.hovc:hover { border-color:#4cd7a5; box-shadow:0 0 0 1px #4cd7a555; }
   .fbar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:11px; align-items:center; }
   .fchip { font-size:11.5px; padding:5px 13px; border-radius:8px; border:1px solid var(--border); color:var(--muted); cursor:pointer; font-weight:700; }
   .fchip.on { background:#13322a; color:#4cd7a5; border-color:#2e5c47; }
@@ -93,18 +96,16 @@
       <div class="row3b">
         <div class="card"><h3>오늘 발표 일정</h3><div id="todaylist"></div></div>
         <div class="card"><h3>실적 / 경제 이벤트 체크</h3><div id="evcheck"></div></div>
-        <div class="card"><h3>오늘의 한줄 해설</h3><ul class="bullets2" id="notes"></ul></div>
+        <div class="card"><h3>다음 주 주요 종목</h3><div id="nextwk"></div></div>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;height:100%;">
-      <div class="card"><h3>어닝 이벤트 지수</h3><div id="eidx"></div></div>
+      <div class="card hovc" onclick="openEidx()" title="클릭하면 산정 방식이 열려요"><h3>어닝 이벤트 지수 <span style="margin-left:auto;font-size:10px;color:var(--gold);font-weight:700;">산정 방식 ›</span></h3><div id="eidx"></div></div>
       <div class="card"><h3>이번 주 주요 발표 TOP 5</h3><div id="top5"></div></div>
-      <div class="card"><h3>이번 주 빅이벤트</h3><div id="bigev"></div></div>
-      <div class="card"><h3>실적 캘린더 평가 기준</h3>
-        <div id="crit"></div>
+      <div class="card" style="flex:1;display:flex;flex-direction:column;"><h3>실적 캘린더 평가 기준</h3>
+        <div id="crit" style="flex:1;display:flex;flex-direction:column;justify-content:space-evenly;"></div>
         <div style="font-size:10.5px;color:var(--dim);margin-top:8px;">미국은 나스닥 공시 기준 · 국내 "예상"은 분기 공시 기한 기반 추정입니다.</div>
       </div>
-      <div class="card" style="flex:1;"><h3>다음 주 주요 종목</h3><div id="nextwk"></div></div>
     </div>
   </div>
 
@@ -261,9 +262,8 @@ function pool(){
 document.getElementById("calq").addEventListener("input", e => { Q = e.target.value.trim(); SHOW = 15; drawTbl(); });
 function drawBar(){
   document.getElementById("catbar").innerHTML =
+    `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;width:100%;">` +
     PERS.map(([k,t])=>`<span class="fchip ${PER===k?"on":""}" onclick="setPer('${k}')">${t}</span>`).join("") +
-    `<span style="width:1px;height:18px;background:var(--border);margin:0 4px;"></span>` +
-    Object.keys(CATDEF).map(k=>`<span class="fchip ${CAT===k?"on":""}" onclick="setCat('${k}')">${CATDEF[k].t}</span>`).join("") +
     `<span style="margin-left:auto;display:flex;gap:7px;align-items:center;font-size:11px;color:var(--dim);">
       정렬 <select onchange="setSort(this.value)">
         <option value="date" ${SORT==="date"?"selected":""}>발표일 순</option>
@@ -271,16 +271,26 @@ function drawBar(){
       시장 <select onchange="setMkt(this.value)">
         <option value="all" ${MKT==="all"?"selected":""}>전체</option>
         <option value="kr" ${MKT==="kr"?"selected":""}>국내</option>
-        <option value="us" ${MKT==="us"?"selected":""}>미국</option></select></span>`;
+        <option value="us" ${MKT==="us"?"selected":""}>미국</option></select></span></div>` +
+    `<div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;margin-top:8px;">` +
+    Object.keys(CATDEF).map(k=>`<span class="fchip ${CAT===k?"on":""}" onclick="setCat('${k}')">${CATDEF[k].t}</span>`).join("") + `</div>`;
 }
 window.setPer = k => { PER=k; SHOW=15; drawBar(); drawTbl(); };
 window.setCat = k => { CAT=k; SHOW=15; drawBar(); drawTbl(); };
 window.setSort = v => { SORT=v; SHOW=15; drawTbl(); };
 window.setMkt = v => { MKT=v; SHOW=15; drawTbl(); };
+// 발표 일정 출처: 미국 = 나스닥 어닝스 페이지, 국내 = DART 회사별 공시 검색
+const srcUrl = x => x.us
+  ? `https://www.nasdaq.com/market-activity/stocks/${String(x.key).toLowerCase()}/earnings`
+  : `https://dart.fss.or.kr/dsab007/main.do?option=corp&textCrpNm=${encodeURIComponent(ST.displayName(x.src,x.key))}`;
+window.openSrc = (src, key) => {
+  const x = CAL.find(v=>v.src===src && v.key===key);
+  if (x) window.open(srcUrl(x), "_blank");
+};
 function drawTbl(){
   const p = pool();
   document.getElementById("tbody").innerHTML = p.slice(0,SHOW).map((x,i)=>`
-    <tr onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
+    <tr onclick="openSrc('${x.src}','${String(x.key).replace(/'/g,"\\'")}')" title="클릭하면 발표 일정 출처로 이동해요">
       <td class="num" style="color:var(--muted);">${i+1}</td>
       <td class="num" style="color:${dday(x.eo.d)<=1?"#f0c948":"var(--muted)"};font-weight:700;">${fmtMD(x.eo.d)} (${WD[x.eo.d.getDay()]})${dday(x.eo.d)===0?" 오늘":""}</td>
       <td class="nm">${logo(x)}${ST.displayName(x.src,x.key)}</td>
@@ -317,16 +327,6 @@ drawBar(); drawTbl();
     <div class="evrow"><span class="dt">${fmtMD(d)} (${WD[d.getDay()]})</span><span class="tx">${t}</span>
       <span class="tchg" style="${tyStyle(ty)}">${ty}</span></div>`).join("");
 
-  const big = CAL.filter(x=>x.imp==="High" && dday(x.eo.d)<=7);
-  const notes = [];
-  if (big.length) notes.push(`${big.slice(0,2).map(x=>ST.displayName(x.src,x.key)).join("·")} 등 대형주 실적 발표에 관심 집중`);
-  notes.push(`이번 주 발표 예정 ${weekN}개 — 발표 전후 변동성 확대 유의`);
-  const fomc = ecoEv.find(x=>x.t.includes("FOMC"));
-  if (fomc) notes.push(`FOMC(${fmtMD(fomc.d)}) 결과가 시장 방향 결정에 핵심`);
-  const kdt = ecoEv.find(x=>x.t.includes("금통위"));
-  if (kdt) notes.push(`한국은행 금통위(${fmtMD(kdt.d)}) 금리 결정 대기`);
-  notes.push("실적 지표 호조 종목 중심의 대응 전략 유효");
-  document.getElementById("notes").innerHTML = notes.slice(0,5).map(t=>`<li>${t}</li>`).join("");
 })();
 
 // ── 사이드
@@ -368,25 +368,36 @@ drawBar(); drawTbl();
       <span class="vbadge ${x.imp==="High"?"i-hi":x.imp==="Medium"?"i-md":"i-lo"}" style="font-size:9.5px;">${x.imp==="High"?"고영향":"중간"}</span></div>`).join("")
   || `<div style="font-size:12px;color:var(--dim);">이번 주 발표 없음</div>`;
 
-  document.getElementById("bigev").innerHTML = ecoEv.slice(0,5).map((x,i)=>`
-    <div class="nrow2" style="cursor:default;">
-      <span class="rank" style="background:#13303d;color:#4cc3d7;">${i+1}</span>
-      <span class="num" style="color:var(--dim);font-size:11px;width:38px;">${fmtMD(x.d)}</span>
-      <span class="tx">${x.flag} ${x.t}</span></div>`).join("");
-
   document.getElementById("crit").innerHTML = [["중요도(시총)",30],["임박도",25],["대형주 영향",20],["티어",15],["리스크",10]]
     .map(([lb,v])=>`<div class="gbar"><span class="lb2">${lb}</span><div class="m"><i style="width:${v*3}%"></i></div><b>${v}%</b></div>`).join("");
 
-  // 다음 주 주요 종목 (D+8 ~ D+14, 시총 순)
+  // 다음 주 주요 종목 (D+8 ~ D+14, 시총 순) — 열 시작 위치 고정 정렬
   const nx = CAL.filter(x=>dday(x.eo.d)>=8 && dday(x.eo.d)<=14)
-    .sort((a,b)=>b.e[8]*(b.us?13.5:1)-a.e[8]*(a.us?13.5:1)).slice(0,5);
+    .sort((a,b)=>b.e[8]*(b.us?13.5:1)-a.e[8]*(a.us?13.5:1)).slice(0,8);
   document.getElementById("nextwk").innerHTML = nx.length ? nx.map(x=>`
     <div class="nrow2" onclick="location.href='${ST.stockUrl(x.src,x.key)}'">
       <span class="tx">${logo(x)}${ST.displayName(x.src,x.key)}</span>
-      <span class="num" style="color:var(--dim);font-size:11px;">${fmtMD(x.eo.d)}</span>
-      <span class="tchg" style="${x.eo.est?"background:#22303c;color:#9db9d4;":"background:#13322a;color:#4cd7a5;"}">${x.eo.est?"예상":"공시"}</span>
-      <span class="vbadge ${x.imp==="High"?"i-hi":x.imp==="Medium"?"i-md":"i-lo"}" style="font-size:9.5px;">${x.imp}</span></div>`).join("")
+      <span class="num" style="color:var(--dim);font-size:11px;width:42px;text-align:right;flex-shrink:0;">${fmtMD(x.eo.d)}</span>
+      <span style="width:36px;text-align:center;flex-shrink:0;"><span class="tchg" style="${x.eo.est?"background:#22303c;color:#9db9d4;":"background:#13322a;color:#4cd7a5;"}">${x.eo.est?"예상":"공시"}</span></span>
+      <span style="width:56px;text-align:center;flex-shrink:0;"><span class="vbadge ${x.imp==="High"?"i-hi":x.imp==="Medium"?"i-md":"i-lo"}" style="font-size:9.5px;">${x.imp}</span></span></div>`).join("")
   : `<div style="font-size:12px;color:var(--dim);">다음 주 발표 예정 종목이 없습니다</div>`;
+
+  // 어닝 이벤트 지수 산정 방식 팝업 (카드 클릭)
+  const e7 = ecoEv.filter(x=>dday(x.d)<=7).length;
+  window.openEidx = () => {
+    const row = (k,v,pts) => `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 2px;border-bottom:1px solid #ffffff0d;font-size:12px;"><span style="color:var(--muted);font-weight:600;">${k}</span><span class="num" style="font-weight:800;">${v}${pts!==undefined?` <span style="color:${pts>0?"#4cd7a5":"var(--dim)"};margin-left:8px;">+${Math.round(pts*10)/10}점</span>`:""}</span></div>`;
+    document.getElementById("sm_title").innerHTML = `📈 어닝 이벤트 지수 산정 방식`;
+    document.getElementById("sm_body").innerHTML =
+      `<div style="font-size:11.5px;color:var(--muted);line-height:1.7;margin-bottom:10px;">이번 주 실적 시즌이 얼마나 뜨거운지를 나타내는 지수예요. <b style="color:var(--text);">기본 40점</b>에서 아래 항목을 더해 계산합니다.</div>`
+      + row("기본 점수", "40")
+      + row("이번 주 발표 종목 수 × 0.8", weekN + "개", weekN*0.8)
+      + row("고영향(대형주) 발표 × 4", hiN + "개", hiN*4)
+      + row("7일 내 경제 이벤트 × 6", e7 + "개", e7*6)
+      + row("어닝 이벤트 지수 (0~100 제한)", `<b style="color:var(--gold);">${idx} / 100</b>`)
+      + `<div style="font-size:11px;color:var(--muted);line-height:1.7;margin-top:10px;">오른쪽 5개 막대(수급·모멘텀·펀더멘털·서프라이즈 가능성·리스크)는 <b style="color:var(--text);">이번 주 발표 예정 종목들의 평균 지표</b>이고, 티어 배지는 그 평균 점수의 등급입니다.</div>`
+      + `<div style="font-size:10.5px;color:var(--dim);margin-top:10px;border-top:1px solid var(--border);padding-top:9px;">※ 재미용 가공 지표로, 투자 판단의 근거가 될 수 없습니다.</div>`;
+    document.getElementById("statmodal").style.display = "flex";
+  };
 })();
 </script>
 </body>
