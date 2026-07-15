@@ -120,7 +120,6 @@
     <div style="display:flex;flex-direction:column;">
       <div class="cards4" id="cards"></div>
       <div class="card" style="margin-bottom:14px;"><h3>시장 리스크 지수 <span class="more" onclick="openIdxHelp()">더보기 ›</span></h3><div id="mktidx"></div></div>
-      <div class="card" style="margin-bottom:14px;"><h3>코스피·코스닥 수급 <span class="more" style="cursor:default;">외국인·기관 순매수 (전 종목 합산)</span></h3><div id="idxflow"></div></div>
       <div class="card"><h3>위험 종목 리스트
         <span style="margin-left:auto;position:relative;flex-shrink:0;display:inline-flex;">
           <input id="riskq" placeholder="종목명 또는 코드 검색" autocomplete="off"
@@ -131,6 +130,7 @@
         <tbody id="tbody"></tbody></table>
         <button class="morebtn" id="morebtn">더보기 ▾</button>
       </div>
+      <div class="card" style="margin-top:14px;"><h3>코스피·코스닥 수급 <span class="more" style="cursor:default;">외국인·기관 순매수 (전 종목 합산)</span></h3><div id="idxflow"></div></div>
       <div class="row4b">
         <div class="card"><h3>실시간 위험 신호</h3><div id="signals"></div></div>
         <div class="card"><h3>예정 위험 이벤트</h3><div id="events"></div></div>
@@ -512,9 +512,9 @@ drawBar(); drawTbl();
   const PERS = [["1개월",20],["3개월",60],["6개월",120]];
   const block = (key,kr)=>{ const arr=FI[key]||[], last=arr[arr.length-1]||[null,0,0];
     return `<div style="flex:1;min-width:280px;">
-      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-        <span style="font-size:14px;font-weight:800;">${kr}</span>
-        <span style="font-size:10.5px;color:var(--dim);">${last[0]?("20"+last[0].slice(0,2)+"."+last[0].slice(2,4)+"."+last[0].slice(4,6)+" 기준"):""}</span></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px;">
+        <span style="background:#13322a;border:1px solid #2e5c47;color:#4cd7a5;border-radius:8px;padding:3.5px 13px;font-size:12.5px;font-weight:800;">${kr}</span>
+        ${last[0]?`<span style="background:var(--panel2);border:1px solid var(--border);border-radius:7px;padding:3.5px 10px;font-size:10px;color:var(--dim);font-weight:700;">20${last[0].slice(0,2)}.${last[0].slice(2,4)}.${last[0].slice(4,6)} 기준</span>`:""}</div>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
         <div style="flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;">
           <div style="font-size:10.5px;color:var(--muted);font-weight:700;">외국인 순매수</div>
