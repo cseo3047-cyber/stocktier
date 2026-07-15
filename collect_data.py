@@ -411,45 +411,86 @@ def market_extra():
         return out
 
     def reports_scrape():
-        """네이버 증권 리서치(산업분석/투자정보) 목록 → [[증권사, 제목, MM/DD, 링크], ...] 최대 8건
-           제목·출처·날짜만 수집하고 원문 링크로 연결 (뉴스와 동일한 저작권 정책)"""
+        """네이버 증권 리서치 → [[증권사, 제목, MM/DD, 링크], ...] 최대 8건
+           1) 모바일 API 후보 → 2) PC 페이지(.naver/.nhn) 순서로 시도. 제목·출처·날짜만 수집."""
         import html as _h
         out, seen = [], set()
-        for path in ("industry_list", "invest_list"):
-            try:
-                r = S.get(f"https://finance.naver.com/research/{path}.naver",
-                          headers=PC_HEADERS, timeout=15)
-                r.encoding = "euc-kr"
-                if r.status_code != 200:
-                    print(f"[진단] 리서치 {path} status={r.status_code}", flush=True)
-                    continue
-                for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", r.text, re.S):
-                    a = re.search(r'href="(/research/\w+_read\.naver\?[^"]+)"[^>]*>(.*?)</a>', tr, re.S)
-                    d = re.search(r"(\d{2})\.(\d{2})\.(\d{2})", tr)
-                    if not a or not d:
-                        continue
-                    title = _h.unescape(re.sub(r"<[^>]+>", "", a.group(2))).strip()
-                    if not title or title in seen:
-                        continue
-                    # 증권사: 제목 <a>가 든 td 다음 td의 텍스트
-                    tds = re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)
-                    firm = ""
-                    for i2, td in enumerate(tds):
-                        if "_read.naver" in td and i2 + 1 < len(tds):
-                            firm = re.sub(r"<[^>]+>", "", tds[i2 + 1]).strip()
-                            break
-                    if not firm:
-                        continue
-                    seen.add(title)
-                    url = "https://finance.naver.com" + _h.unescape(a.group(1))
-                    out.append([firm, title, f"{d.group(2)}/{d.group(3)}", url])
-                    if len(out) >= 8:
-                        break
-                time.sleep(0.2)
-            except Exception as e:
-                print("[진단] 리서치 수집 실패:", str(e)[:120], flush=True)
+
+        def add(firm, title, md, url):
+            firm, title = str(firm).strip(), str(title).strip()
+            if firm and title and title not in seen and len(out) < 8:
+                seen.add(title)
+                out.append([firm, title, md, url])
+
+        # ── 1) 모바일 리서치 API 후보 (JSON) ──
+        def from_json(j):
+            def find_list(o, depth=0):
+                if depth > 3:
+                    return None
+                if isinstance(o, list) and o and isinstance(o[0], dict):
+                    return o
+                if isinstance(o, dict):
+                    for v in o.values():
+                        r2 = find_list(v, depth + 1)
+                        if r2:
+                            return r2
+                return None
+            lst = find_list(j) or []
+            n0 = len(out)
+            for it in lst[:12]:
+                title = it.get("title") or it.get("titleName") or it.get("reportTitle") or ""
+                firm = it.get("brokerName") or it.get("officeName") or it.get("stockFirmName") or it.get("securitiesFirm") or ""
+                dt = str(it.get("writeDate") or it.get("date") or it.get("registerDate") or it.get("createdAt") or "")
+                nid = str(it.get("researchId") or it.get("nid") or it.get("id") or it.get("seq") or "")
+                m2 = re.search(r"\d{4}[.\-/]?(\d{2})[.\-/]?(\d{2})", dt)
+                md = f"{m2.group(1)}/{m2.group(2)}" if m2 else ""
+                url = f"https://m.stock.naver.com/investment/research/{nid}" if nid else "https://finance.naver.com/research/"
+                add(firm, title, md, url)
+            if lst and len(out) == n0:
+                print("[진단] 리서치 JSON 항목 키:", list(lst[0].keys())[:12], flush=True)
+        for api in ("https://m.stock.naver.com/front-api/research/list?category=industry&page=1&pageSize=10",
+                    "https://m.stock.naver.com/api/research/industry?page=1&pageSize=10"):
             if len(out) >= 8:
                 break
+            j = get_json(api)
+            if j:
+                from_json(j)
+                if out:
+                    print("[진단] 리서치 모바일 API 성공:", api.split("?")[0].split("/")[-1], flush=True)
+
+        # ── 2) PC 페이지 스크래핑 (.naver / .nhn 모두 시도) ──
+        if len(out) < 8:
+            for path in ("industry_list.naver", "invest_list.naver", "industry_list.nhn", "invest_list.nhn"):
+                if len(out) >= 8:
+                    break
+                try:
+                    r = requests.get(f"https://finance.naver.com/research/{path}",
+                                     headers=PC_HEADERS, timeout=15)
+                    r.encoding = "euc-kr"
+                    if r.status_code != 200:
+                        print(f"[진단] 리서치 {path} status={r.status_code}", flush=True)
+                        continue
+                    n0 = len(out)
+                    for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", r.text, re.S):
+                        a = re.search(r'href="(/research/\w+_read\.(?:naver|nhn)\?[^"]+)"[^>]*>(.*?)</a>', tr, re.S)
+                        d = re.search(r"(\d{2})\.(\d{2})\.(\d{2})", tr)
+                        if not a or not d:
+                            continue
+                        title = _h.unescape(re.sub(r"<[^>]+>", "", a.group(2))).strip()
+                        tds = re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)
+                        firm = ""
+                        for i2, td in enumerate(tds):
+                            if "_read." in td and i2 + 1 < len(tds):
+                                firm = re.sub(r"<[^>]+>", "", tds[i2 + 1]).strip()
+                                break
+                        add(firm, title, f"{d.group(2)}/{d.group(3)}",
+                            "https://finance.naver.com" + _h.unescape(a.group(1)))
+                    if len(out) == n0:   # 이 페이지에서 0건이면 원인 진단 출력
+                        body = re.sub(r"\s+", " ", r.text[:200])
+                        print(f"[진단] 리서치 {path} 파싱 0건 · len={len(r.text)} · _read.링크 {r.text.count('_read.')}개 · 앞부분: {body!r}", flush=True)
+                    time.sleep(0.2)
+                except Exception as e:
+                    print("[진단] 리서치 수집 실패:", str(e)[:120], flush=True)
         print("리서치 리포트:", len(out), "건", flush=True)
         return out
 
@@ -555,6 +596,21 @@ def market_extra():
 
     mk["fx"] = fx_usdkrw() or 0
     print("환율(USD/KRW):", mk["fx"] or "실패", flush=True)
+
+    def fx_hist(days=90):
+        """원/달러 최근 90일 이력 (그래프용)"""
+        try:
+            end = datetime.date.today()
+            start = end - datetime.timedelta(days=days)
+            j = get_json(f"https://api.frankfurter.app/{start}..{end}?from=USD&to=KRW")
+            rates = (j or {}).get("rates", {})
+            return [round(float(rates[d]["KRW"]), 2) for d in sorted(rates)]
+        except Exception as e:
+            print("[진단] 환율 이력 실패:", str(e)[:100], flush=True)
+            return []
+
+    mk["fxHist"] = fx_hist()
+    print("환율 이력:", len(mk["fxHist"]), "일", flush=True)
     mk["upjong"] = groups("upjong", 100) or upjong_scrape()
     mk["theme"] = groups("theme", 30)
     mk["news"] = news_kr()
