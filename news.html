@@ -177,7 +177,7 @@ const ICONS = {
   list: `<svg width="22" height="22" viewBox="0 0 22 22"><g stroke="#4cd7a5" stroke-width="2" stroke-linecap="round"><line x1="3" y1="5" x2="6" y2="5"/><line x1="9" y1="5" x2="19" y2="5"/><line x1="3" y1="11" x2="6" y2="11"/><line x1="9" y1="11" x2="19" y2="11"/><line x1="3" y1="17" x2="6" y2="17"/><line x1="9" y1="17" x2="19" y2="17"/></g></svg>`,
   net: `<svg width="22" height="22" viewBox="0 0 22 22"><g stroke="#f0c948" stroke-width="1.6" fill="none"><circle cx="6" cy="6" r="2.6"/><circle cx="16" cy="8" r="2.6"/><circle cx="10" cy="16" r="2.6"/><line x1="8" y1="7" x2="13.5" y2="7.6"/><line x1="7" y1="8.3" x2="9" y2="13.6"/><line x1="14.6" y1="10.2" x2="11.4" y2="14"/></g></svg>`,
   doc: `<svg width="22" height="22" viewBox="0 0 22 22"><g stroke="#f0708a" stroke-width="1.7" fill="none" stroke-linecap="round"><rect x="4" y="3" width="14" height="16" rx="2"/><line x1="7.5" y1="8" x2="14.5" y2="8"/><line x1="7.5" y1="11.5" x2="14.5" y2="11.5"/><line x1="7.5" y1="15" x2="11.5" y2="15"/></g></svg>`,
-  docs: `<svg width="22" height="22" viewBox="0 0 22 22"><g stroke="#4cd7a5" stroke-width="1.6" fill="none" stroke-linecap="round"><rect x="6.5" y="2.5" width="12" height="14" rx="2"/><path d="M4.5 6.5v11a2 2 0 0 0 2 2h9"/><line x1="10" y1="6.5" x2="15" y2="6.5"/><line x1="10" y1="9.5" x2="15" y2="9.5"/><line x1="10" y1="12.5" x2="13" y2="12.5"/></g></svg>`
+  poldoc: `<svg width="22" height="22" viewBox="0 0 22 22"><g stroke="#4cd7a5" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2.5h8l3.5 3.5v6.5"/><path d="M13 2.5V6h3.5"/><path d="M5 2.5v16a1 1 0 0 0 1 1h6"/><line x1="7.5" y1="8" x2="12" y2="8"/><line x1="7.5" y1="11" x2="11" y2="11"/><line x1="7.5" y1="14" x2="10" y2="14"/><path d="M16.5 12.5l3 1.1v2.4c0 2-1.4 3.4-3 4-1.6-.6-3-2-3-4v-2.4z"/><path d="M15.2 16l1 1 1.6-1.8"/></g></svg>`
 };
 function miniArea(vals, col){
   if (!vals.length) return "";
@@ -205,17 +205,14 @@ const dToday = dDates.length ? (DARTS[dDates[dDates.length-1]]||[]).length : 0;
 const dBars = dDates.slice(-7).map(d=>(DARTS[d]||[]).length);
 let cum = 0;
 const cumArr = hourly(ITEMS).map(v=>cum+=v);
-// 전문가 리포트 통계 (증권사 리서치)
-const REPORTS = MK.reports || [];
-const rToday = REPORTS.filter(r=>r[2]===todayMD).length;
-const rMap = {};
-REPORTS.forEach(r=>{ if (r[2]) rMap[r[2]] = (rMap[r[2]]||0)+1; });
-const rBars = Object.keys(rMap).sort().slice(-7).map(k=>rMap[k]);
+// 정책·규제 이슈 (카테고리 '정책' 또는 제목 내 규제 키워드)
+const POLICY = ITEMS.filter(x => x.cat === "정책" || /규제|정책|법안|제재|금융위|공정위|국회|세제|관세/.test(x.t));
+const pToday = POLICY.filter(x => (x.tm||"").startsWith(todayMD)).length;
 document.getElementById("cards4").innerHTML = `
   <div class="scard hov" onclick="openStat('all')"><span class="ic g">${ICONS.list}</span><div class="l"><div class="lb">전체 뉴스</div><div class="vl num">${ITEMS.length} <small>건</small></div><div class="sub">+${todayN} 오늘</div></div>${miniArea(cumArr,"#4cd7a5")}</div>
   <div class="scard hov" onclick="openStat('mk')"><span class="ic y">${ICONS.net}</span><div class="l"><div class="lb">시장 영향 뉴스</div><div class="vl num">${mkNews.length} <small>건</small></div><div class="sub">영향도 중간 이상</div></div>${miniBars(hourly(mkNews),"#f0c948")}</div>
   <div class="scard hov" onclick="openStat('dart')"><span class="ic r">${ICONS.doc}</span><div class="l"><div class="lb">주요 공시</div><div class="vl num">${dToday} <small>건</small></div><div class="sub">오늘 접수</div></div>${miniBars(dBars,"#f0708a")}</div>
-  <div class="scard hov" onclick="openStat('rep')"><span class="ic g">${ICONS.docs}</span><div class="l"><div class="lb">전문가 리포트</div><div class="vl num">${REPORTS.length} <small>건</small></div><div class="sub">+${rToday} 오늘</div></div>${miniBars(rBars,"#4cd7a5")}</div>`;
+  <div class="scard hov" onclick="openStat('rep')"><span class="ic g">${ICONS.poldoc}</span><div class="l"><div class="lb">정책·규제 이슈</div><div class="vl num">${POLICY.length} <small>건</small></div><div class="sub">+${pToday} 오늘</div></div>${miniBars(hourly(POLICY),"#4cd7a5")}</div>`;
 
 // ══ 통계 카드 팝업 (헤더 + 목록) ══
 const esc = s => String(s).replace(/</g,"&lt;");
@@ -248,12 +245,8 @@ window.openStat = which => {
       || `<div style="font-size:12px;color:var(--dim);padding:14px 0;">오늘 접수된 공시가 없습니다.</div>`;
     foot.innerHTML = `<button class="morebtn" style="margin:0;display:inline-block;" onclick="location.href='disclosure.html'">공시 충격도 페이지로 이동 →</button>`;
   } else {
-    title.innerHTML = "📑 전문가 리포트 <span style='font-size:11px;color:var(--dim);font-weight:600;'>· " + REPORTS.length + "건</span>";
-    body.innerHTML = (REPORTS.length ? `<div class="smhead"><span style="width:92px;flex-shrink:0;">증권사</span><span class="tx">제목</span><span style="width:40px;text-align:right;flex-shrink:0;">날짜</span></div>` : "") + REPORTS.map(r=>`
-      <div class="smrow" onclick="window.open('${r[3]}','_blank')">
-        <span class="tm" style="width:auto;max-width:92px;overflow:hidden;text-overflow:ellipsis;color:var(--muted);font-weight:700;">${esc(r[0])}</span>
-        <span class="tx">${esc(r[1])}</span><span class="src">${r[2]||""}</span></div>`).join("")
-      || `<div style="font-size:12px;color:var(--dim);padding:14px 0;">리포트 데이터가 아직 없어요. 다음 데이터 수집부터 표시됩니다.</div>`;
+    title.innerHTML = "🛡 정책·규제 이슈 <span style='font-size:11px;color:var(--dim);font-weight:600;'>· " + POLICY.length + "건</span>";
+    body.innerHTML = newsHead + newsRows(POLICY);
   }
   document.getElementById("statmodal").style.display = "flex";
 };
