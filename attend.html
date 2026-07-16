@@ -237,7 +237,8 @@ async function loadRanks(){
         <span class="rank">${i<3?["🥇","🥈","🥉"][i]:i+1}</span>
         <span style="width:19px;flex-shrink:0;text-align:center;">${r.av||""}</span>
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(r.nick||"익명").replace(/</g,"&lt;")}</span>
-        <span class="num" style="color:#f0c948;">🔥 ${r.streak}일</span>
+        <span style="flex-shrink:0;">🔥</span>
+        <b class="num" style="color:#f0c948;width:36px;text-align:right;flex-shrink:0;">${r.streak}일</b>
       </div>`).join("")
     : `<div style="font-size:12px;color:var(--dim);">아직 기록이 없어요.</div>`;
   } catch(e) { el.innerHTML = `<div style="font-size:12px;color:var(--dim);">랭킹을 불러오지 못했습니다.</div>`; }
