@@ -210,11 +210,9 @@ async function runPast(refetch){
   if (!e) return;
   if (refetch || !PBARS){
     PBARS = null; PAPPROX = false;
-    if (PSRC === "kr"){
-      try { const r = await fetch("ohlc/"+e[0]+".json");
-        if (r.ok){ const rows = await r.json();
-          PBARS = rows.map(a=>({d:String(a[0]), c:+a[4]})).filter(b=>b.c>0); } } catch(err){}
-    }
+    try { const r = await fetch((PSRC==="kr" ? "ohlc/" : "ohlc_us/") + e[0] + ".json");
+      if (r.ok){ const rows = await r.json();
+        PBARS = rows.map(a=>({d:String(a[0]), c:+a[4]})).filter(b=>b.c>0); } } catch(err){}
     if (!PBARS || PBARS.length < 5){
       PBARS = spkSeries(e, PSRC==="us");
       PAPPROX = !!PBARS;
