@@ -3,6 +3,7 @@
 # STOCK.GG 미국 전 종목 데이터 수집 (네이버 증권 해외 API — 한글 종목명 포함)
 # 결과물: data_us.js
 import json
+import os
 import re
 import sys
 import time
@@ -19,6 +20,10 @@ S = requests.Session()
 S.headers.update(HEADERS)
 
 EXCHANGES = ["NASDAQ", "NYSE", "AMEX"]
+# 차트용 일봉 OHLC 저장 대상: 시총 상위 종목 (레포 크기 관리 — 필요 시 숫자만 올리면 됨)
+OHLC_TOP_US = 600
+OHLC_SYMS = set()
+OHLC_WROTE = []
 TODAY = datetime.date.today()
 START = (TODAY - datetime.timedelta(days=1850)).strftime("%Y%m%d") + "000000"   # 5년치
 IDX_START = START
@@ -125,6 +130,27 @@ def fetch_one(st):
     vols = [int(r.get("accumulatedTradingVolume") or 0) for r in chart if r.get("closePrice")]
     if len(closes) < 6 or closes[-1] <= 0:
         return None
+
+    # 차트용 일봉 OHLC 저장 (시총 상위 종목만, 최근 500거래일)
+    if st["sym"] in OHLC_SYMS:
+        try:
+            rows = []
+            for rrow in chart:
+                c = num(rrow.get("closePrice"))
+                d = str(rrow.get("localDate") or "")
+                if not c or len(d) != 8:
+                    continue
+                o = num(rrow.get("openPrice")) or c
+                h = num(rrow.get("highPrice")) or c
+                l = num(rrow.get("lowPrice")) or c
+                v = int(num(rrow.get("accumulatedTradingVolume")) or 0)
+                rows.append([d, round(o, 2), round(h, 2), round(l, 2), round(c, 2), v])
+            if len(rows) >= 30:
+                with open(f"ohlc_us/{st['sym']}.json", "w", encoding="utf-8") as of:
+                    json.dump(rows[-500:], of, separators=(",", ":"))
+                OHLC_WROTE.append(st["sym"])
+        except Exception:
+            pass
     rc = closes[-65:]          # 최근 3개월 (지표 계산용)
     rv = vols[-65:]
 
@@ -296,6 +322,10 @@ def main():
         sys.exit("미국 종목 목록 수집 실패: " + str(len(stocks)))
     print("전체 대상:", len(stocks), flush=True)
 
+    # 차트용 OHLC 대상 지정 (시총 상위 OHLC_TOP_US)
+    OHLC_SYMS.update(s["sym"] for s in sorted(stocks, key=lambda s: -(s.get("cap") or 0))[:OHLC_TOP_US])
+    os.makedirs("ohlc_us", exist_ok=True)
+
     # 미국 지수 (다우/S&P500/나스닥)
     market = {}
     for code, key in ((".DJI", "dji"), (".INX", "inx"), (".IXIC", "ixic")):
@@ -431,6 +461,14 @@ def main():
         fp.write("window.KO_ALIAS=" + json.dumps(alias, ensure_ascii=False,
                                                  separators=(",", ":")) + ";\n")
     print("완료:", len(out), "종목 / 한글명", len(alias), "개 → data_us.js")
+
+    # 차트용 OHLC 인덱스
+    try:
+        with open("ohlc_us/index.json", "w", encoding="utf-8") as fp:
+            json.dump(sorted(set(OHLC_WROTE)), fp, separators=(",", ":"))
+        print("미국 차트 OHLC:", len(set(OHLC_WROTE)), "종목 → ohlc_us/*.json", flush=True)
+    except Exception as e:
+        print("[진단] OHLC 인덱스 쓰기 실패:", str(e)[:120], flush=True)
 
     # SEC 공시 (커버 종목만, 30일 누적)
     sec_filings(set(out.keys()))
