@@ -76,14 +76,14 @@
   <div class="page-sub">과거 매수 시뮬레이션, 물타기 계산, 목표 수익 계산을 통해 투자 판단을 돕습니다.</div>
 
   <div class="cards4">
-    <div class="scard" onclick="openYearTop()"><span class="ic">🏆</span><div><div class="lb">과거 매수</div><div class="sub">인기 1위</div></div><span class="ar">›</span></div>
-    <div class="scard" onclick="document.getElementById('sec2').scrollIntoView({behavior:'smooth'})"><span class="ic">🧮</span><div><div class="lb">물타기 계산</div><div class="sub">오늘 계산 1,284건</div></div><span class="ar">›</span></div>
-    <div class="scard" onclick="document.getElementById('sec3').scrollIntoView({behavior:'smooth'})"><span class="ic">🎯</span><div><div class="lb">목표 수익률</div><div class="sub">평균 목표 12.4%</div></div><span class="ar">›</span></div>
-    <div class="scard" onclick="document.getElementById('sec4').scrollIntoView({behavior:'smooth'})"><span class="ic">💰</span><div><div class="lb">적립식 시뮬레이션</div><div class="sub">월 투자 플랜</div></div><span class="ar">›</span></div>
+    <div class="scard" onclick="openYearTop()"><span class="ic"><img src="icons/trophy_gold.svg" width="30" height="30" alt=""></span><div><div class="lb">과거 매수</div><div class="sub">인기 1위</div></div><span class="ar">›</span></div>
+    <div class="scard" onclick="document.getElementById('sec2').scrollIntoView({behavior:'smooth'})"><span class="ic"><img src="icons/calculator_teal.svg" width="30" height="30" alt=""></span><div><div class="lb">물타기 계산</div><div class="sub">오늘 계산 1,284건</div></div><span class="ar">›</span></div>
+    <div class="scard" onclick="document.getElementById('sec3').scrollIntoView({behavior:'smooth'})"><span class="ic"><img src="icons/target_teal.svg" width="30" height="30" alt=""></span><div><div class="lb">목표 수익률</div><div class="sub">평균 목표 12.4%</div></div><span class="ar">›</span></div>
+    <div class="scard" onclick="document.getElementById('sec4').scrollIntoView({behavior:'smooth'})"><span class="ic"><img src="icons/coins_won_gold.svg" width="30" height="30" alt=""></span><div><div class="lb">적립식 시뮬레이션</div><div class="sub">월 투자 플랜</div></div><span class="ar">›</span></div>
   </div>
 
   <div class="g2">
-    <div class="card" id="sec1"><h3>🕐 만약 그때 샀더라면?</h3>
+    <div class="card" id="sec1"><h3><img src="icons/history_blue.svg" width="18" height="18" alt="" style="vertical-align:-3px;margin-right:5px;">만약 그때 샀더라면?</h3>
       <div class="frow2" style="margin-top:4px;">
         <label>종목</label>
         <span class="sbox" style="flex:1;min-width:160px;"><input class="fin" id="pq" style="width:100%;box-sizing:border-box;" placeholder="종목명 검색 (국내·미국)" autocomplete="off"><div class="suggest2" id="psg"></div></span>
@@ -96,7 +96,7 @@
       <button class="cbtn" onclick="runPast(true)">다시 계산</button>
     </div>
 
-    <div class="card" id="sec2"><h3>🧮 물타기 계산기</h3>
+    <div class="card" id="sec2"><h3><img src="icons/calculator_teal.svg" width="18" height="18" alt="" style="vertical-align:-3px;margin-right:5px;">물타기 계산기</h3>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:4px;">
         <div class="grpbox">
           <div class="grow2"><span class="k">현재 평단</span><input class="fin num" id="wAvg" type="number" value="82000"></div>
@@ -111,7 +111,7 @@
   </div>
 
   <div class="g2b">
-    <div class="card" id="sec3"><h3>🎯 목표 수익/손실 계산</h3>
+    <div class="card" id="sec3"><h3><img src="icons/target_arrow_teal.svg" width="18" height="18" alt="" style="vertical-align:-3px;margin-right:5px;">목표 수익/손실 계산</h3>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:4px;">
         <div class="grpbox">
           <div class="grow2"><span class="k">현재가</span><input class="fin num" id="tCur" type="number" value="78500"></div>
@@ -123,7 +123,7 @@
       <div id="tbar" style="margin-top:20px;"></div>
     </div>
 
-    <div class="card" id="sec4"><h3>💰 적립식 시뮬레이션</h3>
+    <div class="card" id="sec4"><h3><img src="icons/coins_teal.svg" width="18" height="18" alt="" style="vertical-align:-3px;margin-right:5px;">적립식 시뮬레이션</h3>
       <div style="display:grid;grid-template-columns:1fr 1.35fr;gap:14px;margin-top:4px;">
         <div>
           <div class="grpbox">
@@ -265,9 +265,9 @@ async function runPast(refetch){
   const cur = qty * last.c;
   const pf = cur - amt, pr = amt ? pf/amt*100 : 0;
   pres.innerHTML = `
-    <div class="resbox"><span class="em">💼</span><div><div class="lb">현재 평가금액</div><div class="vl num">${fmtM(cur)}</div></div></div>
-    <div class="resbox"><span class="em">💰</span><div><div class="lb">수익금</div><div class="vl num ${cls(pf)}">${pf>=0?"+":"-"}${fmtM(Math.abs(pf))}</div></div></div>
-    <div class="resbox"><span class="em">📈</span><div><div class="lb">수익률</div><div class="vl num ${cls(pr)}">${pr>=0?"+":""}${pr.toFixed(1)}%</div></div></div>`;
+    <div class="resbox"><span class="em"><img src="icons/wallet_teal.svg" width="23" height="23" alt=""></span><div><div class="lb">현재 평가금액</div><div class="vl num">${fmtM(cur)}</div></div></div>
+    <div class="resbox"><span class="em"><img src="icons/piggy_teal.svg" width="23" height="23" alt=""></span><div><div class="lb">수익금</div><div class="vl num ${cls(pf)}">${pf>=0?"+":"-"}${fmtM(Math.abs(pf))}</div></div></div>
+    <div class="resbox"><span class="em"><img src="icons/arrow_up_teal.svg" width="23" height="23" alt=""></span><div><div class="lb">수익률</div><div class="vl num ${cls(pr)}">${pr>=0?"+":""}${pr.toFixed(1)}%</div></div></div>`;
   PSTATE = { bi, qty, amt };
   drawPChips(); drawPChart();
 }
