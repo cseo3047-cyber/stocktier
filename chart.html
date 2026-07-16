@@ -10,7 +10,17 @@
   body { overflow:hidden; }
   .term { display:flex; width:100%; background:#0a1620; color:var(--text); }
   .tleft { flex:1; min-width:0; display:flex; flex-direction:column; }
-  #tvchart { flex:1; min-height:0; background:#0a1a22; display:flex; }
+  /* ── 자체 차트 엔진 ── */
+  #cvhead { height:40px; flex-shrink:0; display:flex; align-items:center; gap:12px; padding:0 14px; border-bottom:1px solid var(--border); background:#0a1a22; font-size:12px; overflow:hidden; white-space:nowrap; }
+  #cvhead b.sym { font-size:14px; font-weight:800; flex-shrink:0; }
+  #cvlegend { color:var(--muted); font-variant-numeric:tabular-nums; overflow:hidden; text-overflow:ellipsis; }
+  #cvlegend b { font-weight:800; }
+  #cvpers { margin-left:auto; display:flex; gap:5px; flex-shrink:0; }
+  #cvpers span { cursor:pointer; font-size:10.5px; font-weight:800; padding:4px 10px; border-radius:7px; border:1px solid var(--border); color:var(--muted); }
+  #cvpers span.on { background:#13322a; color:#4cd7a5; border-color:#2e5c47; }
+  #cvbody { flex:1; position:relative; min-height:0; background:#0a1a22; }
+  #cchart { width:100%; height:100%; display:block; cursor:crosshair; }
+  #cvempty { position:absolute; inset:0; display:none; align-items:center; justify-content:center; text-align:center; color:var(--dim); font-size:12.5px; line-height:1.9; padding:24px; }
   .tind { height:158px; flex-shrink:0; border-top:1px solid var(--border); display:grid; grid-template-columns:repeat(5,1fr); }
   .icard { border-right:1px solid var(--border); padding:12px 14px; display:flex; flex-direction:column; min-width:0; overflow:hidden; }
   .icard:last-child { border-right:none; }
@@ -43,17 +53,21 @@
   .nrow a { color:var(--muted); text-decoration:none; line-height:1.45; }
   .nrow a:hover { color:var(--gold); }
   .nrow .tm { color:var(--dim); font-size:10px; flex-shrink:0; }
-  .miss { margin:auto; max-width:640px; padding:30px; }
-  .miss h3 { font-size:15px; } .miss code { background:var(--panel2); border:1px solid var(--border); border-radius:5px; padding:1px 6px; font-size:11px; color:#8fd6b8; }
-  .miss ol { font-size:12.5px; color:var(--muted); line-height:1.95; }
-  .miss a { color:var(--gold); }
 </style>
 </head>
 <body>
 <nav class="nav" id="nav"></nav>
 <div class="term" id="term">
   <div class="tleft">
-    <div id="tvchart"></div>
+    <div id="cvhead">
+      <b class="sym" id="cvtitle">차트</b>
+      <span id="cvlegend"></span>
+      <span id="cvpers"></span>
+    </div>
+    <div id="cvbody">
+      <canvas id="cchart"></canvas>
+      <div id="cvempty"></div>
+    </div>
     <div class="tind" id="tind"></div>
   </div>
   <div class="tside">
@@ -76,7 +90,6 @@
 <script src="data.js"></script>
 <script src="data_us.js"></script>
 <script src="common.js"></script>
-<script src="datafeed.js"></script>
 <script>
 ST.nav("chart.html");
 // 표준 네비 아래로 터미널이 화면을 꽉 채우도록 높이 계산 (네비 위치 방식과 무관하게 동작)
@@ -95,7 +108,6 @@ const byCode = {}; for (const nm in KR) if (KR[nm][0]) byCode[KR[nm][0]] = { nam
 const majors = Object.keys(KR).map(nm=>({nm,e:KR[nm]})).sort((a,b)=>(b.e[8]||0)-(a.e[8]||0)).slice(0,12);
 const q = new URLSearchParams(location.search);
 let CURCODE = (q.get("k") && KR[decodeURIComponent(q.get("k"))]) ? KR[decodeURIComponent(q.get("k"))][0] : "005930";
-let WIDGET = null;
 const wonN = v => v==null?"-":Math.round(v).toLocaleString("ko-KR");
 const cls = v => v==null?"":v>=0?"up":"down";
 const pct = v => (v>=0?"+":"")+v.toFixed(2)+"%";
@@ -111,6 +123,205 @@ function gaugeSvg(score,col){ const a=Math.PI*(1-score/100); const x=37+31*Math.
     <path d="M6 40 A31 31 0 0 1 68 40" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${score/100*97} 200"/>
     <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.4" fill="#fff"/></svg>`; }
 
+// ══════════ 자체 캔들차트 엔진 (트레이딩뷰 미사용 · 자체 수집 OHLC 데이터) ══════════
+const CV = { bars:null, i0:0, i1:0, hover:-1, hy:null, drag:null, per:130 };
+const AXW = 66, AXH = 22, VOLR = 0.24;
+const MAS = [[5,"#f0c948"],[20,"#4cc4ff"],[60,"#c77dff"]];
+const cvs = document.getElementById("cchart");
+const ctx = cvs.getContext("2d");
+const PERSC = [["3개월",65],["6개월",130],["1년",250],["전체",99999]];
+
+function cvResize(){
+  const w = cvs.clientWidth, h = cvs.clientHeight, dpr = window.devicePixelRatio||1;
+  if (!w || !h) return;
+  cvs.width = Math.round(w*dpr); cvs.height = Math.round(h*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  drawCV();
+}
+window.addEventListener("resize", cvResize);
+
+function chartSet(bars, name){
+  CV.bars = bars && bars.length ? bars : null;
+  CV.hover = -1;
+  document.getElementById("cvtitle").textContent = name || "차트";
+  const emp = document.getElementById("cvempty");
+  if (!CV.bars){
+    emp.style.display = "flex";
+    emp.innerHTML = `<div>📉 이 종목은 차트 데이터가 없어요.<br><span style="font-size:11px;">일봉 차트는 국내 시가총액 상위 종목만 지원합니다 (매일 자동 수집).</span></div>`;
+    ctx.clearRect(0,0,cvs.clientWidth,cvs.clientHeight);
+    document.getElementById("cvlegend").innerHTML = "";
+    drawPers();
+    return;
+  }
+  emp.style.display = "none";
+  cvSetPer(CV.per);
+}
+function drawPers(){
+  document.getElementById("cvpers").innerHTML = PERSC.map(([lb,n])=>
+    `<span class="${CV.per===n?"on":""}" onclick="cvSetPer(${n})">${lb}</span>`).join("");
+}
+window.cvSetPer = n => {
+  CV.per = n;
+  if (CV.bars){ CV.i1 = CV.bars.length-1; CV.i0 = Math.max(0, CV.bars.length - Math.min(n, CV.bars.length)); }
+  drawPers(); cvResize();
+};
+
+const smaAt = (bars,n,i)=>{ if(i+1<n) return null; let s=0; for(let k=i-n+1;k<=i;k++) s+=bars[k].c; return s/n; };
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+function drawCV(){
+  if (!CV.bars) return;
+  const W = cvs.clientWidth, H = cvs.clientHeight;
+  if (!W || !H) return;
+  ctx.clearRect(0,0,W,H);
+  const bars = CV.bars, i0 = CV.i0, i1 = CV.i1, n = i1-i0+1;
+  const plotW = W-AXW;
+  const priceH = (H-AXH)*(1-VOLR)-6;
+  const volTop = priceH+12, volH = (H-AXH)-volTop-4;
+  let mn=Infinity, mx=-Infinity, vmax=0;
+  for (let i=i0;i<=i1;i++){ const b=bars[i]; if(b.l<mn)mn=b.l; if(b.h>mx)mx=b.h; if(b.v>vmax)vmax=b.v; }
+  const pad=(mx-mn)*0.06||mx*0.01||1; mn-=pad; mx+=pad;
+  const X = i => (i-i0+0.5)/n*plotW;
+  const Y = v => (1-(v-mn)/(mx-mn))*priceH + 4;
+  const bw = Math.max(1, Math.min(19, plotW/n*0.66));
+  ctx.font = "10px -apple-system,sans-serif"; ctx.textAlign = "left"; ctx.lineWidth = 1;
+  // 가로 그리드 + 가격 라벨
+  for (let g=0; g<=4; g++){
+    const v = mn+(mx-mn)*g/4, y = Y(v);
+    ctx.strokeStyle="#12303a"; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(plotW,y); ctx.stroke();
+    ctx.fillStyle="#5a737d"; ctx.fillText(wonN(v), plotW+6, y+3.5);
+  }
+  // 세로 그리드 + 날짜 라벨
+  const step = Math.max(1, Math.ceil(n/(plotW/94)));
+  ctx.textAlign="center";
+  for (let i=i0; i<=i1; i+=step){
+    const x=X(i), d=bars[i].d;
+    ctx.strokeStyle="#0f2733"; ctx.beginPath(); ctx.moveTo(x,4); ctx.lineTo(x,H-AXH); ctx.stroke();
+    ctx.fillStyle="#5a737d"; ctx.fillText(d.slice(4,6)+"/"+d.slice(6,8), x, H-7);
+  }
+  ctx.textAlign="left";
+  // 거래량
+  for (let i=i0;i<=i1;i++){ const b=bars[i];
+    ctx.fillStyle = b.c>=b.o ? "#4cd7a544" : "#f0645a44";
+    const vh = vmax ? b.v/vmax*volH : 0;
+    ctx.fillRect(X(i)-bw/2, volTop+volH-vh, bw, Math.max(1,vh));
+  }
+  ctx.fillStyle="#5a737d"; ctx.fillText("거래량", plotW+6, volTop+10);
+  // 캔들
+  for (let i=i0;i<=i1;i++){ const b=bars[i];
+    const up = b.c>=b.o, col = up?"#4cd7a5":"#f0645a";
+    const x = X(i);
+    ctx.strokeStyle=col; ctx.beginPath(); ctx.moveTo(x,Y(b.h)); ctx.lineTo(x,Y(b.l)); ctx.stroke();
+    ctx.fillStyle=col;
+    const yO=Y(b.o), yC=Y(b.c);
+    ctx.fillRect(x-bw/2, Math.min(yO,yC), bw, Math.max(1,Math.abs(yC-yO)));
+  }
+  // 이동평균선 (MA5 / MA20 / MA60)
+  for (const [nn,col] of MAS){
+    ctx.strokeStyle=col; ctx.lineWidth=1.3; ctx.beginPath(); let st=false;
+    for (let i=i0;i<=i1;i++){ const v=smaAt(bars,nn,i); if(v==null) continue;
+      const x=X(i), y=Y(v);
+      if(!st){ ctx.moveTo(x,y); st=true; } else ctx.lineTo(x,y); }
+    ctx.stroke();
+  }
+  ctx.lineWidth=1;
+  // 현재가 점선 + 배지
+  const last = bars[bars.length-1];
+  if (last.c>=mn && last.c<=mx){
+    const y = Y(last.c);
+    ctx.setLineDash([4,4]); ctx.strokeStyle="#f0c948";
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(plotW,y); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle="#f0c948"; rr(plotW+2,y-9,AXW-5,18,4); ctx.fill();
+    ctx.fillStyle="#1a1608"; ctx.font="bold 10px -apple-system,sans-serif";
+    ctx.fillText(wonN(last.c), plotW+8, y+3.5);
+    ctx.font="10px -apple-system,sans-serif";
+  }
+  // 십자선 + 가격/날짜 배지
+  if (CV.hover>=i0 && CV.hover<=i1){
+    const x = X(CV.hover);
+    ctx.setLineDash([4,4]); ctx.strokeStyle="#8da4ac";
+    ctx.beginPath(); ctx.moveTo(x,4); ctx.lineTo(x,H-AXH); ctx.stroke();
+    if (CV.hy!=null && CV.hy<=priceH+4){
+      ctx.beginPath(); ctx.moveTo(0,CV.hy); ctx.lineTo(plotW,CV.hy); ctx.stroke();
+      ctx.setLineDash([]);
+      const pv = mn + (1-(CV.hy-4)/priceH)*(mx-mn);
+      ctx.fillStyle="#22303c"; rr(plotW+2,CV.hy-9,AXW-5,18,4); ctx.fill();
+      ctx.fillStyle="#cfe4ec"; ctx.fillText(wonN(pv), plotW+8, CV.hy+3.5);
+    }
+    ctx.setLineDash([]);
+    const d = bars[CV.hover].d;
+    ctx.fillStyle="#22303c"; rr(Math.max(2,Math.min(plotW-56,x-27)),H-AXH+2,54,17,4); ctx.fill();
+    ctx.fillStyle="#cfe4ec"; ctx.textAlign="center";
+    ctx.fillText(d.slice(2,4)+"."+d.slice(4,6)+"."+d.slice(6,8), Math.max(29,Math.min(plotW-29,x)), H-AXH+14);
+    ctx.textAlign="left";
+  }
+  legend(CV.hover>=0 ? CV.hover : bars.length-1);
+}
+function legend(i){
+  const bars = CV.bars; if(!bars) return;
+  const b = bars[i], p = i>0 ? bars[i-1].c : b.o;
+  const ch = b.c-p, chp = p?ch/p*100:0, col = ch>=0?"#4cd7a5":"#f0645a";
+  const maStr = MAS.map(([n,c])=>{ const v=smaAt(bars,n,i);
+    return v==null?"":`<span style="color:${c};">MA${n} <b>${wonN(v)}</b></span>`; }).filter(Boolean).join(" · ");
+  document.getElementById("cvlegend").innerHTML =
+    `<span style="color:var(--dim);">${b.d.slice(0,4)}.${b.d.slice(4,6)}.${b.d.slice(6,8)}</span>
+     시 <b>${wonN(b.o)}</b> 고 <b style="color:#4cd7a5;">${wonN(b.h)}</b> 저 <b style="color:#f0645a;">${wonN(b.l)}</b>
+     종 <b style="color:${col};">${wonN(b.c)} (${chp>=0?"+":""}${chp.toFixed(2)}%)</b>
+     · 거래량 <b>${wonN(b.v)}</b> &nbsp; ${maStr}`;
+}
+// ── 인터랙션: 십자선 · 드래그 이동 · 휠 확대/축소 · 터치 이동
+function evPos(ev){ const r=cvs.getBoundingClientRect(); return [ev.clientX-r.left, ev.clientY-r.top]; }
+cvs.addEventListener("mousemove", ev => {
+  if (!CV.bars) return;
+  const [x,y] = evPos(ev);
+  const plotW = cvs.clientWidth-AXW, n = CV.i1-CV.i0+1;
+  if (CV.drag){
+    const shift = Math.round((CV.drag.x - x) / (plotW/n));
+    if (shift !== 0){
+      let i0 = CV.drag.i0 + shift;
+      i0 = Math.max(0, Math.min(CV.bars.length-n, i0));
+      CV.i0 = i0; CV.i1 = i0+n-1;
+    }
+  }
+  CV.hover = Math.max(CV.i0, Math.min(CV.i1, CV.i0 + Math.floor(x/plotW*n)));
+  CV.hy = y;
+  drawCV();
+});
+cvs.addEventListener("mousedown", ev => { const [x]=evPos(ev); CV.drag={x, i0:CV.i0}; cvs.style.cursor="grabbing"; });
+window.addEventListener("mouseup", () => { CV.drag=null; cvs.style.cursor="crosshair"; });
+cvs.addEventListener("mouseleave", () => { if(!CV.drag){ CV.hover=-1; CV.hy=null; drawCV(); } });
+cvs.addEventListener("wheel", ev => {
+  if (!CV.bars) return;
+  ev.preventDefault();
+  const [x] = evPos(ev);
+  const plotW = cvs.clientWidth-AXW;
+  const span = CV.i1-CV.i0+1;
+  const factor = ev.deltaY>0 ? 1.15 : 1/1.15;
+  let ns = Math.round(span*factor);
+  ns = Math.max(15, Math.min(CV.bars.length, ns));
+  const r = Math.max(0, Math.min(1, x/plotW));
+  const ic = CV.i0 + r*span;
+  let i0 = Math.round(ic - r*ns);
+  i0 = Math.max(0, Math.min(CV.bars.length-ns, i0));
+  CV.i0 = i0; CV.i1 = i0+ns-1;
+  drawCV();
+}, { passive:false });
+cvs.addEventListener("touchstart", ev => { if(ev.touches.length===1){ CV.drag={x:ev.touches[0].clientX - cvs.getBoundingClientRect().left, i0:CV.i0}; } }, {passive:true});
+cvs.addEventListener("touchmove", ev => {
+  if (!CV.bars || !CV.drag || ev.touches.length!==1) return;
+  const x = ev.touches[0].clientX - cvs.getBoundingClientRect().left;
+  const plotW = cvs.clientWidth-AXW, n = CV.i1-CV.i0+1;
+  const shift = Math.round((CV.drag.x - x) / (plotW/n));
+  if (shift !== 0){
+    let i0 = CV.drag.i0 + shift;
+    i0 = Math.max(0, Math.min(CV.bars.length-n, i0));
+    CV.i0 = i0; CV.i1 = i0+n-1;
+    drawCV();
+  }
+}, {passive:true});
+cvs.addEventListener("touchend", () => { CV.drag=null; });
+// ══════════ 차트 엔진 끝 ══════════
+
 async function showSymbol(code){
   CURCODE = code;
   drawWatch();
@@ -119,6 +330,7 @@ async function showSymbol(code){
   let bars = null;
   try { const r = await fetch("ohlc/"+code+".json"); if(r.ok){ const rows=await r.json();
     bars = rows.map(a=>({d:String(a[0]),o:+a[1],h:+a[2],l:+a[3],c:+a[4],v:+a[5]})).filter(b=>b.c>0); } } catch(e){}
+  chartSet(bars, o ? o.name : code);
   renderInd(bars, o);
   renderSum(bars, o);
 }
@@ -153,7 +365,7 @@ function renderInd(bars,o){
   const atp = L.c ? at/L.c*100 : 0;
   const s5=sma(c,5),s20=sma(c,20),s60=sma(c,60);
   let buy=0,sell=0;
-  if(s5&&s20){ (s5>s20?buy:sell); s5>s20?buy++:sell++; } if(s20){ L.c>s20?buy++:sell++; } if(s60){ L.c>s60?buy++:sell++; }
+  if(s5&&s20){ s5>s20?buy++:sell++; } if(s20){ L.c>s20?buy++:sell++; } if(s60){ L.c>s60?buy++:sell++; }
   if(r!=null){ if(r<30)buy++; else if(r>70)sell++; } if(ts>=60)buy++; else if(ts<=40)sell++;
   const neu = Math.max(0,6-buy-sell);
   const sig = buy>sell?"매수 우세":sell>buy?"매도 우세":"중립";
@@ -204,8 +416,8 @@ function drawNews(){
     : `<div style="font-size:11.5px;color:var(--dim);">뉴스 데이터가 없어요.</div>`;
 }
 
-// 종목 변경(관심종목 클릭·검색): 재렌더 + 차트 위젯 동기화
-function chSym(code){ showSymbol(code); if(WIDGET&&WIDGET.activeChart){ try{ WIDGET.activeChart().setSymbol(code); }catch(e){} } }
+// 종목 변경(관심종목 클릭·검색)
+function chSym(code){ showSymbol(code); }
 window.chSym = chSym;
 
 // 사이드바 검색
@@ -217,38 +429,9 @@ csq.addEventListener("input", ()=>{ const v=csq.value.trim().toLowerCase(); if(!
 document.addEventListener("click", e=>{ if(!e.target.closest(".cssearch")) csg.style.display="none"; });
 window.pickSym = cd => { csq.value=""; csg.style.display="none"; chSym(cd); };
 
+drawPers();
 drawWatch(); drawNews(); showSymbol(CURCODE);
-
-// TradingView 고급차트 (설치 시)
-function tvMissing(){ document.getElementById("tvchart").innerHTML = `<div class="miss">
-  <h3>📈 차트 엔진(TradingView 고급차트)을 아직 설치하지 않았어요</h3>
-  <div style="font-size:12px;color:var(--dim);margin-top:4px;">무료 TradingView Advanced Charts 라이브러리를 받아 사이트에 올리면 이 자리에 캔들차트가 떠요. 오른쪽 관심종목·지표는 지금도 작동합니다.</div>
-  <ol><li><a href="https://www.tradingview.com/advanced-charts/" target="_blank" rel="noopener">tradingview.com/advanced-charts</a> 무료 신청 → <code>charting_library/</code> 폴더 받기</li>
-  <li>그 폴더를 사이트 루트에 업로드 (경로: <code>charting_library/charting_library.standalone.js</code>)</li>
-  <li>새로고침하면 차트가 표시됩니다.</li></ol></div>`; }
-</script>
-<script src="charting_library/charting_library.standalone.js" onerror="tvMissing()"></script>
-<script>
-(function(){
-  if(!window.TradingView || !window.TradingView.widget){ tvMissing(); return; }
-  const OV = { "paneProperties.background":"#0a1a22","paneProperties.backgroundType":"solid",
-    "paneProperties.vertGridProperties.color":"#12303a","paneProperties.horzGridProperties.color":"#12303a",
-    "scalesProperties.textColor":"#8da4ac","scalesProperties.lineColor":"#1c3440",
-    "mainSeriesProperties.candleStyle.upColor":"#4cd7a5","mainSeriesProperties.candleStyle.downColor":"#f0645a",
-    "mainSeriesProperties.candleStyle.borderUpColor":"#4cd7a5","mainSeriesProperties.candleStyle.borderDownColor":"#f0645a",
-    "mainSeriesProperties.candleStyle.wickUpColor":"#4cd7a5","mainSeriesProperties.candleStyle.wickDownColor":"#f0645a" };
-  WIDGET = new TradingView.widget({
-    container:"tvchart", library_path:"charting_library/", datafeed:window.makeStocktierDatafeed(),
-    symbol:CURCODE, interval:"1D", autosize:true, theme:"dark", locale:"ko", timezone:"Asia/Seoul",
-    overrides:OV, loading_screen:{backgroundColor:"#0a1a22",foregroundColor:"#4cd7a5"},
-    custom_css_url:"chart-theme.css", disabled_features:["header_saveload","study_templates"],
-    studies_overrides:{ "volume.volume.color.0":"#f0645a","volume.volume.color.1":"#4cd7a5" }
-  });
-  WIDGET.onChartReady(()=>{ try{ WIDGET.activeChart().onSymbolChanged().subscribe(null, ()=>{
-    const s = WIDGET.activeChart().symbol(); const cd = s && s.indexOf(":")>=0 ? s.split(":").pop() : s;
-    if(cd && cd!==CURCODE) showSymbol(cd);
-  }); }catch(e){} });
-})();
+requestAnimationFrame(cvResize);
 </script>
 </body>
 </html>
