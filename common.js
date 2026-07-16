@@ -424,6 +424,8 @@ window.ST = (function () {
       (document.querySelector(".wrap") || document.body).appendChild(ft);
     }
     ft.innerHTML = notice
+      + ` &nbsp;·&nbsp; <a href="about.html" style="color:var(--muted);text-decoration:underline;">서비스 소개</a>`
+      + ` &nbsp;·&nbsp; <a href="contact.html" style="color:var(--muted);text-decoration:underline;">문의</a>`
       + ` &nbsp;·&nbsp; <a href="privacy.html" style="color:var(--muted);text-decoration:underline;">개인정보 처리방침</a>`
       + ` &nbsp;·&nbsp; <a href="terms.html" style="color:var(--muted);text-decoration:underline;">이용약관</a>`
       + (window.LOGO_DEV_KEY ? ` &nbsp;·&nbsp; <a href="https://logo.dev" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:underline;">Logos by Logo.dev</a>` : "")

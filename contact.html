@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stocktier — 문의하기</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap { max-width:880px; }
+  .g2c { display:grid; grid-template-columns:1.25fr 1fr; gap:14px; align-items:start; }
+  @media (max-width:800px){ .g2c { grid-template-columns:1fr; } }
+  .frow3 { margin-bottom:13px; }
+  .frow3 label { display:block; font-size:12px; color:var(--muted); font-weight:700; margin-bottom:6px; }
+  .frow3 input, .frow3 select, .frow3 textarea { width:100%; box-sizing:border-box; padding:10px 13px; font-size:13px; background:var(--panel2); border:1.5px solid var(--border); border-radius:9px; color:var(--text); outline:none; font-family:inherit; }
+  .frow3 input:focus, .frow3 textarea:focus, .frow3 select:focus { border-color:var(--gold-dim); }
+  .frow3 textarea { min-height:150px; resize:vertical; line-height:1.7; }
+  .sendbtn { width:100%; padding:12px; border-radius:10px; border:none; background:#1d9e75; color:#fff; font-size:13.5px; font-weight:800; cursor:pointer; }
+  .sendbtn:hover { background:#24b586; }
+  .mailbox { background:linear-gradient(120deg,#0a2836,#0d3d3d); border:1px solid #1c4a44; border-radius:13px; padding:16px 18px; display:flex; align-items:center; gap:13px; margin-bottom:14px; }
+  .mailbox .em { font-size:15px; font-weight:800; color:var(--gold); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  .copybtn { background:transparent; border:1px solid var(--gold-dim); color:var(--gold); border-radius:8px; padding:7px 14px; font-size:11.5px; font-weight:800; cursor:pointer; flex-shrink:0; }
+  .faqrow { padding:11px 2px; border-bottom:1px solid #ffffff0d; }
+  .faqrow:last-child { border-bottom:none; }
+  .faqrow b { font-size:13px; display:block; margin-bottom:4px; }
+  .faqrow p { font-size:12px; color:var(--muted); line-height:1.8; margin:0; }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<div class="wrap">
+  <div class="page-title">문의하기</div>
+  <div class="page-sub">서비스 이용 중 궁금한 점, 오류 제보, 제휴 제안을 보내주세요.</div>
+
+  <div class="mailbox">
+    <span style="font-size:26px;">📮</span>
+    <span class="em" id="emtxt">contact@stocktier.kr</span>
+    <button class="copybtn" onclick="copyEmail()">주소 복사</button>
+    <a class="copybtn" href="mailto:contact@stocktier.kr" style="text-decoration:none;">메일 보내기</a>
+  </div>
+
+  <div class="g2c">
+    <div class="card"><h3>✉️ 문의 양식</h3>
+      <div style="font-size:11.5px;color:var(--dim);margin-bottom:14px;">작성 후 버튼을 누르면 메일 앱이 열리고 내용이 자동으로 채워집니다.</div>
+      <div class="frow3"><label>이름 (닉네임)</label><input id="fnm" placeholder="홍길동"></div>
+      <div class="frow3"><label>회신받을 이메일</label><input id="fem" type="email" placeholder="you@example.com"></div>
+      <div class="frow3"><label>문의 유형</label>
+        <select id="fty">
+          <option>서비스 이용 문의</option>
+          <option>오류 · 버그 제보</option>
+          <option>데이터 오류 제보</option>
+          <option>기능 제안</option>
+          <option>제휴 · 광고 문의</option>
+          <option>계정 발급 요청</option>
+          <option>기타</option>
+        </select></div>
+      <div class="frow3"><label>내용</label><textarea id="fmsg" placeholder="문의 내용을 적어주세요. 오류 제보라면 발생한 페이지와 상황을 함께 알려주시면 빨리 해결할 수 있어요."></textarea></div>
+      <button class="sendbtn" onclick="sendMail()">메일 앱으로 보내기</button>
+      <div id="fnote" style="font-size:11.5px;font-weight:700;margin-top:9px;min-height:15px;"></div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card"><h3>자주 묻는 질문</h3>
+        <div class="faqrow"><b>Q. 데이터는 언제 갱신되나요?</b><p>평일 장 마감 후 자동으로 수집됩니다. 페이지 상단의 "업데이트" 표시에서 기준 시점을 확인할 수 있어요.</p></div>
+        <div class="faqrow"><b>Q. 회원가입은 어떻게 하나요?</b><p>Google 계정으로 바로 로그인할 수 있어요. 이메일 계정은 운영자가 발급하는 방식이라 계정 발급 요청으로 문의해주세요.</p></div>
+        <div class="faqrow"><b>Q. 티어와 점수를 믿고 투자해도 되나요?</b><p>아니요. 티어·점수는 공개 데이터를 가공한 재미용 지표로, 투자 자문이나 종목 추천이 아닙니다. 투자 판단의 책임은 본인에게 있어요.</p></div>
+        <div class="faqrow"><b>Q. 답변은 얼마나 걸리나요?</b><p>보통 2~3일 안에 회신드리며, 개인이 운영하는 서비스라 다소 늦어질 수 있는 점 양해 부탁드려요.</p></div>
+      </div>
+      <div class="card"><h3>바로가기</h3>
+        <div style="display:flex;flex-direction:column;gap:9px;font-size:12.5px;font-weight:700;">
+          <a href="about.html" style="color:var(--text);">📖 서비스 소개</a>
+          <a href="privacy.html" style="color:var(--text);">🔒 개인정보 처리방침</a>
+          <a href="terms.html" style="color:var(--text);">📄 이용약관</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer"></div>
+</div>
+
+<script src="data.js"></script>
+<script src="data_us.js"></script>
+<script src="common.js"></script>
+<script>
+ST.nav("");
+window.copyEmail = () => {
+  navigator.clipboard.writeText("contact@stocktier.kr").then(()=>{
+    const b = document.getElementById("emtxt");
+    const t = b.textContent; b.textContent = "복사되었습니다!";
+    setTimeout(()=>{ b.textContent = t; }, 1400);
+  }).catch(()=>{});
+};
+window.sendMail = () => {
+  const nm = document.getElementById("fnm").value.trim();
+  const em = document.getElementById("fem").value.trim();
+  const ty = document.getElementById("fty").value;
+  const msg = document.getElementById("fmsg").value.trim();
+  const note = document.getElementById("fnote");
+  if (!msg){ note.textContent = "문의 내용을 입력해주세요."; note.style.color = "#f0708a"; return; }
+  const subject = encodeURIComponent(`[Stocktier 문의] ${ty}${nm?" - "+nm:""}`);
+  const body = encodeURIComponent(`이름: ${nm||"-"}\n회신 이메일: ${em||"-"}\n문의 유형: ${ty}\n\n${msg}`);
+  location.href = `mailto:contact@stocktier.kr?subject=${subject}&body=${body}`;
+  note.textContent = "메일 앱이 열리지 않으면 상단의 주소로 직접 보내주세요.";
+  note.style.color = "var(--dim)";
+};
+</script>
+</body>
+</html>

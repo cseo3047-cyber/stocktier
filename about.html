@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stocktier — 서비스 소개</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap { max-width:980px; }
+  .hero2 { background:linear-gradient(120deg,#0a2836 0%,#0d3d3d 70%,#104643 100%); border:1px solid #1c4a44; border-radius:18px; padding:34px 36px; margin-bottom:16px; }
+  .hero2 h2 { font-size:24px; margin:0 0 10px; }
+  .hero2 p { font-size:13.5px; color:var(--muted); line-height:2.0; margin:0; }
+  .fgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+  @media (max-width:800px){ .fgrid { grid-template-columns:1fr; } }
+  .fcard { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px; transition:border-color .15s; }
+  .fcard:hover { border-color:#4cd7a5; }
+  .fcard .ic { width:40px; height:40px; border-radius:11px; background:#4cd7a51a; border:1px solid #4cd7a544; display:flex; align-items:center; justify-content:center; font-size:19px; margin-bottom:11px; }
+  .fcard b { font-size:14px; display:block; margin-bottom:6px; }
+  .fcard p { font-size:12px; color:var(--muted); line-height:1.8; margin:0; }
+  .fcard a { color:var(--gold); font-size:11.5px; font-weight:700; }
+  .inforow { display:flex; gap:12px; padding:11px 2px; border-bottom:1px solid #ffffff0d; font-size:13px; }
+  .inforow:last-child { border-bottom:none; }
+  .inforow .k { width:130px; flex-shrink:0; color:var(--muted); font-weight:700; }
+  .inforow .v { color:var(--text); line-height:1.7; }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<div class="wrap">
+  <div class="page-title">서비스 소개</div>
+  <div class="page-sub">Stocktier가 어떤 서비스인지 소개합니다.</div>
+
+  <div class="hero2">
+    <h2>시장을 게임처럼 읽는 주식 정보 플랫폼, <span style="color:var(--gold);">Stocktier</span></h2>
+    <p>Stocktier는 국내 약 2,800개 · 미국 약 7,000개 상장 종목의 데이터를 매일 자동 수집해,
+    채권 신용등급 방식의 <b style="color:var(--text);">티어(AAA~D)</b>로 종목의 상태를 한눈에 보여주는 무료 서비스입니다.
+    복잡한 지표를 게임 티어처럼 직관적으로 바꿔, 투자 공부를 재미있게 시작할 수 있도록 돕습니다.
+    회원가입 없이 누구나 모든 기능을 무료로 이용할 수 있어요.</p>
+  </div>
+
+  <div class="fgrid">
+    <div class="fcard"><span class="ic">📊</span><b>티어 랭킹 & 종목 분석</b><p>전 종목을 AAA~D 티어로 평가하고, 종목별 수급·모멘텀·밸류에이션·리스크를 점수화해 보여줍니다. 산정 방식은 클릭 한 번으로 투명하게 공개돼요.</p><a href="tier.html">티어 랭킹 보기 ›</a></div>
+    <div class="fcard"><span class="ic">📈</span><b>차트 & 리스크 워치</b><p>자체 제작 캔들차트(일봉·이동평균·거래량)와 급등 과열·수급 악화 등 위험 신호를 모니터링하는 리스크 워치를 제공합니다.</p><a href="chart.html">차트 열기 ›</a></div>
+    <div class="fcard"><span class="ic">📰</span><b>뉴스 & 공시 충격도</b><p>주요 경제 뉴스의 영향 종목·영향도를 자동 분석하고, DART·SEC 공시를 충격도 점수로 분류해 오늘 시장에 중요한 것만 추립니다.</p><a href="news.html">뉴스 보기 ›</a></div>
+    <div class="fcard"><span class="ic">📅</span><b>실적 캘린더</b><p>국내·미국 기업의 실적 발표 일정과 FOMC·CPI 같은 경제 이벤트를 한 화면에서 확인할 수 있습니다.</p><a href="calendar.html">캘린더 보기 ›</a></div>
+    <div class="fcard"><span class="ic">🧮</span><b>투자 시뮬레이터</b><p>"만약 그때 샀더라면?" 과거 매수 시뮬레이션, 물타기 계산기, 목표가·적립식 계산으로 투자 아이디어를 실험해볼 수 있어요.</p><a href="simulator.html">시뮬레이터 ›</a></div>
+    <div class="fcard"><span class="ic">🎮</span><b>투자 게임</b><p>가상 자금 1억으로 시작하는 모의투자 리그, 오를까 내릴까 예측 게임, 출석 체크까지 — 부담 없이 시장 감각을 키우는 게임 요소를 담았습니다.</p><a href="league.html">모의투자 리그 ›</a></div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;"><h3>서비스 정보</h3>
+    <div class="inforow"><span class="k">서비스명</span><span class="v">Stocktier (스톡티어)</span></div>
+    <div class="inforow"><span class="k">웹사이트</span><span class="v">https://stocktier.kr</span></div>
+    <div class="inforow"><span class="k">서비스 형태</span><span class="v">무료 · 로그인 없이 전체 기능 이용 가능 (로그인 시 관심종목·게임 기록이 계정에 저장됩니다)</span></div>
+    <div class="inforow"><span class="k">데이터 갱신</span><span class="v">평일 장 마감 후 자동 수집 · 국내 약 2,800종목 + 미국 약 7,000종목</span></div>
+    <div class="inforow"><span class="k">데이터 출처</span><span class="v">네이버 증권 공개 데이터, 금융감독원 DART, 미국 SEC EDGAR, 나스닥 공시, 유럽중앙은행(환율) 등</span></div>
+    <div class="inforow"><span class="k">문의</span><span class="v"><a href="contact.html" style="color:var(--gold);">문의하기 페이지</a> 또는 contact@stocktier.kr</span></div>
+  </div>
+
+  <div class="card" style="border-color:#5a5230;">
+    <h3>⚠️ 꼭 알아두세요</h3>
+    <div style="font-size:12.5px;color:var(--muted);line-height:2.0;">
+      Stocktier의 티어·점수·시그널은 공개 데이터를 가공한 <b style="color:var(--text);">재미용(오락 목적) 지표</b>이며,
+      투자 자문이나 종목 추천이 아닙니다. 데이터 수집 과정의 지연·오류로 실제 시세와 차이가 있을 수 있습니다.
+      투자에 대한 최종 판단과 책임은 이용자 본인에게 있습니다.
+    </div>
+  </div>
+
+  <div class="footer"></div>
+</div>
+
+<script src="data.js"></script>
+<script src="data_us.js"></script>
+<script src="common.js"></script>
+<script>ST.nav("");</script>
+</body>
+</html>
