@@ -104,11 +104,21 @@ window.addEventListener("resize", fitTerm); fitTerm();
 
 const MK = window.STOCK_MARKET || {};
 const KR = (window.ST && ST.KR) || {};
+const US = (window.ST && ST.US) || {};
 const byCode = {}; for (const nm in KR) if (KR[nm][0]) byCode[KR[nm][0]] = { name:nm, e:KR[nm] };
-const majors = Object.keys(KR).map(nm=>({nm,e:KR[nm]})).sort((a,b)=>(b.e[8]||0)-(a.e[8]||0)).slice(0,12);
+const majors = Object.keys(KR).map(nm=>({nm,e:KR[nm]})).sort((a,b)=>(b.e[8]||0)-(a.e[8]||0)).slice(0,8);
+const majorsUS = Object.keys(US).map(k=>({k,e:US[k]})).sort((a,b)=>(b.e[8]||0)-(a.e[8]||0)).slice(0,8);
 const q = new URLSearchParams(location.search);
-let CURCODE = (q.get("k") && KR[decodeURIComponent(q.get("k"))]) ? KR[decodeURIComponent(q.get("k"))][0] : "005930";
+let CURSRC = "kr", CURCODE = "005930";
+{ const kq = q.get("k") ? decodeURIComponent(q.get("k")) : "";
+  if (kq){ const hit = ST.findStock(kq);
+    if (hit){ CURSRC = hit[0]; CURCODE = hit[0]==="kr" ? (KR[hit[1]]||[])[0]||"005930" : hit[1]; } } }
+const isUS = () => CURSRC === "us";
 const wonN = v => v==null?"-":Math.round(v).toLocaleString("ko-KR");
+// 통화 표시: 국내 = 원(정수) · 미국 = $ (소수 둘째 자리)
+const mfmt = v => v==null||isNaN(v) ? "-" : isUS()
+  ? "$"+Number(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})
+  : Math.round(v).toLocaleString("ko-KR");
 const cls = v => v==null?"":v>=0?"up":"down";
 const pct = v => (v>=0?"+":"")+v.toFixed(2)+"%";
 
@@ -147,7 +157,7 @@ function chartSet(bars, name){
   const emp = document.getElementById("cvempty");
   if (!CV.bars){
     emp.style.display = "flex";
-    emp.innerHTML = `<div>📉 이 종목은 차트 데이터가 없어요.<br><span style="font-size:11px;">일봉 차트는 국내 시가총액 상위 종목만 지원합니다 (매일 자동 수집).</span></div>`;
+    emp.innerHTML = `<div>📉 이 종목은 차트 데이터가 없어요.<br><span style="font-size:11px;">일봉 차트는 국내·미국 시가총액 상위 종목을 지원합니다 (매일 자동 수집).</span></div>`;
     ctx.clearRect(0,0,cvs.clientWidth,cvs.clientHeight);
     document.getElementById("cvlegend").innerHTML = "";
     drawPers();
@@ -189,7 +199,7 @@ function drawCV(){
   for (let g=0; g<=4; g++){
     const v = mn+(mx-mn)*g/4, y = Y(v);
     ctx.strokeStyle="#12303a"; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(plotW,y); ctx.stroke();
-    ctx.fillStyle="#5a737d"; ctx.fillText(wonN(v), plotW+6, y+3.5);
+    ctx.fillStyle="#5a737d"; ctx.fillText(mfmt(v), plotW+6, y+3.5);
   }
   // 세로 그리드 + 날짜 라벨
   const step = Math.max(1, Math.ceil(n/(plotW/94)));
@@ -232,8 +242,8 @@ function drawCV(){
     ctx.setLineDash([4,4]); ctx.strokeStyle="#f0c948";
     ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(plotW,y); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle="#f0c948"; rr(plotW+2,y-9,AXW-5,18,4); ctx.fill();
-    ctx.fillStyle="#1a1608"; ctx.font="bold 10px -apple-system,sans-serif";
-    ctx.fillText(wonN(last.c), plotW+8, y+3.5);
+    ctx.fillStyle="#1a1608"; ctx.font="bold 9.5px -apple-system,sans-serif";
+    ctx.fillText(mfmt(last.c), plotW+7, y+3.5);
     ctx.font="10px -apple-system,sans-serif";
   }
   // 십자선 + 가격/날짜 배지
@@ -246,7 +256,7 @@ function drawCV(){
       ctx.setLineDash([]);
       const pv = mn + (1-(CV.hy-4)/priceH)*(mx-mn);
       ctx.fillStyle="#22303c"; rr(plotW+2,CV.hy-9,AXW-5,18,4); ctx.fill();
-      ctx.fillStyle="#cfe4ec"; ctx.fillText(wonN(pv), plotW+8, CV.hy+3.5);
+      ctx.fillStyle="#cfe4ec"; ctx.fillText(mfmt(pv), plotW+7, CV.hy+3.5);
     }
     ctx.setLineDash([]);
     const d = bars[CV.hover].d;
@@ -262,11 +272,11 @@ function legend(i){
   const b = bars[i], p = i>0 ? bars[i-1].c : b.o;
   const ch = b.c-p, chp = p?ch/p*100:0, col = ch>=0?"#4cd7a5":"#f0645a";
   const maStr = MAS.map(([n,c])=>{ const v=smaAt(bars,n,i);
-    return v==null?"":`<span style="color:${c};">MA${n} <b>${wonN(v)}</b></span>`; }).filter(Boolean).join(" · ");
+    return v==null?"":`<span style="color:${c};">MA${n} <b>${mfmt(v)}</b></span>`; }).filter(Boolean).join(" · ");
   document.getElementById("cvlegend").innerHTML =
     `<span style="color:var(--dim);">${b.d.slice(0,4)}.${b.d.slice(4,6)}.${b.d.slice(6,8)}</span>
-     시 <b>${wonN(b.o)}</b> 고 <b style="color:#4cd7a5;">${wonN(b.h)}</b> 저 <b style="color:#f0645a;">${wonN(b.l)}</b>
-     종 <b style="color:${col};">${wonN(b.c)} (${chp>=0?"+":""}${chp.toFixed(2)}%)</b>
+     시 <b>${mfmt(b.o)}</b> 고 <b style="color:#4cd7a5;">${mfmt(b.h)}</b> 저 <b style="color:#f0645a;">${mfmt(b.l)}</b>
+     종 <b style="color:${col};">${mfmt(b.c)} (${chp>=0?"+":""}${chp.toFixed(2)}%)</b>
      · 거래량 <b>${wonN(b.v)}</b> &nbsp; ${maStr}`;
 }
 // ── 인터랙션: 십자선 · 드래그 이동 · 휠 확대/축소 · 터치 이동
@@ -322,13 +332,13 @@ cvs.addEventListener("touchmove", ev => {
 cvs.addEventListener("touchend", () => { CV.drag=null; });
 // ══════════ 차트 엔진 끝 ══════════
 
-async function showSymbol(code){
-  CURCODE = code;
+async function showSymbol(src, code){
+  CURSRC = src || "kr"; CURCODE = code;
   drawWatch();
-  const o = byCode[code];
+  const o = CURSRC==="kr" ? byCode[code] : (US[code] ? { name: ST.displayName("us", code), e: US[code] } : null);
   document.getElementById("symname").textContent = o ? o.name : "종목 정보";
   let bars = null;
-  try { const r = await fetch("ohlc/"+code+".json"); if(r.ok){ const rows=await r.json();
+  try { const r = await fetch((CURSRC==="kr" ? "ohlc/" : "ohlc_us/") + code + ".json"); if(r.ok){ const rows=await r.json();
     bars = rows.map(a=>({d:String(a[0]),o:+a[1],h:+a[2],l:+a[3],c:+a[4],v:+a[5]})).filter(b=>b.c>0); } } catch(e){}
   chartSet(bars, o ? o.name : code);
   renderInd(bars, o);
@@ -337,29 +347,29 @@ async function showSymbol(code){
 
 function renderSum(bars,o){
   const el = document.getElementById("syminfo");
-  if(!bars || bars.length<2){ el.innerHTML = `<div style="font-size:11.5px;color:var(--dim);line-height:1.7;">차트 데이터가 없는 종목이에요.<br>국내 시총 상위 종목만 지원해요.</div>`; return; }
+  if(!bars || bars.length<2){ el.innerHTML = `<div style="font-size:11.5px;color:var(--dim);line-height:1.7;">차트 데이터가 없는 종목이에요.<br>국내·미국 시총 상위 종목을 지원해요.</div>`; return; }
   const L=bars[bars.length-1], P=bars[bars.length-2];
   const ch=L.c-P.c, chp=P.c?ch/P.c*100:0;
   const win=bars.slice(-250), hi=Math.max(...win.map(b=>b.h)), lo=Math.min(...win.map(b=>b.l));
   const rngPos = (hi-lo)? (L.c-lo)/(hi-lo)*100 : 50;
   el.innerHTML = `<div class="sumbox">
-    <div style="display:flex;align-items:baseline;gap:10px;"><b class="num" style="font-size:24px;">${wonN(L.c)}</b><span style="font-size:11px;color:var(--dim);">원</span>
-      <span class="num ${cls(ch)}" style="font-size:12.5px;font-weight:800;margin-left:auto;">${ch>=0?"+":""}${wonN(ch)} (${pct(chp)})</span></div>
+    <div style="display:flex;align-items:baseline;gap:10px;"><b class="num" style="font-size:24px;">${mfmt(L.c)}</b>${isUS()?"":`<span style="font-size:11px;color:var(--dim);">원</span>`}
+      <span class="num ${cls(ch)}" style="font-size:12.5px;font-weight:800;margin-left:auto;">${ch>=0?"+":"-"}${mfmt(Math.abs(ch))} (${pct(chp)})</span></div>
     <div class="sgrid">
-      <span class="k">시가</span><span class="v">${wonN(L.o)}</span>
-      <span class="k">고가</span><span class="v ${cls(L.h-P.c)}">${wonN(L.h)}</span>
-      <span class="k">저가</span><span class="v ${cls(L.l-P.c)}">${wonN(L.l)}</span>
+      <span class="k">시가</span><span class="v">${mfmt(L.o)}</span>
+      <span class="k">고가</span><span class="v ${cls(L.h-P.c)}">${mfmt(L.h)}</span>
+      <span class="k">저가</span><span class="v ${cls(L.l-P.c)}">${mfmt(L.l)}</span>
       <span class="k">거래량</span><span class="v">${wonN(L.v)}</span>
     </div>
     <div style="margin-top:11px;font-size:10px;color:var(--dim);">52주 범위</div>
     <div style="position:relative;height:6px;background:#16303c;border-radius:3px;margin-top:5px;"><div style="position:absolute;left:${rngPos.toFixed(0)}%;top:-3px;width:11px;height:11px;border-radius:50%;background:var(--gold);transform:translateX(-50%);"></div></div>
-    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px;"><span>${wonN(lo)}</span><span>${wonN(hi)}</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px;"><span>${mfmt(lo)}</span><span>${mfmt(hi)}</span></div>
   </div>`;
 }
 
 function renderInd(bars,o){
   const el = document.getElementById("tind");
-  if(!bars || bars.length<30){ el.innerHTML = `<div class="icard" style="grid-column:1/-1;color:var(--dim);font-size:12px;justify-content:center;align-items:center;">이 종목은 지표 계산용 데이터가 없어요 (국내 시총 상위 종목만 지원).</div>`; return; }
+  if(!bars || bars.length<30){ el.innerHTML = `<div class="icard" style="grid-column:1/-1;color:var(--dim);font-size:12px;justify-content:center;align-items:center;">이 종목은 지표 계산용 데이터가 없어요 (국내·미국 시총 상위 종목 지원).</div>`; return; }
   const c = bars.map(b=>b.c);
   const ts = trendScore(c), r = rsi(c), at = atr(bars), L = bars[bars.length-1];
   const atp = L.c ? at/L.c*100 : 0;
@@ -381,7 +391,7 @@ function renderInd(bars,o){
     <div class="icard"><div class="t">RSI (14)</div><b class="big" style="color:${rCol};">${r==null?"-":r.toFixed(1)}</b>
       <div style="font-size:11px;color:${rCol};font-weight:700;margin-top:2px;">${r==null?"":r>=70?"과매수":r<=30?"과매도":"중립"}</div>
       <div class="s">30~70 중간이 안정적</div></div>
-    <div class="icard"><div class="t">변동성 (ATR 14)</div><b class="big">${at==null?"-":wonN(at)}</b>
+    <div class="icard"><div class="t">변동성 (ATR 14)</div><b class="big">${at==null?"-":mfmt(at)}</b>
       <div style="font-size:11px;color:var(--muted);font-weight:700;margin-top:2px;">${atp>3?"높음":atp>1.5?"보통":"낮음"}</div>
       <div class="s">종가 대비 ${atp.toFixed(2)}%</div></div>
     <div class="icard"><div class="t">매수 / 매도 시그널</div>
@@ -389,7 +399,7 @@ function renderInd(bars,o){
       <div style="display:flex;gap:10px;font-size:11px;font-weight:700;margin-top:6px;"><span style="color:#4cd7a5;">매수 ${buy}</span><span style="color:#f0c948;">중립 ${neu}</span><span style="color:#f0645a;">매도 ${sell}</span></div>
       <div class="s">단기 신호 종합</div></div>
     <div class="icard"><div class="t">주요 저항 / 지지</div>
-      <div style="margin-top:2px;">${sr.map(([k,v])=>`<div class="srrow"><span style="color:${k[0]==="R"?"#f0708a":k[0]==="S"?"#4cd7a5":"var(--gold)"};font-weight:700;">${k}</span><span class="num" style="font-weight:700;">${wonN(v)}</span></div>`).join("")}</div></div>`;
+      <div style="margin-top:2px;">${sr.map(([k,v])=>`<div class="srrow"><span style="color:${k[0]==="R"?"#f0708a":k[0]==="S"?"#4cd7a5":"var(--gold)"};font-weight:700;">${k}</span><span class="num" style="font-weight:700;">${mfmt(v)}</span></div>`).join("")}</div></div>`;
 }
 
 function drawWatch(){
@@ -400,13 +410,17 @@ function drawWatch(){
     <span class="px num">${o.price!=null?Number(o.price).toLocaleString("ko-KR"):"-"}</span>
     <span class="ch num ${cls(o.ratio)}">${o.ratio!=null?pct(o.ratio):""}</span></div>`).join("");
   const fxHtml = MK.fx ? `<div class="wrow"><span class="nm">USD/KRW</span><span class="px num">${Number(MK.fx).toLocaleString("ko-KR")}</span><span class="ch num" style="color:var(--dim);">환율</span></div>` : "";
-  const majHtml = majors.map(m=>{ const e=m.e, on=e[0]===CURCODE;
-    return `<div class="wrow clk ${on?"on":""}" onclick="chSym('${e[0]}')"><span class="nm">${m.nm}</span>
+  const majHtml = majors.map(m=>{ const e=m.e, on=CURSRC==="kr"&&e[0]===CURCODE;
+    return `<div class="wrow clk ${on?"on":""}" onclick="chSym('kr','${e[0]}')"><span class="nm">${m.nm}</span>
       <span class="px num">${wonN(e[2])}</span><span class="ch num ${cls(e[3])}">${e[3]!=null?pct(e[3]):""}</span></div>`; }).join("");
+  const majUsHtml = majorsUS.map(m=>{ const e=m.e, on=CURSRC==="us"&&m.k===CURCODE;
+    return `<div class="wrow clk ${on?"on":""}" onclick="chSym('us','${m.k}')"><span class="nm">${ST.displayName("us",m.k)}</span>
+      <span class="px num">$${Number(e[2]).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}</span><span class="ch num ${cls(e[3])}">${e[3]!=null?pct(e[3]):""}</span></div>`; }).join("");
   document.getElementById("watch").innerHTML =
     (idxHtml?`<div class="wgrp">국내 지수</div>${idxHtml}`:"") +
     (fxHtml?`<div class="wgrp">환율</div>${fxHtml}`:"") +
-    `<div class="wgrp">주요 종목</div>${majHtml || `<div style="font-size:11px;color:var(--dim);padding:4px 6px;">데이터 로딩 중…</div>`}`;
+    `<div class="wgrp">국내 주요 종목</div>${majHtml || `<div style="font-size:11px;color:var(--dim);padding:4px 6px;">데이터 로딩 중…</div>`}` +
+    (majUsHtml?`<div class="wgrp">미국 주요 종목</div>${majUsHtml}`:"");
 }
 
 function drawNews(){
@@ -417,20 +431,21 @@ function drawNews(){
 }
 
 // 종목 변경(관심종목 클릭·검색)
-function chSym(code){ showSymbol(code); }
+function chSym(src, code){ showSymbol(src, code); }
 window.chSym = chSym;
 
-// 사이드바 검색
+// 사이드바 검색 (국내 + 미국)
 const csq = document.getElementById("csq"), csg = document.getElementById("csg");
-csq.addEventListener("input", ()=>{ const v=csq.value.trim().toLowerCase(); if(!v){ csg.style.display="none"; return; }
-  const hits=[]; for(const nm in KR){ if(nm.toLowerCase().includes(v)||String(KR[nm][0]).includes(v)){ hits.push([nm,KR[nm][0]]); if(hits.length>=12)break; } }
-  csg.innerHTML = hits.map(([nm,cd])=>`<a onclick="pickSym('${cd}')">${nm} <span style="color:var(--dim);font-size:10px;">${cd}</span></a>`).join("");
+csq.addEventListener("input", ()=>{ const v=csq.value.trim(); if(!v){ csg.style.display="none"; return; }
+  const hits = ST.suggestions(v, 12);
+  csg.innerHTML = hits.map(([src,k])=>{ const id = src==="kr" ? KR[k][0] : k;
+    return `<a onclick="pickSym('${src}','${String(id).replace(/'/g,"\\'")}')">${ST.displayName(src,k)} <span style="color:var(--dim);font-size:10px;">${id} · ${src==="us"?"미국":"국내"}</span></a>`; }).join("");
   csg.style.display = hits.length?"block":"none"; });
 document.addEventListener("click", e=>{ if(!e.target.closest(".cssearch")) csg.style.display="none"; });
-window.pickSym = cd => { csq.value=""; csg.style.display="none"; chSym(cd); };
+window.pickSym = (src, cd) => { csq.value=""; csg.style.display="none"; chSym(src, cd); };
 
 drawPers();
-drawWatch(); drawNews(); showSymbol(CURCODE);
+drawWatch(); drawNews(); showSymbol(CURSRC, CURCODE);
 requestAnimationFrame(cvResize);
 </script>
 </body>
