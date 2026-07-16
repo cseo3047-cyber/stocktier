@@ -257,7 +257,8 @@ def earn_news(top_stocks):
             except ValueError:
                 pass
         if not ds:
-            m = re.search(r"(?:오는|이달|내달)\s*(\d{1,2})\s*일", t)
+            # "오는 30일" / "이달 30일" / 그냥 "30일 발표"처럼 월 없이 날짜만 있는 제목도 인식
+            m = re.search(r"(?:오는|이달|내달)\s*(\d{1,2})\s*일", t) or re.search(r"(\d{1,2})\s*일", t)
             if m:
                 dd = int(m.group(1))
                 for mo in (today.month, today.month % 12 + 1):
@@ -271,21 +272,56 @@ def earn_news(top_stocks):
                         pass
         return ds
 
+    def body_dates(href):
+        """기사 본문에서 '실적/발표' 주변의 날짜 추출 (내부 판독용 — 본문은 저장·표시하지 않음)"""
+        try:
+            url = href if href.startswith("http") else "https://finance.naver.com" + href
+            r2 = requests.get(url, headers=PC_HEADERS, timeout=12)
+            r2.encoding = "euc-kr"
+            txt = re.sub(r"<script[^>]*>.*?</script>", " ", r2.text, flags=re.S)
+            txt = re.sub(r"<[^>]+>", " ", txt)
+            txt = _h.unescape(re.sub(r"\s+", " ", txt))
+            found = set()
+            # '실적'과 '발표/공시/컨콜'이 근처(±80자)에 있는 'M월 D일'만 채택
+            for m in re.finditer(r"(\d{1,2})\s*월\s*(\d{1,2})\s*일", txt):
+                ctx = txt[max(0, m.start()-80): m.end()+80]
+                if "실적" not in ctx or not re.search(r"발표|공시|컨퍼런스|컨콜|어닝", ctx):
+                    continue
+                try:
+                    d = datetime.date(today.year, int(m.group(1)), int(m.group(2)))
+                    if d < today - datetime.timedelta(days=5):
+                        d = datetime.date(today.year + 1, int(m.group(1)), int(m.group(2)))
+                    found.add(d)
+                except ValueError:
+                    pass
+            return found
+        except Exception:
+            return set()
+
     for st in top_stocks:
         code, name = st["code"], st["name"]
         try:
             r = requests.get(f"https://finance.naver.com/item/news_news.naver?code={code}&page=1",
                              headers=PC_HEADERS, timeout=12)
             r.encoding = "euc-kr"
-            titles = [_h.unescape(re.sub(r"<[^>]+>", "", t)).strip()
-                      for t in re.findall(r'class="title">\s*<a[^>]*>(.*?)</a>', r.text, re.S)][:20]
+            arts = []   # (제목, 링크)
+            for m in re.finditer(r'class="title[^"]*">\s*<a[^>]*href="([^"]+)"[^>]*>(.*?)</a>', r.text, re.S):
+                t = _h.unescape(re.sub(r"<[^>]+>", "", m.group(2))).strip()
+                if t:
+                    arts.append((t, _h.unescape(m.group(1))))
             votes = {}
-            for t in titles:
-                if "실적" not in t or not re.search(r"발표|컨퍼런스|컨콜|공시|어닝", t):
+            fetched = 0
+            for t, href in arts[:20]:
+                if "실적" not in t or not re.search(r"발표|컨퍼런스|컨콜|공시|어닝|잠정", t):
                     continue
-                for d in parse_dates(t):
-                    if today <= d <= lim:
-                        votes[d] = votes.get(d, 0) + 1
+                ds = set(d for d in parse_dates(t) if today <= d <= lim)
+                # 제목에 날짜가 없으면 본문에서 추출 (종목당 최대 3건만)
+                if not ds and fetched < 3:
+                    fetched += 1
+                    ds = set(d for d in body_dates(href) if today <= d <= lim)
+                    time.sleep(0.1)
+                for d in ds:
+                    votes[d] = votes.get(d, 0) + 1
             if votes:
                 best = max(votes.items(), key=lambda kv: kv[1])
                 if best[1] >= 2:   # 2개 이상 기사에서 같은 날짜 → 채택
@@ -685,6 +721,7 @@ def market_extra():
     #    형식: "종목코드": "YYYYMMDD" — 분기마다 갱신
     EARN_FIX = {
         "000660": "20260722",   # SK하이닉스 (확정 IR 일정)
+        "005930": "20260730",   # 삼성전자 (확정 IR 일정)
     }
     tstr = datetime.date.today().strftime("%Y%m%d")
     mk["earn"] = {k: v for k, v in EARN_FIX.items() if v >= tstr}
